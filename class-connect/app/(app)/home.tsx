@@ -6,15 +6,15 @@ import React from "react"
 export default function HomeScreen() {
   return (
     <View style={styles.container}>
-      <Title style={styles.title}>Bienvenido</Title>
+      <Title style={styles.title}>Bienvenido/a</Title>
 
       <Card style={styles.card}>
         <Card.Content>
           <Text style={styles.userTypeText}>
-            Has iniciado sesión como: <Text style={styles.userType}>Alumno</Text>
+            Iniciaste sesión como:
           </Text>
           <Text style={styles.infoText}>
-            Esta es la pantalla principal de la aplicación. Aquí se mostrarán las clases y funcionalidades según tu rol.
+            Esta es la pantalla principal de la aplicación.
           </Text>
         </Card.Content>
       </Card>
