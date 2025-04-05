@@ -1,38 +1,35 @@
 import React from 'react';
-import { View, StyleSheet, Image, Text } from 'react-native';
-import { Button, Title } from 'react-native-paper';
-import { useRouter } from 'expo-router';
+import { View, StyleSheet, Image } from 'react-native';
+import { Button, Title, Text } from 'react-native-paper';
 import { Link } from 'expo-router';
-
-
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
 
 export default function RootIndex() {
-  const router = useRouter();
-
   return (
-    <View style={styles.container}>
+    <ThemedView style={styles.container}>
       {/* Logo */}
       <Image source={require('../assets/images/react-logo.png')} style={styles.logo} />
-      <Title style={styles.title}>ClassConnect</Title>
+      <ThemedText style={styles.title}>ClassConnect</ThemedText>
 
       {/* Botones */}
-      <View style={styles.registerContainer}>
-        <Text>¿Ya tienes una cuenta? </Text>
+      <ThemedView style={styles.registerContainer}>
+        <ThemedText>¿Ya tienes una cuenta? </ThemedText>
         <Link href="/(auth)/login" asChild>
           <Button mode="text" compact>
             Inicia Sesión
           </Button>
         </Link>
-      </View>
-      <View style={styles.registerContainer}>
-        <Text>¿No tienes una cuenta? </Text>
+      </ThemedView>
+      <ThemedView style={styles.registerContainer}>
+        <ThemedText>¿No tienes una cuenta? </ThemedText>
         <Link href="/(auth)/register" asChild>
           <Button mode="text" compact>
             Regístrate
           </Button>
         </Link>
-      </View>
-    </View>
+      </ThemedView>
+    </ThemedView>
   );
 }
 

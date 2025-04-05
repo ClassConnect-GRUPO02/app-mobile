@@ -3,6 +3,9 @@ import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from "re
 import { TextInput, Button, Text, Title } from "react-native-paper"
 import { Link } from "expo-router"
 import React from "react"
+import { ThemedText } from '@/components/ThemedText';
+import { ThemedView } from '@/components/ThemedView';
+
 
 export default function LoginScreen() {
   const [email, setEmail] = useState("")
@@ -11,11 +14,11 @@ export default function LoginScreen() {
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.logoContainer}>
-          <Title style={styles.title}>Aplicación de Clases</Title>
-        </View>
+        <ThemedView style={styles.logoContainer}>
+          <ThemedText style={styles.title}>Aplicación de Clases</ThemedText>
+        </ThemedView>
 
-        <View style={styles.formContainer}>
+        <ThemedView style={styles.formContainer}>
           <TextInput
             label="Correo electrónico"
             value={email}
@@ -41,15 +44,15 @@ export default function LoginScreen() {
             Iniciar Sesión
           </Button>
 
-          <View style={styles.registerContainer}>
-            <Text>¿No tienes una cuenta? </Text>
+          <ThemedView style={styles.registerContainer}>
+            <ThemedText>¿No tienes una cuenta? </ThemedText>
             <Link href="/(auth)/register" asChild>
               <Button mode="text" compact>
                 Regístrate
               </Button>
             </Link>
-          </View>
-        </View>
+          </ThemedView>
+        </ThemedView>
       </ScrollView>
     </KeyboardAvoidingView>
   )
@@ -58,7 +61,7 @@ export default function LoginScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    // backgroundColor: "#f5f5f5",
   },
   scrollContainer: {
     flexGrow: 1,
@@ -75,7 +78,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   formContainer: {
-    backgroundColor: "white",
+    // backgroundColor: "white",
     padding: 20,
     borderRadius: 10,
     elevation: 3,
