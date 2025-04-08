@@ -1,7 +1,7 @@
 import { useState } from "react"
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from "react-native"
-import { TextInput, Button, Text, Title, RadioButton } from "react-native-paper"
-import { Link } from "expo-router"
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native"
+import { TextInput, Button, Text, Title, RadioButton, ActivityIndicator } from "react-native-paper"
+import { Link, router } from "expo-router"
 import React from "react"
 
 export default function RegisterScreen() {
@@ -10,6 +10,66 @@ export default function RegisterScreen() {
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [userType, setUserType] = useState("alumno")
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState("")
+
+  const validateForm = () => {
+    if (!name || !email || !password || !confirmPassword) {
+      setError("Por favor, completa todos los campos.")
+      return false
+    }
+
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden")
+      return false
+    }
+
+    const emailRegex = /\S+@\S+\.\S+/
+    if (!emailRegex.test(email)) {
+      setError("El correo electrónico no es válido")
+      return false
+    }
+    
+    setError("")
+    return true
+  }
+
+  const handleRegister = async () => {
+    if (!validateForm()) return
+    
+    setLoading(true)
+    try {
+      
+      const apiUrl = 'http://localhost:8080/users' //CAMBIAR ESTO
+      
+      const response = await fetch(apiUrl, {
+        method: 'POST',
+        body: JSON.stringify({
+          name,
+          email,
+          password,
+          userType
+        }),
+      })
+
+      const data = await response.json()
+      if (!response.ok) {
+        throw new Error(data.message || 'Error al registrar usuario')
+      }
+      
+      // Registro exitoso
+      Alert.alert(
+        "Registro exitoso",
+        "Tu cuenta ha sido creada correctamente",
+        [{ text: "OK", onPress: () => router.push('/(auth)/login') }]
+      )
+    } catch (error) {
+      console.error('Error:', error)
+      setError((error as Error).message || 'Ocurrió un error al conectar con el servidor')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
@@ -19,6 +79,8 @@ export default function RegisterScreen() {
         </View>
 
         <View style={styles.formContainer}>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          
           <TextInput
             label="Nombre completo"
             value={name}
@@ -73,8 +135,13 @@ export default function RegisterScreen() {
             </View>
           </RadioButton.Group>
 
-          <Button mode="contained" onPress={() => {}} style={styles.button}>
-            Registrarse
+          <Button 
+            mode="contained" 
+            onPress={handleRegister} 
+            style={styles.button}
+            disabled={loading}
+          >
+            {loading ? <ActivityIndicator color="#fff" /> : "Registrarse"}
           </Button>
 
           <View style={styles.loginContainer}>
@@ -144,5 +211,10 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 20,
   },
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
+    textAlign: 'center',
+  }
 })
 
