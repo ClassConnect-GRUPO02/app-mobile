@@ -1,75 +1,68 @@
-import { useState } from "react"
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native"
-import { TextInput, Button, Text, Title, RadioButton, ActivityIndicator } from "react-native-paper"
-import { Link, router } from "expo-router"
-import React from "react"
+import React, { useState } from "react";
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native";
+import { TextInput, Button, Text, Title, RadioButton, ActivityIndicator } from "react-native-paper";
+import { Link, router } from "expo-router";
+import { userApi, UserRegisterData } from "../../api/userApi"; // Importa el API de usuarios simplificado
 
-export default function RegisterScreen() {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [userType, setUserType] = useState("alumno")
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState("")
+export default function RegisterScreen(): React.JSX.Element {
+  const [name, setName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [userType, setUserType] = useState<string>("alumno");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
 
-  const validateForm = () => {
+  const validateForm = (): boolean => {
     if (!name || !email || !password || !confirmPassword) {
-      setError("Por favor, completa todos los campos.")
-      return false
+      setError("Por favor, completa todos los campos.");
+      return false;
     }
 
     if (password !== confirmPassword) {
-      setError("Las contraseñas no coinciden")
-      return false
+      setError("Las contraseñas no coinciden");
+      return false;
     }
 
-    const emailRegex = /\S+@\S+\.\S+/
+    const emailRegex = /\S+@\S+\.\S+/;
     if (!emailRegex.test(email)) {
-      setError("El correo electrónico no es válido")
-      return false
+      setError("El correo electrónico no es válido");
+      return false;
     }
     
-    setError("")
-    return true
-  }
+    setError("");
+    return true;
+  };
 
-  const handleRegister = async () => {
-    if (!validateForm()) return
+  const handleRegister = async (): Promise<void> => {
+    if (!validateForm()) return;
     
-    setLoading(true)
+    setLoading(true);
     try {
+      // Preparar datos del usuario con la interfaz simplificada
+      const userData: UserRegisterData = {
+        name,
+        email,
+        password,
+        userType
+      };
       
-      const apiUrl = 'http://localhost:8080/users' //CAMBIAR ESTO
-      
-      const response = await fetch(apiUrl, {
-        method: 'POST',
-        body: JSON.stringify({
-          name,
-          email,
-          password,
-          userType
-        }),
-      })
-
-      const data = await response.json()
-      if (!response.ok) {
-        throw new Error(data.message || 'Error al registrar usuario')
-      }
+      // Usa el cliente API simplificado para registrar al usuario
+      await userApi.register(userData);
       
       // Registro exitoso
       Alert.alert(
         "Registro exitoso",
         "Tu cuenta ha sido creada correctamente",
         [{ text: "OK", onPress: () => router.push('/(auth)/login') }]
-      )
+      );
     } catch (error) {
-      console.error('Error:', error)
-      setError((error as Error).message || 'Ocurrió un error al conectar con el servidor')
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'Ocurrió un error al conectar con el servidor');
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
-  }
+  };
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
@@ -155,7 +148,7 @@ export default function RegisterScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -216,5 +209,4 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: 'center',
   }
-})
-
+});
