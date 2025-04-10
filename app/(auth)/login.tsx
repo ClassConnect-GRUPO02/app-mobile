@@ -1,12 +1,60 @@
-import { useState } from "react"
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from "react-native"
-import { TextInput, Button, Text, Title } from "react-native-paper"
-import { Link } from "expo-router"
-import React from "react"
+import React, { useState } from "react";
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native";
+import { TextInput, Button, Text, Title, ActivityIndicator } from "react-native-paper";
+import { Link, router } from "expo-router";
+import { authClient, LoginRequest, ApiError } from "../../api/user-client";
 
 export default function LoginScreen() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState("");
+
+  const validateForm = (): boolean => {
+    if (!email || !password) {
+      setError("Por favor, ingresa tu correo y contraseña");
+      return false;
+    }
+
+    const emailRegex = /\S+@\S+\.\S+/;
+    if (!emailRegex.test(email)) {
+      setError("El correo electrónico no es válido");
+      return false;
+    }
+
+    setError("");
+    return true;
+  };
+
+  const handleLogin = async () => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      const credentials: LoginRequest = {
+        email,
+        password
+      };
+
+      const response = await authClient.login(credentials);
+      
+      Alert.alert(
+        "Inicio de sesión exitoso",
+        response.description,
+        [{ text: "OK", onPress: () => router.replace("/(app)/") }]
+      );
+    } catch (error) {
+      console.error('Error de inicio de sesión:', error);
+      
+      if ((error as ApiError).detail) {
+        setError((error as ApiError).detail);
+      } else {
+        setError(error instanceof Error ? error.message : 'Error al iniciar sesión');
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
@@ -16,6 +64,8 @@ export default function LoginScreen() {
         </View>
 
         <View style={styles.formContainer}>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          
           <TextInput
             label="Correo electrónico"
             value={email}
@@ -37,8 +87,13 @@ export default function LoginScreen() {
             left={<TextInput.Icon icon="lock" />}
           />
 
-          <Button mode="contained" onPress={() => {}} style={styles.button}>
-            Iniciar Sesión
+          <Button 
+            mode="contained" 
+            onPress={handleLogin} 
+            style={styles.button}
+            disabled={loading}
+          >
+            {loading ? <ActivityIndicator color="#fff" /> : "Iniciar Sesión"}
           </Button>
 
           <View style={styles.registerContainer}>
@@ -52,7 +107,7 @@ export default function LoginScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -97,5 +152,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 20,
   },
-})
-
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
+    textAlign: 'center',
+  }
+});
