@@ -3,35 +3,48 @@ import { StyleSheet, View, FlatList, SafeAreaView } from "react-native"
 import { Text, ActivityIndicator } from "react-native-paper"
 import { StatusBar } from "expo-status-bar"
 import {CourseCard} from "@/components/courses/CourseCard";
-import {courses} from "@/app/data/courses";
 import {CourseFilters} from "@/components/courses/CourseFilters";
 import React from "react";
 import {Course} from "@/app/data/Course";
+import {CourseClient} from "@/app/clients/CoursesClient";
 
 export default function HomeScreen() {
     const [loading, setLoading] = useState(true)
     const [filteredCourses, setFilteredCourses] = useState<Course[]>([])
+    const [allCourses, setAllCourses] = useState<Course[]>([])
     const [searchQuery, setSearchQuery] = useState("")
     const [selectedCategory, setSelectedCategory] = useState<string | null>(null)
     const [selectedLevel, setSelectedLevel] = useState<string | null>(null)
     const [selectedModality, setSelectedModality] = useState<string | null>(null)
+    const [error, setError] = useState<string | null>(null)
 
     // simula la carga de datos
     useEffect(() => {
-        const timer = setTimeout(() => {
-            setLoading(false)
-            setFilteredCourses(courses)
-        }, 1000)
+        const fetchCourses = async () => {
+            try {
+                setLoading(true)
+                const coursesData = await CourseClient.getAllCourses()
+                setAllCourses(coursesData)
+                setFilteredCourses(coursesData)
+                setError(null)
+            } catch (err) {
+                console.error("Error fetching courses:", err)
+                setError("No se pudieron cargar los cursos")
+            } finally {
+                setLoading(false)
+            }
+        }
 
-        return () => clearTimeout(timer)
+        fetchCourses()
     }, [])
 
-    // use effect para actualizar los cursos filtrados
+    // Filtrar cursos cuando cambian los filtros
     useEffect(() => {
         if (loading) return
 
-        let result = [...courses]
+        let result = [...allCourses]
 
+        // Filtrar por búsqueda
         if (searchQuery) {
             const query = searchQuery.toLowerCase()
             result = result.filter(
@@ -39,26 +52,37 @@ export default function HomeScreen() {
             )
         }
 
+        // Filtrar por categoría
         if (selectedCategory) {
             result = result.filter((course) => course.category === selectedCategory)
         }
 
+        // Filtrar por nivel
         if (selectedLevel) {
             result = result.filter((course) => course.level === selectedLevel)
         }
 
+        // Filtrar por modalidad
         if (selectedModality) {
             result = result.filter((course) => course.modality === selectedModality)
         }
 
         setFilteredCourses(result)
-    }, [searchQuery, selectedCategory, selectedLevel, selectedModality, loading])
+    }, [searchQuery, selectedCategory, selectedLevel, selectedModality, allCourses])
 
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#6200ee" />
                 <Text style={styles.loadingText}>Cargando cursos...</Text>
+            </View>
+        )
+    }
+
+    if (error) {
+        return (
+            <View style={styles.errorContainer}>
+                <Text style={styles.errorText}>{error}</Text>
             </View>
         )
     }
@@ -119,6 +143,17 @@ const styles = StyleSheet.create({
     },
     loadingText: {
         marginTop: 16,
+        fontSize: 16,
+    },
+    errorContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    errorText: {
+        color: "red",
+        textAlign: "center",
         fontSize: 16,
     },
     header: {
