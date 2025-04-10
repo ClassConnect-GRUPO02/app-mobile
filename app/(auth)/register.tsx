@@ -2,7 +2,7 @@ import React, { useState } from "react";
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native";
 import { TextInput, Button, Text, Title, RadioButton, ActivityIndicator } from "react-native-paper";
 import { Link, router } from "expo-router";
-import { authClient, User, ApiError } from "../../api/user-client"; // Importamos el nuevo cliente de autenticación
+import { userApi, UserRegisterData } from "../../api/userApi"; // Importa el API de usuarios simplificado
 
 export default function RegisterScreen(): React.JSX.Element {
   const [name, setName] = useState<string>("");
@@ -39,32 +39,26 @@ export default function RegisterScreen(): React.JSX.Element {
     
     setLoading(true);
     try {
-      // Preparar datos del usuario según la interfaz User de authClient
-      const userData: User = {
+      // Preparar datos del usuario con la interfaz simplificada
+      const userData: UserRegisterData = {
         name,
         email,
         password,
         userType
       };
       
-      // Usar el nuevo authClient para registrar al usuario
-      const response = await authClient.register(userData);
+      // Usa el cliente API simplificado para registrar al usuario
+      await userApi.register(userData);
       
       // Registro exitoso
       Alert.alert(
         "Registro exitoso",
-        `Tu cuenta ha sido creada correctamente: ${response.description}`,
+        "Tu cuenta ha sido creada correctamente",
         [{ text: "OK", onPress: () => router.push('/(auth)/login') }]
       );
     } catch (error) {
-      console.error('Error durante el registro:', error);
-      
-      // Manejar errores específicos de la API
-      if ((error as ApiError).detail) {
-        setError((error as ApiError).detail);
-      } else {
-        setError(error instanceof Error ? error.message : 'Ocurrió un error al conectar con el servidor');
-      }
+      console.error('Error:', error);
+      setError(error instanceof Error ? error.message : 'Ocurrió un error al conectar con el servidor');
     } finally {
       setLoading(false);
     }

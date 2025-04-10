@@ -2,17 +2,18 @@ import React, { useState } from "react";
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native";
 import { TextInput, Button, Text, Title, ActivityIndicator } from "react-native-paper";
 import { Link, router } from "expo-router";
-import { authClient, LoginRequest, ApiError } from "../../api/user-client";
+import { userApi } from "../../api/userApi";
+//import type { LoginRequest, ApiError } from "../../api/client";
 
-export default function LoginScreen() {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState("");
+export default function LoginScreen(): React.JSX.Element {
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
 
   const validateForm = (): boolean => {
     if (!email || !password) {
-      setError("Por favor, ingresa tu correo y contraseña");
+      setError("Por favor, completa todos los campos.");
       return false;
     }
 
@@ -21,46 +22,49 @@ export default function LoginScreen() {
       setError("El correo electrónico no es válido");
       return false;
     }
-
+    
     setError("");
     return true;
   };
 
-  const handleLogin = async () => {
+  /*const handleLogin = async (): Promise<void> => {
     if (!validateForm()) return;
-
+    
     setLoading(true);
     try {
       const credentials: LoginRequest = {
         email,
         password
       };
-
-      const response = await authClient.login(credentials);
       
+      const response = await userApi.login(credentials);
+      await userApi.storeToken(response.token);
+      
+      // Login exitoso
       Alert.alert(
         "Inicio de sesión exitoso",
-        response.description,
-        [{ text: "OK", onPress: () => router.replace("/(app)/") }]
+        "Has iniciado sesión correctamente",
+        [{ text: "OK", onPress: () => router.replace('/(app)') }]
       );
     } catch (error) {
-      console.error('Error de inicio de sesión:', error);
+      console.error('Error durante el inicio de sesión:', error);
       
+      // Manejar errores específicos de la API
       if ((error as ApiError).detail) {
         setError((error as ApiError).detail);
       } else {
-        setError(error instanceof Error ? error.message : 'Error al iniciar sesión');
+        setError(error instanceof Error ? error.message : 'Ocurrió un error al conectar con el servidor');
       }
     } finally {
       setLoading(false);
     }
   };
-
+*/
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.logoContainer}>
-          <Title style={styles.title}>Aplicación de Clases</Title>
+          <Title style={styles.title}>Iniciar Sesión</Title>
         </View>
 
         <View style={styles.formContainer}>
@@ -89,7 +93,8 @@ export default function LoginScreen() {
 
           <Button 
             mode="contained" 
-            onPress={handleLogin} 
+            onPress={() => {
+            }} 
             style={styles.button}
             disabled={loading}
           >
@@ -100,7 +105,7 @@ export default function LoginScreen() {
             <Text>¿No tienes una cuenta? </Text>
             <Link href="/(auth)/register" asChild>
               <Button mode="text" compact>
-                Regístrate
+                Registrarse
               </Button>
             </Link>
           </View>
@@ -122,12 +127,11 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 30,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginTop: 10,
   },
   formContainer: {
     backgroundColor: "white",
