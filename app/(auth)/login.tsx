@@ -1,6 +1,19 @@
 import React, { useState } from "react";
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native";
-import { TextInput, Button, Text, Title, ActivityIndicator } from "react-native-paper";
+import {
+  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
+} from "react-native";
+import {
+  TextInput,
+  Button,
+  Text,
+  Title,
+  ActivityIndicator,
+} from "react-native-paper";
 import { Link, router } from "expo-router";
 import { userApi } from "../../api/userApi";
 //import type { LoginRequest, ApiError } from "../../api/client";
@@ -22,46 +35,43 @@ export default function LoginScreen(): React.JSX.Element {
       setError("El correo electrónico no es válido");
       return false;
     }
-    
+
     setError("");
     return true;
   };
 
-  /*const handleLogin = async (): Promise<void> => {
+  const handleLogin = async (): Promise<void> => {
     if (!validateForm()) return;
-    
+
     setLoading(true);
     try {
-      const credentials: LoginRequest = {
-        email,
-        password
-      };
-      
+      const credentials = { email, password };
       const response = await userApi.login(credentials);
       await userApi.storeToken(response.token);
-      
-      // Login exitoso
+
       Alert.alert(
         "Inicio de sesión exitoso",
         "Has iniciado sesión correctamente",
-        [{ text: "OK", onPress: () => router.replace('/(app)') }]
+        [{ text: "OK", onPress: () => router.replace("/(app)") }]
       );
     } catch (error) {
-      console.error('Error durante el inicio de sesión:', error);
-      
-      // Manejar errores específicos de la API
-      if ((error as ApiError).detail) {
-        setError((error as ApiError).detail);
+      console.error("Error durante el inicio de sesión:", error);
+
+      if (error instanceof Error) {
+        setError(error.message);
       } else {
-        setError(error instanceof Error ? error.message : 'Ocurrió un error al conectar con el servidor');
+        setError("Ocurrió un error al conectar con el servidor");
       }
     } finally {
       setLoading(false);
     }
   };
-*/
+
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.logoContainer}>
           <Title style={styles.title}>Iniciar Sesión</Title>
@@ -69,7 +79,7 @@ export default function LoginScreen(): React.JSX.Element {
 
         <View style={styles.formContainer}>
           {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          
+
           <TextInput
             label="Correo electrónico"
             value={email}
@@ -91,10 +101,9 @@ export default function LoginScreen(): React.JSX.Element {
             left={<TextInput.Icon icon="lock" />}
           />
 
-          <Button 
-            mode="contained" 
-            onPress={() => {
-            }} 
+          <Button
+            mode="contained"
+            onPress={handleLogin}
             style={styles.button}
             disabled={loading}
           >
@@ -157,8 +166,8 @@ const styles = StyleSheet.create({
     marginTop: 20,
   },
   errorText: {
-    color: 'red',
+    color: "red",
     marginBottom: 10,
-    textAlign: 'center',
-  }
+    textAlign: "center",
+  },
 });

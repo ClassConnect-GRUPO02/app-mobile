@@ -1,5 +1,5 @@
 const getBaseUrl = (): string => {
-    const LOCAL_IP = '192.168.1.X'; // Reemplaza X con tu número de IP
+    const LOCAL_IP = '192.168.89.21'; // Reemplaza X con tu número de IP
     return `http://${LOCAL_IP}:8080`;
   };
   
