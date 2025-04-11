@@ -1,21 +1,85 @@
-import { useState } from "react"
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from "react-native"
-import { TextInput, Button, Text, Title } from "react-native-paper"
-import { Link } from "expo-router"
-import React from "react"
+import React, { useState } from "react";
+import {
+  View,
+  StyleSheet,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  Alert,
+} from "react-native";
+import {
+  TextInput,
+  Button,
+  Text,
+  Title,
+  ActivityIndicator,
+} from "react-native-paper";
+import { Link, router } from "expo-router";
+import { userApi } from "../../api/userApi";
+//import type { LoginRequest, ApiError } from "../../api/client";
 
-export default function LoginScreen() {
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
+export default function LoginScreen(): React.JSX.Element {
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+
+  const validateForm = (): boolean => {
+    if (!email || !password) {
+      setError("Por favor, completa todos los campos.");
+      return false;
+    }
+
+    const emailRegex = /\S+@\S+\.\S+/;
+    if (!emailRegex.test(email)) {
+      setError("El correo electrónico no es válido");
+      return false;
+    }
+
+    setError("");
+    return true;
+  };
+
+  const handleLogin = async (): Promise<void> => {
+    if (!validateForm()) return;
+
+    setLoading(true);
+    try {
+      const credentials = { email, password };
+      const response = await userApi.login(credentials);
+      await userApi.storeToken(response.token);
+
+      Alert.alert(
+        "Inicio de sesión exitoso",
+        "Has iniciado sesión correctamente",
+        [{ text: "OK", onPress: () => router.replace("/(app)") }]
+      );
+    } catch (error) {
+      console.error("Error durante el inicio de sesión:", error);
+
+      if (error instanceof Error) {
+        setError(error.message);
+      } else {
+        setError("Ocurrió un error al conectar con el servidor");
+      }
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
-    <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : "height"}
+      style={styles.container}
+    >
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.logoContainer}>
-          <Title style={styles.title}>Aplicación de Clases</Title>
+          <Title style={styles.title}>Iniciar Sesión</Title>
         </View>
 
         <View style={styles.formContainer}>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+
           <TextInput
             label="Correo electrónico"
             value={email}
@@ -37,22 +101,27 @@ export default function LoginScreen() {
             left={<TextInput.Icon icon="lock" />}
           />
 
-          <Button mode="contained" onPress={() => {}} style={styles.button}>
-            Iniciar Sesión
+          <Button
+            mode="contained"
+            onPress={handleLogin}
+            style={styles.button}
+            disabled={loading}
+          >
+            {loading ? <ActivityIndicator color="#fff" /> : "Iniciar Sesión"}
           </Button>
 
           <View style={styles.registerContainer}>
             <Text>¿No tienes una cuenta? </Text>
             <Link href="/(auth)/register" asChild>
               <Button mode="text" compact>
-                Regístrate
+                Registrarse
               </Button>
             </Link>
           </View>
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -67,12 +136,11 @@ const styles = StyleSheet.create({
   },
   logoContainer: {
     alignItems: "center",
-    marginBottom: 40,
+    marginBottom: 30,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
-    marginTop: 10,
   },
   formContainer: {
     backgroundColor: "white",
@@ -97,5 +165,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 20,
   },
-})
-
+  errorText: {
+    color: "red",
+    marginBottom: 10,
+    textAlign: "center",
+  },
+});
