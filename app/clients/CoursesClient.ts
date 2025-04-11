@@ -3,7 +3,14 @@ import {Course} from "@/app/data/Course";
 
 // Configura la URL base de la API
 // En desarrollo con Expo, puedes usar la IP de tu máquina en lugar de localhost
-const API_URL = " http://0.0.0.0:3000" // Cambia esto por tu IP o URL del servidor
+const getBaseUrl = (): string => {
+    const LOCAL_IP = "192.168.100.25";
+    return `http://${LOCAL_IP}:3000`;
+}
+
+
+const API_URL = getBaseUrl()
+
 
 // Crea una instancia de axios con la configuración base
 const api = axios.create({
@@ -14,7 +21,7 @@ const api = axios.create({
 })
 
 // Servicio para cursos
-export const CourseClient = {
+export const courseService = {
     // Obtener todos los cursos
     getAllCourses: async () => {
         try {

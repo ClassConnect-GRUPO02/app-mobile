@@ -6,7 +6,7 @@ import {CourseCard} from "@/components/courses/CourseCard";
 import {CourseFilters} from "@/components/courses/CourseFilters";
 import React from "react";
 import {Course} from "@/app/data/Course";
-import {CourseClient} from "@/app/clients/CoursesClient";
+import {courseService} from "@/app/clients/CoursesClient";
 
 export default function HomeScreen() {
     const [loading, setLoading] = useState(true)
@@ -23,7 +23,7 @@ export default function HomeScreen() {
         const fetchCourses = async () => {
             try {
                 setLoading(true)
-                const coursesData = await CourseClient.getAllCourses()
+                const coursesData = await courseService.getAllCourses()
                 setAllCourses(coursesData)
                 setFilteredCourses(coursesData)
                 setError(null)
