@@ -2,7 +2,6 @@ import React from "react"
 import { useState } from "react"
 import { StyleSheet, View, TouchableOpacity, ScrollView } from "react-native"
 import { Searchbar, Text, Chip, Surface } from "react-native-paper"
-import { categories, levels, modalities } from "@/app/data/courses"
 
 interface CourseFiltersProps {
     searchQuery: string
@@ -13,9 +12,10 @@ interface CourseFiltersProps {
     onLevelChange: (level: string | null) => void
     selectedModality: string | null
     onModalityChange: (modality: string | null) => void
+    categories: string[]
+    levels: string[]
+    modalities: string[]
 }
-
-type FilterTab = "category" | "level" | "modality" | null
 
 export const CourseFilters: React.FC<CourseFiltersProps> = ({
                                                                 searchQuery,
@@ -26,10 +26,13 @@ export const CourseFilters: React.FC<CourseFiltersProps> = ({
                                                                 onLevelChange,
                                                                 selectedModality,
                                                                 onModalityChange,
+                                                                categories,
+                                                                levels,
+                                                                modalities,
                                                             }) => {
-    const [activeTab, setActiveTab] = useState<FilterTab>(null)
+    const [activeTab, setActiveTab] = useState<"category" | "level" | "modality" | null>(null)
 
-    const handleTabPress = (tab: FilterTab) => {
+    const handleTabPress = (tab: "category" | "level" | "modality" | null) => {
         setActiveTab(activeTab === tab ? null : tab)
     }
 

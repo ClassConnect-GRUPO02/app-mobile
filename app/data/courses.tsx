@@ -128,10 +128,3 @@ export const courses: Course[] = [
         imageUrl: "https://images.unsplash.com/photo-1677442135136-760c813028c0?q=80&w=2070&auto=format&fit=crop",
     },
 ]
-
-// defincion de categorias determinada por todos los cursos ingresados, usando map
-export const categories = [...new Set(courses.map((course) => course.category))]
-
-// los niveles y modalidades ya estan preestablecidos
-export const levels = ["Principiante", "Intermedio", "Avanzado"]
-export const modalities = ["Online", "Presencial", "Híbrido"]

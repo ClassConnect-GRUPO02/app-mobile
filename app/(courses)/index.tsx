@@ -38,6 +38,10 @@ export default function HomeScreen() {
         fetchCourses()
     }, [])
 
+    const categories = Array.from(new Set(allCourses.map((course) => course.category)));
+    const levels = Array.from(new Set(allCourses.map((course) => course.level)));
+    const modalities = Array.from(new Set(allCourses.map((course) => course.modality)));
+
     // Filtrar cursos cuando cambian los filtros
     useEffect(() => {
         if (loading) return
@@ -109,6 +113,9 @@ export default function HomeScreen() {
                 onLevelChange={setSelectedLevel}
                 selectedModality={selectedModality}
                 onModalityChange={setSelectedModality}
+                categories={categories}
+                levels={levels}
+                modalities={modalities}
             />
 
             {filteredCourses.length > 0 ? (
