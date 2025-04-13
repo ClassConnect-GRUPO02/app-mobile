@@ -35,9 +35,9 @@ export default function SearchScreen() {
       
       // Filtrar usuarios por nombre o email que contengan el texto de búsqueda
       const filteredUsers = response.users.filter(user => 
-        user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        user.email.toLowerCase().includes(searchQuery.toLowerCase())
-      );
+        (user.name && user.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+        (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()))
+      );      
       
       setResults(filteredUsers);
     } catch (error) {
