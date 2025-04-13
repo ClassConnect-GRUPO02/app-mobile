@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import * as Location from 'expo-location';
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native";
 import { TextInput, Button, Text, Title, RadioButton, ActivityIndicator } from "react-native-paper";
 import { Link, router } from "expo-router";
@@ -36,33 +37,43 @@ export default function RegisterScreen(): React.JSX.Element {
 
   const handleRegister = async (): Promise<void> => {
     if (!validateForm()) return;
-    
+  
     setLoading(true);
     try {
-      // Preparar datos del usuario con la interfaz simplificada
+      // Pedir permisos
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        throw new Error('Permiso de ubicación denegado');
+      }
+  
+      // Obtener ubicación actual
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+  
       const userData: UserRegisterData = {
         name,
         email,
         password,
-        userType
+        userType,
+        latitude,
+        longitude
       };
-      
-      // Usa el cliente API simplificado para registrar al usuario
+  
       await userApi.register(userData);
-      
-      // Registro exitoso
+  
       Alert.alert(
         "Registro exitoso",
         "Tu cuenta ha sido creada correctamente",
-        [{ text: "OK", onPress: () => router.push('/(auth)/login') }]
+        [{ text: "OK", onPress: () => router.push("/(auth)/login") }]
       );
     } catch (error) {
-      console.error('Error:', error);
-      setError(error instanceof Error ? error.message : 'Ocurrió un error al conectar con el servidor');
+      console.error("Error:", error);
+      setError(error instanceof Error ? error.message : "Ocurrió un error al conectar con el servidor");
     } finally {
       setLoading(false);
     }
   };
+  
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>

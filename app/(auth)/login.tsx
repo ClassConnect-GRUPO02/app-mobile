@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -14,11 +14,13 @@ import {
   Title,
   ActivityIndicator,
 } from "react-native-paper";
-import { Link, router } from "expo-router";
+import { Link, router, useRouter } from "expo-router";
 import { userApi } from "../../api/userApi";
 //import type { LoginRequest, ApiError } from "../../api/client";
 
 export default function LoginScreen(): React.JSX.Element {
+  const router = useRouter();
+
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -47,18 +49,27 @@ export default function LoginScreen(): React.JSX.Element {
     try {
       const credentials = { email, password };
       const response = await userApi.login(credentials);
-      await userApi.storeToken(response.token);
 
-      Alert.alert(
-        "Inicio de sesión exitoso",
-        "Has iniciado sesión correctamente",
-        [{ text: "OK", onPress: () => router.replace("/(app)") }]
-      );
+      if (response?.token) {
+        await userApi.storeToken(response.token);
+
+        Alert.alert(
+          "Inicio de sesión exitoso",
+          "Has iniciado sesión correctamente",
+          [{ text: "OK", onPress: () => router.replace("/(app)/home")}]
+        );
+      } else {
+        throw new Error("Token no recibido del servidor.");
+      }
     } catch (error) {
       console.error("Error durante el inicio de sesión:", error);
 
       if (error instanceof Error) {
-        setError(error.message);
+        if (error.message.includes("401")) {
+          setError("Credenciales incorrectas.");
+        } else {
+          setError(error.message);
+        }
       } else {
         setError("Ocurrió un error al conectar con el servidor");
       }
@@ -123,7 +134,6 @@ export default function LoginScreen(): React.JSX.Element {
     </KeyboardAvoidingView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
