@@ -22,20 +22,18 @@ export default function HomeScreen() {
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        // Obtener token almacenado
         const token = await getItemAsync('userToken');
-        
-        if (!token) {
-          throw new Error('No se encontró el token de autenticación');
+        const storedId = await getItemAsync('userId');
+  
+        if (!token || !storedId) {
+          throw new Error('Faltan credenciales para autenticar');
         }
-        
-        // Configurar el token en el cliente API
+  
         setAuthToken(token);
-        
-        // Obtener datos del usuario
-        const response = await apiClient.get<{ user: UserData }>('/user/me');
+  
+        // Usamos el endpoint /user/:id
+        const response = await apiClient.get<{ user: UserData }>(`/user/${storedId}`);
         setUserData(response.user);
-        
       } catch (error) {
         console.error('Error al cargar datos del usuario:', error);
         setError('No pudimos cargar tus datos. Por favor, inténtalo de nuevo.');
@@ -43,9 +41,10 @@ export default function HomeScreen() {
         setLoading(false);
       }
     };
-
+  
     fetchUserData();
   }, []);
+  
 
   if (loading) {
     return (

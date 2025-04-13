@@ -14,7 +14,7 @@ import {
   Title,
   ActivityIndicator,
 } from "react-native-paper";
-import { Link, router, useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { userApi } from "../../api/userApi";
 //import type { LoginRequest, ApiError } from "../../api/client";
 
@@ -50,8 +50,9 @@ export default function LoginScreen(): React.JSX.Element {
       const credentials = { email, password };
       const response = await userApi.login(credentials);
 
-      if (response?.token) {
+      if (response?.token && response?.id) {
         await userApi.storeToken(response.token);
+        await userApi.storeUserId(response.id);
 
         Alert.alert(
           "Inicio de sesión exitoso",
