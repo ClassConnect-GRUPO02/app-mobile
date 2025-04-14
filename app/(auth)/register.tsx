@@ -1,15 +1,79 @@
-import { useState } from "react"
-import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView } from "react-native"
-import { TextInput, Button, Text, Title, RadioButton } from "react-native-paper"
-import { Link } from "expo-router"
-import React from "react"
+import React, { useState } from "react";
+import * as Location from 'expo-location';
+import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native";
+import { TextInput, Button, Text, Title, RadioButton, ActivityIndicator } from "react-native-paper";
+import { Link, router } from "expo-router";
+import { userApi, UserRegisterData } from "../../api/userApi"; // Importa el API de usuarios simplificado
 
-export default function RegisterScreen() {
-  const [name, setName] = useState("")
-  const [email, setEmail] = useState("")
-  const [password, setPassword] = useState("")
-  const [confirmPassword, setConfirmPassword] = useState("")
-  const [userType, setUserType] = useState("alumno")
+export default function RegisterScreen(): React.JSX.Element {
+  const [name, setName] = useState<string>("");
+  const [email, setEmail] = useState<string>("");
+  const [password, setPassword] = useState<string>("");
+  const [confirmPassword, setConfirmPassword] = useState<string>("");
+  const [userType, setUserType] = useState<string>("alumno");
+  const [loading, setLoading] = useState<boolean>(false);
+  const [error, setError] = useState<string>("");
+
+  const validateForm = (): boolean => {
+    if (!name || !email || !password || !confirmPassword) {
+      setError("Por favor, completa todos los campos.");
+      return false;
+    }
+
+    if (password !== confirmPassword) {
+      setError("Las contraseñas no coinciden");
+      return false;
+    }
+
+    const emailRegex = /\S+@\S+\.\S+/;
+    if (!emailRegex.test(email)) {
+      setError("El correo electrónico no es válido");
+      return false;
+    }
+    
+    setError("");
+    return true;
+  };
+
+  const handleRegister = async (): Promise<void> => {
+    if (!validateForm()) return;
+  
+    setLoading(true);
+    try {
+      // Pedir permisos
+      const { status } = await Location.requestForegroundPermissionsAsync();
+      if (status !== 'granted') {
+        throw new Error('Permiso de ubicación denegado');
+      }
+  
+      // Obtener ubicación actual
+      const location = await Location.getCurrentPositionAsync({});
+      const { latitude, longitude } = location.coords;
+  
+      const userData: UserRegisterData = {
+        name,
+        email,
+        password,
+        userType,
+        latitude,
+        longitude
+      };
+  
+      await userApi.register(userData);
+  
+      Alert.alert(
+        "Registro exitoso",
+        "Tu cuenta ha sido creada correctamente",
+        [{ text: "OK", onPress: () => router.push("/(auth)/login") }]
+      );
+    } catch (error) {
+      console.error("Error:", error);
+      setError(error instanceof Error ? error.message : "Ocurrió un error al conectar con el servidor");
+    } finally {
+      setLoading(false);
+    }
+  };
+  
 
   return (
     <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
@@ -19,6 +83,8 @@ export default function RegisterScreen() {
         </View>
 
         <View style={styles.formContainer}>
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          
           <TextInput
             label="Nombre completo"
             value={name}
@@ -73,8 +139,13 @@ export default function RegisterScreen() {
             </View>
           </RadioButton.Group>
 
-          <Button mode="contained" onPress={() => {}} style={styles.button}>
-            Registrarse
+          <Button 
+            mode="contained" 
+            onPress={handleRegister} 
+            style={styles.button}
+            disabled={loading}
+          >
+            {loading ? <ActivityIndicator color="#fff" /> : "Registrarse"}
           </Button>
 
           <View style={styles.loginContainer}>
@@ -88,7 +159,7 @@ export default function RegisterScreen() {
         </View>
       </ScrollView>
     </KeyboardAvoidingView>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -144,5 +215,9 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     marginTop: 20,
   },
-})
-
+  errorText: {
+    color: 'red',
+    marginBottom: 10,
+    textAlign: 'center',
+  }
+});
