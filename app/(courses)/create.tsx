@@ -10,7 +10,6 @@ import {
     Card,
     Surface,
     Snackbar,
-    IconButton,
 } from "react-native-paper"
 import { router } from "expo-router"
 import { courseService } from "@/app/clients/CoursesClient"
@@ -257,7 +256,7 @@ export default function CreateCourseScreen() {
                         <View style={styles.row}>
                             <View style={styles.halfColumn}>
                                 <Text style={styles.inputLabel}>Capacidad *</Text>
-                                <View style={styles.numberInputContainer}>
+                                <View style={styles.numberInputWrapper}>
                                     <TextInput
                                         mode="outlined"
                                         value={course.capacity.toString()}
@@ -266,29 +265,31 @@ export default function CreateCourseScreen() {
                                         style={styles.numberInput}
                                         error={!!errors.capacity}
                                         outlineStyle={styles.inputOutline}
+                                        right={
+                                            <TextInput.Icon
+                                                icon="chevron-up"
+                                                size={16}
+                                                onPress={() => incrementValue("capacity")}
+                                                style={styles.upIcon}
+                                            />
+                                        }
+                                        left={
+                                            <TextInput.Icon
+                                                icon="chevron-down"
+                                                size={16}
+                                                onPress={() => decrementValue("capacity")}
+                                                style={styles.downIcon}
+                                                disabled={course.capacity <= 1}
+                                            />
+                                        }
                                     />
-                                    <View style={styles.numberButtonsContainer}>
-                                        <IconButton
-                                            icon="chevron-up"
-                                            size={20}
-                                            onPress={() => incrementValue("capacity")}
-                                            style={styles.numberButton}
-                                        />
-                                        <IconButton
-                                            icon="chevron-down"
-                                            size={20}
-                                            onPress={() => decrementValue("capacity")}
-                                            style={styles.numberButton}
-                                            disabled={course.capacity <= 1}
-                                        />
-                                    </View>
                                 </View>
                                 {errors.capacity && <HelperText type="error">{errors.capacity}</HelperText>}
                             </View>
 
                             <View style={styles.halfColumn}>
                                 <Text style={styles.inputLabel}>Inscritos iniciales</Text>
-                                <View style={styles.numberInputContainer}>
+                                <View style={styles.numberInputWrapper}>
                                     <TextInput
                                         mode="outlined"
                                         value={course.enrolled.toString()}
@@ -296,23 +297,25 @@ export default function CreateCourseScreen() {
                                         keyboardType="numeric"
                                         style={styles.numberInput}
                                         outlineStyle={styles.inputOutline}
+                                        right={
+                                            <TextInput.Icon
+                                                icon="chevron-up"
+                                                size={16}
+                                                onPress={() => incrementValue("enrolled")}
+                                                style={styles.upIcon}
+                                                disabled={course.enrolled >= course.capacity}
+                                            />
+                                        }
+                                        left={
+                                            <TextInput.Icon
+                                                icon="chevron-down"
+                                                size={16}
+                                                onPress={() => decrementValue("enrolled")}
+                                                style={styles.downIcon}
+                                                disabled={course.enrolled <= 0}
+                                            />
+                                        }
                                     />
-                                    <View style={styles.numberButtonsContainer}>
-                                        <IconButton
-                                            icon="chevron-up"
-                                            size={20}
-                                            onPress={() => incrementValue("enrolled")}
-                                            style={styles.numberButton}
-                                            disabled={course.enrolled >= course.capacity}
-                                        />
-                                        <IconButton
-                                            icon="chevron-down"
-                                            size={20}
-                                            onPress={() => decrementValue("enrolled")}
-                                            style={styles.numberButton}
-                                            disabled={course.enrolled <= 0}
-                                        />
-                                    </View>
                                 </View>
                             </View>
                         </View>
@@ -561,21 +564,21 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         color: "#666",
     },
-    numberInputContainer: {
-        flexDirection: "row",
-        alignItems: "center",
-        marginBottom: 4,
+    numberInputWrapper: {
+        position: "relative",
+        marginBottom: 12,
     },
     numberInput: {
-        flex: 1,
         backgroundColor: "#fff",
+        textAlign: "center",
     },
-    numberButtonsContainer: {
-        marginLeft: 8,
+    upIcon: {
+        marginRight: 0,
+        backgroundColor: "transparent",
     },
-    numberButton: {
-        margin: 0,
-        backgroundColor: "#f0e6ff",
+    downIcon: {
+        marginLeft: 0,
+        backgroundColor: "transparent",
     },
     prerequisiteContainer: {
         flexDirection: "row",
