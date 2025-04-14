@@ -1,9 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from 'react-native';
-import { Text, Title, Card, ActivityIndicator, Divider, useTheme } from 'react-native-paper';
+import {Text, Title, Card, ActivityIndicator, Divider, useTheme, Button} from 'react-native-paper';
 import { StatusBar } from 'expo-status-bar';
 import { getItemAsync } from 'expo-secure-store';
 import { apiClient, setAuthToken } from '../../api/client';
+import { router } from "expo-router"
 
 // Tipo para almacenar la información del usuario
 interface UserData {
@@ -80,6 +81,34 @@ export default function HomeScreen() {
         </Card>
 
         <Divider style={styles.divider} />
+
+          <Title style={styles.sectionTitle}>Cursos disponibles</Title>
+
+          <Card style={styles.featureCard}>
+            <Card.Cover
+                source={{
+                  uri: "https://images.unsplash.com/photo-1587620962725-abab7fe55159?q=80&w=2062&auto=format&fit=crop",
+                }}
+                style={styles.cardCover}
+            />
+            <Card.Content>
+              <View style={styles.featureItem}>
+                <View style={styles.featureTextContainer}>
+                  <Text style={styles.featureTitle}>Explora nuestros cursos</Text>
+                  <Text style={styles.featureDescription}>
+                    Descubre todos los cursos disponibles y encuentra el que mejor se adapte a tus necesidades
+                  </Text>
+                </View>
+              </View>
+            </Card.Content>
+            <Card.Actions>
+              <Button mode="contained" onPress={() => router.push("/(courses)")} style={styles.courseButton}>
+                Ver cursos
+              </Button>
+            </Card.Actions>
+          </Card>
+
+          <Divider style={styles.divider} />
 
         <Title style={styles.sectionTitle}>Navega por la aplicación</Title>
 
@@ -209,4 +238,15 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     textAlign: 'center',
   },
-});
+  cardCover: {
+    height: 150,
+    borderTopLeftRadius: 10,
+    borderTopRightRadius: 10,
+  },
+  courseButton: {
+    marginTop: 10,
+    marginBottom: 5,
+    marginRight: 10,
+    alignSelf: "flex-end",
+  },
+})

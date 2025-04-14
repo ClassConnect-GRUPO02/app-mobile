@@ -1,15 +1,47 @@
 import { StyleSheet, View, ScrollView, Image } from "react-native"
-import { Text, Button, Chip, Divider, List } from "react-native-paper"
+import { Text, Button, Chip, Divider, List, ActivityIndicator } from "react-native-paper"
 import { useLocalSearchParams, router } from "expo-router"
-import { courses } from "../data/courses"
+import { courseService } from "@/app/clients/CoursesClient"
+import { useState, useEffect } from "react"
+import type { Course } from "@/app/data/Course"
 import { StatusBar } from "expo-status-bar"
 import React from "react"
 
 export default function CourseDetailScreen() {
     const { id } = useLocalSearchParams<{ id: string }>()
-    const course = courses.find((c) => c.id === id)
+    const [course, setCourse] = useState<Course | null>(null)
+    const [loading, setLoading] = useState(true)
+    const [error, setError] = useState<string | null>(null)
 
-    if (!course) {
+    useEffect(() => {
+        const fetchCourse = async () => {
+            try {
+                setLoading(true)
+                const courseData = await courseService.getCourseById(id)
+                setCourse(courseData)
+            } catch (err) {
+                console.error("Error al cargar el curso:", err)
+                setError("No se pudo cargar la información del curso")
+            } finally {
+                setLoading(false)
+            }
+        }
+
+        if (id) {
+            fetchCourse()
+        }
+    }, [id])
+
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6200ee" />
+                <Text style={styles.loadingText}>Cargando curso...</Text>
+            </View>
+        )
+    }
+
+    if (error || !course) {
         return (
             <View style={styles.notFoundContainer}>
                 <Text variant="headlineMedium">Curso no encontrado</Text>
@@ -128,6 +160,16 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#fff",
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 16,
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 16,
     },
     notFoundContainer: {
         flex: 1,
