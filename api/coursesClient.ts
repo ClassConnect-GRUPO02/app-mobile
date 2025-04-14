@@ -21,7 +21,7 @@ const api = axios.create({
 })
 
 // Servicio para cursos
-export const courseService = {
+export const courseClient = {
     // Obtener todos los cursos
     getAllCourses: async () => {
         try {

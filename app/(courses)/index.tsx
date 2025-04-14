@@ -6,7 +6,7 @@ import {CourseCard} from "@/components/courses/CourseCard";
 import {CourseFilters} from "@/components/courses/CourseFilters";
 import React from "react";
 import {Course} from "@/app/data/Course";
-import {courseService} from "@/app/clients/CoursesClient";
+import {courseClient} from "@/api/coursesClient";
 import { router } from "expo-router"
 
 export default function CoursesScreen() {
@@ -27,7 +27,7 @@ export default function CoursesScreen() {
             setLoading(true)
             console.log("Cargando cursos desde la API...")
 
-            const coursesData = await courseService.getAllCourses()
+            const coursesData = await courseClient.getAllCourses()
             console.log(`Se obtuvieron ${coursesData.length} cursos`)
 
             setAllCourses(coursesData)

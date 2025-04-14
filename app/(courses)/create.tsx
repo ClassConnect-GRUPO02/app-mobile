@@ -12,7 +12,7 @@ import {
     Snackbar,
 } from "react-native-paper"
 import { router } from "expo-router"
-import { courseService } from "@/app/clients/CoursesClient"
+import { courseClient } from "@/api/coursesClient"
 import type { Course } from "@/app/data/Course"
 import { SelectMenu } from "@/components/courses/SelectMenu"
 import { DateRangePicker } from "@/components/courses/DateRangePicker"
@@ -167,7 +167,7 @@ export default function CreateCourseScreen() {
                 enrolled: Number(course.enrolled),
             }
 
-            await courseService.createCourse(courseToSubmit as Course)
+            await courseClient.createCourse(courseToSubmit as Course)
             showSnackbar("¡Curso creado correctamente!", "success")
 
             // Esperar un momento para que el usuario vea el mensaje antes de redirigir

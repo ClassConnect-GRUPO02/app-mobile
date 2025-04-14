@@ -1,7 +1,7 @@
 import { StyleSheet, View, ScrollView, Image } from "react-native"
 import { Text, Button, Chip, Divider, List, ActivityIndicator } from "react-native-paper"
 import { useLocalSearchParams, router } from "expo-router"
-import { courseService } from "@/app/clients/CoursesClient"
+import { courseClient } from "@/api/coursesClient"
 import { useState, useEffect } from "react"
 import type { Course } from "@/app/data/Course"
 import { StatusBar } from "expo-status-bar"
@@ -17,7 +17,7 @@ export default function CourseDetailScreen() {
         const fetchCourse = async () => {
             try {
                 setLoading(true)
-                const courseData = await courseService.getCourseById(id)
+                const courseData = await courseClient.getCourseById(id)
                 setCourse(courseData)
             } catch (err) {
                 console.error("Error al cargar el curso:", err)
