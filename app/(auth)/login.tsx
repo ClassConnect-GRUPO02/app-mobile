@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
 import {
   View,
   StyleSheet,
@@ -51,9 +51,6 @@ export default function LoginScreen(): React.JSX.Element {
       const response = await userApi.login(credentials);
 
       if (response?.token && response?.id) {
-        await userApi.storeToken(response.token);
-        await userApi.storeUserId(response.id);
-
         Alert.alert(
           "Inicio de sesión exitoso",
           "Has iniciado sesión correctamente",

@@ -1,4 +1,4 @@
-import { apiClient } from './client';
+import { apiClient, setAuthToken } from './client';
 import { getItemAsync, setItemAsync } from 'expo-secure-store';
 
 export interface UserRegisterData {
@@ -31,6 +31,8 @@ export interface UserInfo {
   name: string;
   email: string;
   userType: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export const userApi = {
@@ -46,6 +48,8 @@ export const userApi = {
       
       // Si login es exitoso, almacenamos el token y el userId
       if (response.token && response.id) {
+        console.log('Token recibido:', response.token);
+        console.log('ID de usuario recibido:', response.id);
         await userApi.storeToken(response.token);  // Guardamos el token
         await userApi.storeUserId(response.id);    // Guardamos el id del usuario
       }
@@ -59,7 +63,7 @@ export const userApi = {
 
   // Guardar el token de autenticación en el almacenamiento seguro
   async storeToken(token: string): Promise<void> {
-    await setItemAsync('userToken', token); // Guardamos el token en secure-store
+    await setAuthToken(token); // Esto guarda en SecureStore y actualiza authToken
   },
 
   // Guardar el ID del usuario en el almacenamiento seguro

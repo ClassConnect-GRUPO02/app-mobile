@@ -14,8 +14,8 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { getItemAsync, deleteItemAsync } from "expo-secure-store";
 import { router, useLocalSearchParams } from "expo-router";
-import { setAuthToken } from "../../api/client";
-import { userApi } from "../../api/userApi";
+import { setAuthToken } from "../../../api/client";
+import { userApi } from "../../../api/userApi";
 
 interface UserProfile {
   id: string;
@@ -38,22 +38,22 @@ export default function ProfileScreen() {
     const fetchProfile = async () => {
       const storedId = await getItemAsync("userId");
       const token = await getItemAsync("userToken");
-
+  
       if (!token || !storedId) {
         setError("No se pudo recuperar la sesión.");
         setLoading(false);
         return;
       }
-
+  
       setAuthToken(token);
-
+  
       const targetId = typeof id === "string" ? id : storedId;
       const viewingOwnProfile = targetId === storedId;
-
+  
       try {
         const response = await userApi.getUserById(targetId);
         const fetchedUser = response.user;
-
+  
         setProfile(fetchedUser);
         setIsOwnProfile(viewingOwnProfile);
       } catch (error) {
@@ -63,28 +63,9 @@ export default function ProfileScreen() {
         setLoading(false);
       }
     };
-
+  
     fetchProfile();
-  }, []);
-
-  const fetchUserProfile = async (id: string) => {
-    try {
-      const token = await getItemAsync("userToken");
-      if (!token) throw new Error("No se encontró el token de autenticación");
-
-      setAuthToken(token);
-      const response = await userApi.getUserById(id);
-
-      console.log("User profile fetched:", response.user); // 👉 debug
-
-      setProfile(response.user);
-    } catch (error) {
-      console.error("Error al cargar perfil:", error);
-      setError("No pudimos cargar tu perfil. Por favor, inténtalo de nuevo.");
-    } finally {
-      setLoading(false);
-    }
-  };
+  }, [id]);  
 
   const handleLogout = async () => {
     Alert.alert("Cerrar sesión", "¿Estás seguro que deseas cerrar sesión?", [
@@ -123,7 +104,9 @@ export default function ProfileScreen() {
       <StatusBar style="auto" />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.headerContainer}>
-          <Title style={styles.title}>Mi Perfil</Title>
+          <Title style={styles.title}>
+            {isOwnProfile ? "Mi Perfil" : "Perfil"}
+          </Title>
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -166,15 +149,7 @@ export default function ProfileScreen() {
             </List.Section>
           </Card.Content>
         </Card>
-        
-        <Button
-              mode="contained"
-              icon="logout"
-              style={styles.logoutButton}
-              onPress={handleLogout}
-            >
-              Cerrar sesión
-            </Button>
+
         {isOwnProfile && (
           <>
             <List.Item
@@ -231,8 +206,14 @@ export default function ProfileScreen() {
                 </List.Section>
               </Card.Content>
             </Card>
-            
-            
+            <Button
+              mode="contained"
+              icon="logout"
+              style={styles.logoutButton}
+              onPress={handleLogout}
+            >
+              Cerrar sesión
+            </Button>
           </>
         )}
       </ScrollView>

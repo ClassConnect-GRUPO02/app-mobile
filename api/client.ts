@@ -1,30 +1,26 @@
+import { router } from 'expo-router';
 import { getItemAsync, setItemAsync } from 'expo-secure-store';
 
-// Función para obtener la URL base de la API
 const getBaseUrl = (): string => {
-  const CLOUD_IP = '35.223.247.76'; // Reemplaza X con tu número de IP
-  return `http://${CLOUD_IP}:8080`; // URL de tu API
+  const IP = '192.168.89.21';
+  return `http://${IP}:8080`;
 };
 
 const BASE_URL = getBaseUrl();
 
-// Almacenará el token de autenticación
 let authToken: string | null = null;
 
-// Función para configurar el token globalmente
 export const setAuthToken = async (token: string | null) => {
   authToken = token;
 
-  // Si es un token válido, lo guardamos en el secure store
   if (token) {
     await setItemAsync('userToken', token);
   }
 };
 
-// Función auxiliar para obtener headers con token
+// obtener headers con token
 const getAuthHeaders = async (): Promise<HeadersInit> => {
   if (!authToken) {
-    // Si no hay token configurado, lo intentamos obtener de secure-store
     const token = await getItemAsync('userToken');
     authToken = token;
   }
@@ -35,12 +31,21 @@ const getAuthHeaders = async (): Promise<HeadersInit> => {
   };
 };
 
+
+const handleSessionExpired = async () => {
+  console.warn("Sesión expirada, redirigiendo a login...");
+  await setAuthToken(null);
+  await setItemAsync("userId", "");
+  router.push("/(auth)/login");
+};
+
+
 // Cliente básico para peticiones HTTP
 export const apiClient = {
   // Método para peticiones POST
   async post<T>(endpoint: string, data: any): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
-    const headers = await getAuthHeaders(); // Obtener los headers con el token
+    const headers = await getAuthHeaders();
 
     try {
       const response = await fetch(url, {
@@ -66,6 +71,7 @@ export const apiClient = {
   async get<T>(endpoint: string): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
     const headers = await getAuthHeaders(); // Obtener los headers con el token
+    console.log('Headers:', headers); // Verificar los headers
 
     try {
       const response = await fetch(url, {
@@ -74,6 +80,12 @@ export const apiClient = {
       });
 
       const responseData = await response.json();
+
+      if (response.status === 401 && responseData.title === "Session expired") {
+        await handleSessionExpired();
+        throw new Error("Sesión expirada. Redirigiendo a login...");
+      }
+      
 
       if (!response.ok) {
         throw new Error(responseData.message || 'Ocurrió un error en la petición');

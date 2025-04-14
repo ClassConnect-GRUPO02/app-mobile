@@ -31,25 +31,24 @@ export default function SearchScreen() {
 
   const handleSearch = async () => {
     if (!searchQuery.trim()) return;
-
+  
     setLoading(true);
     setSearched(true);
     setError("");
-
+    
+    // Limpiar resultados antes de buscar
+    setResults([]);
+  
     try {
-      // Obtenemos todos los usuarios y filtramos en cliente
-      // Idealmente, el backend tendría un endpoint para buscar por nombre/email
       const response = await userApi.getAllUsers();
-
+  
       // Filtrar usuarios por nombre o email que contengan el texto de búsqueda
       const filteredUsers = response.users.filter(
         (user) =>
-          (user.name &&
-            user.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
-          (user.email &&
-            user.email.toLowerCase().includes(searchQuery.toLowerCase()))
+          (user.name && user.name.toLowerCase().includes(searchQuery.toLowerCase())) ||
+          (user.email && user.email.toLowerCase().includes(searchQuery.toLowerCase()))
       );
-
+  
       setResults(filteredUsers);
     } catch (error) {
       console.error("Error al buscar usuarios:", error);
@@ -58,11 +57,15 @@ export default function SearchScreen() {
       setLoading(false);
     }
   };
-
+  
   const renderUserItem = ({ item }: { item: UserInfo }) => (
     <Card
       style={styles.userCard}
-      onPress={() => router.push(`/(app)/profile?id=${item.id}`)}
+      onPress={() => {
+        console.log(item.id);  // Verifica que el ID correcto se está pasando
+        router.push(`/(app)/profile/${item.id}`);
+      }}
+      
     >
       <Card.Content style={styles.userCardContent}>
         <Avatar.Text
@@ -80,6 +83,7 @@ export default function SearchScreen() {
       </Card.Content>
     </Card>
   );
+  
 
   return (
     <KeyboardAvoidingView
