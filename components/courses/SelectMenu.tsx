@@ -1,5 +1,4 @@
-import React from "react"
-import { useState } from "react"
+import React, { useState } from "react"
 import { View, StyleSheet } from "react-native"
 import { Button, Menu, Text } from "react-native-paper"
 

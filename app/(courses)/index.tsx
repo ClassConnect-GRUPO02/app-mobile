@@ -1,14 +1,15 @@
 import { useState, useEffect } from "react"
 import { StyleSheet, View, FlatList, SafeAreaView } from "react-native"
-import { Text, ActivityIndicator, Button, Snackbar } from "react-native-paper"
+import { Text, ActivityIndicator, Button, Snackbar, FAB } from "react-native-paper"
 import { StatusBar } from "expo-status-bar"
 import {CourseCard} from "@/components/courses/CourseCard";
 import {CourseFilters} from "@/components/courses/CourseFilters";
 import React from "react";
 import {Course} from "@/app/data/Course";
 import {courseService} from "@/app/clients/CoursesClient";
+import { router } from "expo-router"
 
-export default function HomeScreen() {
+export default function CoursesScreen() {
     const [loading, setLoading] = useState(true)
     const [filteredCourses, setFilteredCourses] = useState<Course[]>([])
     const [allCourses, setAllCourses] = useState<Course[]>([])
@@ -178,6 +179,8 @@ export default function HomeScreen() {
                 </View>
             )}
 
+            <FAB icon="plus" style={styles.fab} onPress={() => router.push("/(courses)/create")} color="#fff" />
+
             <Snackbar
                 visible={snackbarVisible}
                 onDismiss={() => setSnackbarVisible(false)}
@@ -230,7 +233,7 @@ const styles = StyleSheet.create({
         color: "#666",
     },
     coursesList: {
-        paddingBottom: 24,
+        paddingBottom: 80,
     },
     noResultsContainer: {
         flex: 1,
@@ -249,6 +252,13 @@ const styles = StyleSheet.create({
     },
     retryButton: {
         marginTop: 16,
+    },
+    fab: {
+        position: "absolute",
+        margin: 16,
+        right: 0,
+        bottom: 0,
+        backgroundColor: "#6200ee",
     },
 })
 

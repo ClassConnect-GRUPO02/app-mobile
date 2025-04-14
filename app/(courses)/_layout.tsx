@@ -1,7 +1,6 @@
 import { Stack } from "expo-router"
 import React from "react"
-import { PaperProvider, MD3LightTheme, Portal } from "react-native-paper"
-import { SafeAreaProvider } from "react-native-safe-area-context"
+import {MD3LightTheme, PaperProvider} from "react-native-paper";
 
 const theme = {
     ...MD3LightTheme,
@@ -12,34 +11,41 @@ const theme = {
     },
 }
 
-export default function Layout() {
+export default function CoursesLayout() {
     return (
-        <SafeAreaProvider>
-            <PaperProvider theme={theme}>
-                <Portal.Host>
-                    <Stack
-                        screenOptions={{
-                            headerShown: false,
-                            contentStyle: { backgroundColor: "#fff" },
-                        }}
-                    >
-                        <Stack.Screen name="index" />
-                        <Stack.Screen
-                            name="course/[id]"
-                            options={{
-                                presentation: "card",
-                                animation: "slide_from_right",
-                            }}
-                        />
-                        <Stack.Screen
-                            name="(courses)"
-                            options={{
-                                headerShown: false,
-                            }}
-                        />
-                    </Stack>
-                </Portal.Host>
+        <PaperProvider theme={theme}>
+        <Stack
+            screenOptions={{
+                headerStyle: {
+                    backgroundColor: "#6200ee",
+                },
+                headerTintColor: "#fff",
+                headerTitleStyle: {
+                    fontWeight: "bold",
+                },
+                headerShown: false,
+            }}
+        >
+            <Stack.Screen
+                name="index"
+                options={{
+                    title: "Explorar Cursos",
+                }}
+            />
+            <Stack.Screen
+                name="create"
+                options={{
+                    title: "Crear Curso",
+                    presentation: "modal",
+                }}
+            />
+            <Stack.Screen
+                name="[id]"
+                options={{
+                    title: "Detalle del Curso",
+                }}
+            />
+        </Stack>
             </PaperProvider>
-        </SafeAreaProvider>
     )
 }
