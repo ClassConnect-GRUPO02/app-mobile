@@ -4,18 +4,11 @@ import { Text, Title, Card, ActivityIndicator, Divider, useTheme } from 'react-n
 import { StatusBar } from 'expo-status-bar';
 import { getItemAsync } from 'expo-secure-store';
 import { apiClient, setAuthToken } from '../../api/client';
-
-// Tipo para almacenar la información del usuario
-interface UserData {
-  id: string;
-  name: string;
-  email: string;
-  userType: string;
-}
+import type { UserInfo } from '../../api/userApi';
 
 export default function HomeScreen() {
   const [loading, setLoading] = useState<boolean>(true);
-  const [userData, setUserData] = useState<UserData | null>(null);
+  const [userData, setUserData] = useState<UserInfo | null>(null);
   const [error, setError] = useState<string>('');
   const theme = useTheme();
 
@@ -28,11 +21,8 @@ export default function HomeScreen() {
         if (!token || !storedId) {
           throw new Error('Faltan credenciales para autenticar');
         }
-  
-        setAuthToken(token);
-  
-        // Usamos el endpoint /user/:id
-        const response = await apiClient.get<{ user: UserData }>(`/user/${storedId}`);
+
+        const response = await apiClient.get<{ user: UserInfo }>(`/user/${storedId}`);
         setUserData(response.user);
       } catch (error) {
         console.error('Error al cargar datos del usuario:', error);
