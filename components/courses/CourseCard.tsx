@@ -2,7 +2,7 @@ import React from "react"
 import { StyleSheet, View, TouchableOpacity } from "react-native"
 import { Card, Text, Chip, Badge } from "react-native-paper"
 import { router } from "expo-router"
-import {Course} from "@/app/data/Course";
+import {Course} from "@/types/Course";
 
 interface CourseCardProps {
     course: Course

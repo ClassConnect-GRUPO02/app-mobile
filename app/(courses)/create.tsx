@@ -13,7 +13,7 @@ import {
 } from "react-native-paper"
 import { router } from "expo-router"
 import { courseClient } from "@/api/coursesClient"
-import type { Course } from "@/app/data/Course"
+import type { Course } from "@/types/Course"
 import { SelectMenu } from "@/components/courses/SelectMenu"
 import { DateRangePicker } from "@/components/courses/DateRangePicker"
 import { StatusBar } from "expo-status-bar"

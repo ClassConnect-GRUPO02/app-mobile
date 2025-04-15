@@ -1,10 +1,10 @@
 import axios from "axios"
-import {Course} from "@/app/data/Course";
+import {Course} from "@/types/Course";
 
 // Configura la URL base de la API
 // En desarrollo con Expo, puedes usar la IP de tu máquina en lugar de localhost
 const getBaseUrl = (): string => {
-    const LOCAL_IP = "192.168.100.25";
+    const LOCAL_IP = "192.168.89.21";
     return `http://${LOCAL_IP}:3000`;
 }
 

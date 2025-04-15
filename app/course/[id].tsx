@@ -3,7 +3,7 @@ import { Text, Button, Chip, Divider, List, ActivityIndicator } from "react-nati
 import { useLocalSearchParams, router } from "expo-router"
 import { courseClient } from "@/api/coursesClient"
 import { useState, useEffect } from "react"
-import type { Course } from "@/app/data/Course"
+import type { Course } from "@/types/Course"
 import { StatusBar } from "expo-status-bar"
 import React from "react"
 

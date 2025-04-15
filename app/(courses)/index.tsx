@@ -5,7 +5,7 @@ import { StatusBar } from "expo-status-bar"
 import {CourseCard} from "@/components/courses/CourseCard";
 import {CourseFilters} from "@/components/courses/CourseFilters";
 import React from "react";
-import {Course} from "@/app/data/Course";
+import {Course} from "@/types/Course";
 import {courseClient} from "@/api/coursesClient";
 import { router } from "expo-router"
 
