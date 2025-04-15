@@ -63,11 +63,9 @@ export default function LoginScreen(): React.JSX.Element {
       console.error("Error durante el inicio de sesión:", error);
 
       if (error instanceof Error) {
-        if (error.message.includes("401")) {
+
           setError("Credenciales incorrectas.");
-        } else {
-          setError(error.message);
-        }
+        
       } else {
         setError("Ocurrió un error al conectar con el servidor");
       }
