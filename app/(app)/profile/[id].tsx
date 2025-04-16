@@ -68,7 +68,7 @@ export default function ProfileScreen() {
     fetchProfile();
   }, [id]);  
 
-  const fetchWithTimeout = (promise: Promise<any>, timeout = 10000): Promise<any> => {
+  const fetchWithTimeout = (promise: Promise<any>, timeout = 5000): Promise<any> => {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error("Tiempo de espera agotado. Verifica tu conexión."));
