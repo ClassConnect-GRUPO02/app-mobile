@@ -2,7 +2,7 @@ import { router } from 'expo-router';
 import { getItemAsync, setItemAsync } from 'expo-secure-store';
 
 const getBaseUrl = (): string => {
-  const IP = '35.223.247.76';
+  const IP = '192.168.89.21';
   return `http://${IP}:8080`;
 };
 

@@ -51,7 +51,8 @@ export default function ProfileScreen() {
       const viewingOwnProfile = targetId === storedId;
   
       try {
-        const response = await userApi.getUserById(targetId);
+        const response = await fetchWithTimeout(userApi.getUserById(targetId));
+
         const fetchedUser = response.user;
   
         setProfile(fetchedUser);
@@ -66,6 +67,25 @@ export default function ProfileScreen() {
   
     fetchProfile();
   }, [id]);  
+
+  const fetchWithTimeout = (promise: Promise<any>, timeout = 10000): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error("Tiempo de espera agotado. Verifica tu conexión."));
+      }, timeout);
+  
+      promise
+        .then((res) => {
+          clearTimeout(timer);
+          resolve(res);
+        })
+        .catch((err) => {
+          clearTimeout(timer);
+          reject(err);
+        });
+    });
+  };
+  
 
   const handleLogout = async () => {
     Alert.alert("Cerrar sesión", "¿Estás seguro que deseas cerrar sesión?", [

@@ -35,6 +35,25 @@ export default function RegisterScreen(): React.JSX.Element {
     return true;
   };
 
+  const fetchWithTimeout = (promise: Promise<any>, timeout = 10000): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error("Tiempo de espera agotado. Verifica tu conexión."));
+      }, timeout);
+  
+      promise
+        .then((res) => {
+          clearTimeout(timer);
+          resolve(res);
+        })
+        .catch((err) => {
+          clearTimeout(timer);
+          reject(err);
+        });
+    });
+  };
+  
+
   const handleRegister = async (): Promise<void> => {
     if (!validateForm()) return;
   
@@ -59,7 +78,7 @@ export default function RegisterScreen(): React.JSX.Element {
         longitude
       };
   
-      await userApi.register(userData);
+      await fetchWithTimeout(userApi.register(userData));
   
       Alert.alert(
         "Registro exitoso",

@@ -42,13 +42,32 @@ export default function LoginScreen(): React.JSX.Element {
     return true;
   };
 
+  const fetchWithTimeout = (promise: Promise<any>, timeout = 5000): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error("Tiempo de espera agotado. Verifica tu conexión."));
+      }, timeout);
+  
+      promise
+        .then((res) => {
+          clearTimeout(timer);
+          resolve(res);
+        })
+        .catch((err) => {
+          clearTimeout(timer);
+          reject(err);
+        });
+    });
+  };
+  
+
   const handleLogin = async (): Promise<void> => {
     if (!validateForm()) return;
 
     setLoading(true);
     try {
       const credentials = { email, password };
-      const response = await userApi.login(credentials);
+      const response = await fetchWithTimeout(userApi.login(credentials));
 
       if (response?.token && response?.id) {
         Alert.alert(
