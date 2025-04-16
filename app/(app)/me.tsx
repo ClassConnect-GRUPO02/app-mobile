@@ -37,21 +37,20 @@ export default function ProfileScreen() {
     const fetchProfile = async () => {
       const storedId = await getItemAsync("userId");
       const token = await getItemAsync("userToken");
-  
+
       if (!token || !storedId) {
         setError("No se pudo recuperar la sesión.");
         setLoading(false);
         return;
       }
-  
+
       setAuthToken(token);
-  
-  
+
       try {
         const response = await fetchWithTimeout(userApi.getUserById(storedId));
 
         const fetchedUser = response.user;
-  
+
         setProfile(fetchedUser);
       } catch (error) {
         console.error("Error al cargar perfil:", error);
@@ -60,16 +59,19 @@ export default function ProfileScreen() {
         setLoading(false);
       }
     };
-  
-    fetchProfile();
-  });  
 
-  const fetchWithTimeout = (promise: Promise<any>, timeout = 5000): Promise<any> => {
+    fetchProfile();
+  });
+
+  const fetchWithTimeout = (
+    promise: Promise<any>,
+    timeout = 5000
+  ): Promise<any> => {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error("Tiempo de espera agotado. Verifica tu conexión."));
       }, timeout);
-  
+
       promise
         .then((res) => {
           clearTimeout(timer);
@@ -81,7 +83,6 @@ export default function ProfileScreen() {
         });
     });
   };
-  
 
   const handleLogout = async () => {
     Alert.alert("Cerrar sesión", "¿Estás seguro que deseas cerrar sesión?", [
@@ -120,9 +121,7 @@ export default function ProfileScreen() {
       <StatusBar style="auto" />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.headerContainer}>
-          <Title style={styles.title}>
-            { "Mi Perfil"}
-          </Title>
+          <Title style={styles.title}>{"Mi Perfil"}</Title>
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
@@ -165,71 +164,56 @@ export default function ProfileScreen() {
             </List.Section>
           </Card.Content>
         </Card>
-
-       
-            <List.Item
-              title="Ubicación actual"
-              description={
-                profile &&
-                profile.lat !== undefined &&
-                profile.lng !== undefined
-                  ? `Lat: ${profile.lat.toFixed(5)}, Lng: ${profile.lng.toFixed(
-                      5
-                    )}`
-                  : "Ubicación no disponible"
-              }
-              left={(props) => <List.Icon {...props} icon="map-marker" />}
-            />
-            <Card style={styles.actionsCard}>
-              <Card.Content>
-                <List.Section>
-                  <List.Subheader>Acciones</List.Subheader>
-                  <List.Item
-                    title="Editar perfil"
-                    left={(props) => (
-                      <List.Icon {...props} icon="account-edit" />
-                    )}
-                    right={(props) => (
-                      <List.Icon {...props} icon="chevron-right" />
-                    )}
-                    onPress={() =>
-                      Alert.alert("Información", "Funcionalidad en desarrollo")
-                    }
-                  />
-                  <Divider />
-                  <List.Item
-                    title="Cambiar contraseña"
-                    left={(props) => <List.Icon {...props} icon="lock-reset" />}
-                    right={(props) => (
-                      <List.Icon {...props} icon="chevron-right" />
-                    )}
-                    onPress={() =>
-                      Alert.alert("Información", "Funcionalidad en desarrollo")
-                    }
-                  />
-                  <Divider />
-                  <List.Item
-                    title="Ajustes"
-                    left={(props) => <List.Icon {...props} icon="cog" />}
-                    right={(props) => (
-                      <List.Icon {...props} icon="chevron-right" />
-                    )}
-                    onPress={() =>
-                      Alert.alert("Información", "Funcionalidad en desarrollo")
-                    }
-                  />
-                </List.Section>
-              </Card.Content>
-            </Card>
-            <Button
-              mode="contained"
-              icon="logout"
-              style={styles.logoutButton}
-              onPress={handleLogout}
-            >
-              Cerrar sesión
-            </Button>
-          
+        <List.Item
+          title="Ubicación actual"
+          description={
+            profile && profile.lat !== undefined && profile.lng !== undefined
+              ? `Lat: ${profile.lat.toFixed(5)}, Lng: ${profile.lng.toFixed(5)}`
+              : "Ubicación no disponible"
+          }
+          left={(props) => <List.Icon {...props} icon="map-marker" />}
+        />
+        <Card style={styles.actionsCard}>
+          <Card.Content>
+            <List.Section>
+              <List.Subheader>Acciones</List.Subheader>
+              <List.Item
+                title="Editar perfil"
+                left={(props) => <List.Icon {...props} icon="account-edit" />}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={() =>
+                  Alert.alert("Información", "Funcionalidad en desarrollo")
+                }
+              />
+              <Divider />
+              <List.Item
+                title="Cambiar contraseña"
+                left={(props) => <List.Icon {...props} icon="lock-reset" />}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={() =>
+                  Alert.alert("Información", "Funcionalidad en desarrollo")
+                }
+              />
+              <Divider />
+              <List.Item
+                title="Ajustes"
+                left={(props) => <List.Icon {...props} icon="cog" />}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={() =>
+                  Alert.alert("Información", "Funcionalidad en desarrollo")
+                }
+              />
+            </List.Section>
+          </Card.Content>
+        </Card>
+        <Button
+          mode="contained"
+          icon="logout"
+          style={styles.logoutButton}
+          onPress={handleLogout}
+        >
+          Cerrar sesión
+        </Button>
       </ScrollView>
     </View>
   );

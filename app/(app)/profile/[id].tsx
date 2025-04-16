@@ -38,27 +38,26 @@ export default function ProfileScreen() {
     const fetchProfile = async () => {
       const storedId = await getItemAsync("userId");
       const token = await getItemAsync("userToken");
-  
+
       if (!token || !storedId) {
         setError("No se pudo recuperar la sesión.");
         setLoading(false);
         return;
       }
-      
+
       const targetId = typeof id === "string" ? id : storedId;
       const viewingOwnProfile = targetId === storedId;
-      
+
       if (viewingOwnProfile && id) {
         router.replace("/me");
         return;
       }
-      
-  
+
       try {
         const response = await fetchWithTimeout(userApi.getUserById(targetId));
 
         const fetchedUser = response.user;
-  
+
         setProfile(fetchedUser);
         setIsOwnProfile(viewingOwnProfile);
       } catch (error) {
@@ -68,16 +67,19 @@ export default function ProfileScreen() {
         setLoading(false);
       }
     };
-  
-    fetchProfile();
-  }, [id]);  
 
-  const fetchWithTimeout = (promise: Promise<any>, timeout = 5000): Promise<any> => {
+    fetchProfile();
+  }, [id]);
+
+  const fetchWithTimeout = (
+    promise: Promise<any>,
+    timeout = 5000
+  ): Promise<any> => {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error("Tiempo de espera agotado. Verifica tu conexión."));
       }, timeout);
-  
+
       promise
         .then((res) => {
           clearTimeout(timer);
@@ -89,7 +91,6 @@ export default function ProfileScreen() {
         });
     });
   };
-  
 
   if (loading) {
     return (
@@ -104,9 +105,7 @@ export default function ProfileScreen() {
       <StatusBar style="auto" />
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.headerContainer}>
-          <Title style={styles.title}>
-            {"Perfil"}
-          </Title>
+          <Title style={styles.title}>{"Perfil"}</Title>
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
