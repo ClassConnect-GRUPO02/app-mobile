@@ -4,7 +4,7 @@ import {Course} from "@/types/Course";
 // Configura la URL base de la API
 // En desarrollo con Expo, puedes usar la IP de tu máquina en lugar de localhost
 const getBaseUrl = (): string => {
-    const LOCAL_IP = "192.168.89.21";
+    const LOCAL_IP = "192.168.100.25";
     return `http://${LOCAL_IP}:3000`;
 }
 
@@ -63,6 +63,18 @@ export const courseClient = {
         } catch (error) {
             console.error(`Error deleting course with ID ${id}:`, error)
             throw error
+        }
+    },
+
+    // Editar un curso
+    updateCourse: async (course: Partial<Course>) => {
+        const id = course.id;
+        try {
+            const response = await api.patch(`/courses/${id}`, course);
+            return response.data.data;
+        } catch (error) {
+            console.error(`Error updating course with ID ${id}:`, error);
+            throw error;
         }
     },
 }
