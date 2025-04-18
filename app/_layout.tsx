@@ -1,39 +1,54 @@
-import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { useFonts } from 'expo-font';
-import { Stack } from 'expo-router';
-import * as SplashScreen from 'expo-splash-screen';
-import { StatusBar } from 'expo-status-bar';
-import { useEffect } from 'react';
-import 'react-native-reanimated';
-
-import { useColorScheme } from '@/hooks/useColorScheme';
+import { router, Slot, SplashScreen } from 'expo-router';
+import { useEffect, useState } from 'react';
+import { getItemAsync } from 'expo-secure-store';
+import { ActivityIndicator, View } from 'react-native';
 import React from 'react';
 
-// Prevent the splash screen from auto-hiding before asset loading is complete.
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  const colorScheme = useColorScheme();
   const [loaded] = useFonts({
     SpaceMono: require('../assets/fonts/SpaceMono-Regular.ttf'),
   });
 
+  const [isReady, setIsReady] = useState(false);
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  // Manejar lógica de auth
   useEffect(() => {
-    if (loaded) {
+    const prepare = async () => {
+      const token = await getItemAsync('userToken');
+      setIsAuthenticated(!!token);
+      setIsReady(true);
       SplashScreen.hideAsync();
+    };
+
+    if (loaded) {
+      prepare();
     }
   }, [loaded]);
 
-  if (!loaded) {
-    return null;
+  // Redirigir una vez que tenemos info de auth
+  useEffect(() => {
+    if (isReady) {
+      if (isAuthenticated === false) {
+        router.replace('/(auth)/login');
+      } else if (isAuthenticated === true) {
+        router.replace('/(app)/home');
+      }
+    }
+  }, [isAuthenticated, isReady]);
+
+  // Mostrar loader mientras preparamos
+  if (!loaded || !isReady) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+        <ActivityIndicator size="large" />
+      </View>
+    );
   }
 
-  return (
-    <ThemeProvider value={colorScheme === 'dark' ? DarkTheme : DefaultTheme}>
-      <Stack>
-        <Stack.Screen name="(auth)" options={{ headerShown: false }} />
-      </Stack>
-      <StatusBar style="auto" />
-    </ThemeProvider>
-  );
+  // Debe devolver algo siempre: Slot maneja el resto de las rutas
+  return <Slot />;
 }

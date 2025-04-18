@@ -14,11 +14,13 @@ import {
   Title,
   ActivityIndicator,
 } from "react-native-paper";
-import { Link, router } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { userApi } from "../../api/userApi";
 //import type { LoginRequest, ApiError } from "../../api/client";
 
 export default function LoginScreen(): React.JSX.Element {
+  const router = useRouter();
+
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
@@ -40,25 +42,49 @@ export default function LoginScreen(): React.JSX.Element {
     return true;
   };
 
+  const fetchWithTimeout = (promise: Promise<any>, timeout = 5000): Promise<any> => {
+    return new Promise((resolve, reject) => {
+      const timer = setTimeout(() => {
+        reject(new Error("Tiempo de espera agotado. Verifica tu conexión."));
+      }, timeout);
+  
+      promise
+        .then((res) => {
+          clearTimeout(timer);
+          resolve(res);
+        })
+        .catch((err) => {
+          clearTimeout(timer);
+          reject(err);
+        });
+    });
+  };
+  
+
   const handleLogin = async (): Promise<void> => {
     if (!validateForm()) return;
 
     setLoading(true);
     try {
       const credentials = { email, password };
-      const response = await userApi.login(credentials);
-      await userApi.storeToken(response.token);
+      const response = await fetchWithTimeout(userApi.login(credentials));
 
-      Alert.alert(
-        "Inicio de sesión exitoso",
-        "Has iniciado sesión correctamente",
-        [{ text: "OK", onPress: () => router.replace("/(app)") }]
-      );
+      if (response?.token && response?.id) {
+        Alert.alert(
+          "Inicio de sesión exitoso",
+          "Has iniciado sesión correctamente",
+          [{ text: "OK", onPress: () => router.replace("/(app)/home")}]
+        );
+      } else {
+        throw new Error("Token no recibido del servidor.");
+      }
     } catch (error) {
       console.error("Error durante el inicio de sesión:", error);
 
       if (error instanceof Error) {
-        setError(error.message);
+
+          setError("Credenciales incorrectas.");
+        
       } else {
         setError("Ocurrió un error al conectar con el servidor");
       }
@@ -123,7 +149,6 @@ export default function LoginScreen(): React.JSX.Element {
     </KeyboardAvoidingView>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
