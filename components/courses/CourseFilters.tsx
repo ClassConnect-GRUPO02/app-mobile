@@ -1,7 +1,7 @@
 import React from "react"
 import { useState } from "react"
-import { StyleSheet, View, TouchableOpacity, ScrollView } from "react-native"
-import { Searchbar, Text, Chip, Surface } from "react-native-paper"
+import { StyleSheet, View, TouchableOpacity, Modal } from "react-native"
+import { Searchbar, Text, Chip, Surface, IconButton, Button } from "react-native-paper"
 
 interface CourseFiltersProps {
     searchQuery: string
@@ -15,6 +15,8 @@ interface CourseFiltersProps {
     categories: string[]
     levels: string[]
     modalities: string[]
+    onRefresh: () => void
+    refreshing: boolean
 }
 
 export const CourseFilters: React.FC<CourseFiltersProps> = ({
@@ -29,169 +31,203 @@ export const CourseFilters: React.FC<CourseFiltersProps> = ({
                                                                 categories,
                                                                 levels,
                                                                 modalities,
+                                                                onRefresh,
+                                                                refreshing,
                                                             }) => {
-    const [activeTab, setActiveTab] = useState<"category" | "level" | "modality" | null>(null)
+    const [filterModalVisible, setFilterModalVisible] = useState(false)
+    const [tempCategory, setTempCategory] = useState<string | null>(selectedCategory)
+    const [tempLevel, setTempLevel] = useState<string | null>(selectedLevel)
+    const [tempModality, setTempModality] = useState<string | null>(selectedModality)
 
-    const handleTabPress = (tab: "category" | "level" | "modality" | null) => {
-        setActiveTab(activeTab === tab ? null : tab)
+    const hasActiveFilters = selectedCategory !== null || selectedLevel !== null || selectedModality !== null
+
+    const openFilterModal = () => {
+        setTempCategory(selectedCategory)
+        setTempLevel(selectedLevel)
+        setTempModality(selectedModality)
+        setFilterModalVisible(true)
     }
 
-    const renderTabContent = () => {
-        if (!activeTab) return null
+    const closeFilterModal = () => {
+        setFilterModalVisible(false)
+    }
 
-        switch (activeTab) {
+    const applyFilters = () => {
+        onCategoryChange(tempCategory)
+        onLevelChange(tempLevel)
+        onModalityChange(tempModality)
+        closeFilterModal()
+    }
+
+    const resetFilters = () => {
+        setTempCategory(null)
+        setTempLevel(null)
+        setTempModality(null)
+    }
+
+    const removeFilter = (type: "category" | "level" | "modality") => {
+        switch (type) {
             case "category":
-                return (
-                    <View style={styles.tabContent}>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                            <View style={styles.chipContainer}>
-                                <Chip
-                                    selected={selectedCategory === null}
-                                    onPress={() => onCategoryChange(null)}
-                                    style={[styles.chip, selectedCategory === null && styles.selectedChip]}
-                                >
-                                    Todas las categorías
-                                </Chip>
-                                {categories.map((category) => (
-                                    <Chip
-                                        key={category}
-                                        selected={selectedCategory === category}
-                                        onPress={() => onCategoryChange(category)}
-                                        style={[styles.chip, selectedCategory === category && styles.selectedChip]}
-                                    >
-                                        {category}
-                                    </Chip>
-                                ))}
-                            </View>
-                        </ScrollView>
-                    </View>
-                )
+                onCategoryChange(null)
+                break
             case "level":
-                return (
-                    <View style={styles.tabContent}>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                            <View style={styles.chipContainer}>
-                                <Chip
-                                    selected={selectedLevel === null}
-                                    onPress={() => onLevelChange(null)}
-                                    style={[styles.chip, selectedLevel === null && styles.selectedChip]}
-                                >
-                                    Todos los niveles
-                                </Chip>
-                                {levels.map((level) => (
-                                    <Chip
-                                        key={level}
-                                        selected={selectedLevel === level}
-                                        onPress={() => onLevelChange(level)}
-                                        style={[styles.chip, selectedLevel === level && styles.selectedChip]}
-                                    >
-                                        {level}
-                                    </Chip>
-                                ))}
-                            </View>
-                        </ScrollView>
-                    </View>
-                )
+                onLevelChange(null)
+                break
             case "modality":
-                return (
-                    <View style={styles.tabContent}>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false}>
-                            <View style={styles.chipContainer}>
-                                <Chip
-                                    selected={selectedModality === null}
-                                    onPress={() => onModalityChange(null)}
-                                    style={[styles.chip, selectedModality === null && styles.selectedChip]}
-                                >
-                                    Todas las modalidades
-                                </Chip>
-                                {modalities.map((modality) => (
-                                    <Chip
-                                        key={modality}
-                                        selected={selectedModality === modality}
-                                        onPress={() => onModalityChange(modality)}
-                                        style={[styles.chip, selectedModality === modality && styles.selectedChip]}
-                                    >
-                                        {modality}
-                                    </Chip>
-                                ))}
-                            </View>
-                        </ScrollView>
-                    </View>
-                )
-            default:
-                return null
+                onModalityChange(null)
+                break
         }
     }
 
     return (
         <View style={styles.container}>
-            <Searchbar
-                placeholder="Buscar cursos"
-                onChangeText={onSearchChange}
-                value={searchQuery}
-                style={styles.searchBar}
-            />
-
-            <View style={styles.tabsContainer}>
-                <TouchableOpacity
-                    style={[
-                        styles.tab,
-                        activeTab === "category" && styles.activeTab,
-                        selectedCategory && styles.selectedTabIndicator,
-                    ]}
-                    onPress={() => handleTabPress("category")}
-                >
-                    <Text
-                        style={[
-                            styles.tabText,
-                            activeTab === "category" && styles.activeTabText,
-                            selectedCategory && styles.selectedTabText,
-                        ]}
-                    >
-                        {selectedCategory || "Categoría"}
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[styles.tab, activeTab === "level" && styles.activeTab, selectedLevel && styles.selectedTabIndicator]}
-                    onPress={() => handleTabPress("level")}
-                >
-                    <Text
-                        style={[
-                            styles.tabText,
-                            activeTab === "level" && styles.activeTabText,
-                            selectedLevel && styles.selectedTabText,
-                        ]}
-                    >
-                        {selectedLevel || "Nivel"}
-                    </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                    style={[
-                        styles.tab,
-                        activeTab === "modality" && styles.activeTab,
-                        selectedModality && styles.selectedTabIndicator,
-                    ]}
-                    onPress={() => handleTabPress("modality")}
-                >
-                    <Text
-                        style={[
-                            styles.tabText,
-                            activeTab === "modality" && styles.activeTabText,
-                            selectedModality && styles.selectedTabText,
-                        ]}
-                    >
-                        {selectedModality || "Modalidad"}
-                    </Text>
-                </TouchableOpacity>
+            <View style={styles.searchContainer}>
+                <Searchbar
+                    placeholder="Buscar cursos"
+                    onChangeText={onSearchChange}
+                    value={searchQuery}
+                    style={styles.searchBar}
+                />
+                <IconButton
+                    icon="refresh"
+                    size={24}
+                    onPress={onRefresh}
+                    disabled={refreshing}
+                    style={styles.refreshButton}
+                    loading={refreshing}
+                />
             </View>
 
-            {activeTab && (
-                <Surface style={styles.tabContentContainer} elevation={2}>
-                    {renderTabContent()}
-                </Surface>
-            )}
+            <View style={styles.filtersRow}>
+                <TouchableOpacity
+                    style={[styles.filterButton, hasActiveFilters && styles.activeFilterButton]}
+                    onPress={openFilterModal}
+                >
+                    <IconButton icon="filter-variant" size={20} style={styles.filterIcon} />
+                    <Text style={styles.filterText}>Filtros</Text>
+                </TouchableOpacity>
+
+                <View style={styles.tagsContainer}>
+                    {selectedCategory && (
+                        <Chip
+                            style={styles.filterTag}
+                            onClose={() => removeFilter("category")}
+                            closeIconAccessibilityLabel="Eliminar filtro de categoría"
+                        >
+                            {selectedCategory}
+                        </Chip>
+                    )}
+                    {selectedLevel && (
+                        <Chip
+                            style={styles.filterTag}
+                            onClose={() => removeFilter("level")}
+                            closeIconAccessibilityLabel="Eliminar filtro de nivel"
+                        >
+                            {selectedLevel}
+                        </Chip>
+                    )}
+                    {selectedModality && (
+                        <Chip
+                            style={styles.filterTag}
+                            onClose={() => removeFilter("modality")}
+                            closeIconAccessibilityLabel="Eliminar filtro de modalidad"
+                        >
+                            {selectedModality}
+                        </Chip>
+                    )}
+                </View>
+            </View>
+
+            <Modal visible={filterModalVisible} transparent animationType="fade" onRequestClose={closeFilterModal}>
+                <View style={styles.modalOverlay}>
+                    <Surface style={styles.modalContent}>
+                        <Text style={styles.modalTitle}>Filtrar cursos</Text>
+
+                        <View style={styles.filterSection}>
+                            <Text style={styles.filterSectionTitle}>Categoría</Text>
+                            <View style={styles.chipGroup}>
+                                <Chip
+                                    selected={tempCategory === null}
+                                    onPress={() => setTempCategory(null)}
+                                    style={[styles.chip, tempCategory === null && styles.selectedChip]}
+                                >
+                                    Todas
+                                </Chip>
+                                {categories.map((category) => (
+                                    <Chip
+                                        key={category}
+                                        selected={tempCategory === category}
+                                        onPress={() => setTempCategory(category)}
+                                        style={[styles.chip, tempCategory === category && styles.selectedChip]}
+                                    >
+                                        {category}
+                                    </Chip>
+                                ))}
+                            </View>
+                        </View>
+
+                        <View style={styles.filterSection}>
+                            <Text style={styles.filterSectionTitle}>Nivel</Text>
+                            <View style={styles.chipGroup}>
+                                <Chip
+                                    selected={tempLevel === null}
+                                    onPress={() => setTempLevel(null)}
+                                    style={[styles.chip, tempLevel === null && styles.selectedChip]}
+                                >
+                                    Todos
+                                </Chip>
+                                {levels.map((level) => (
+                                    <Chip
+                                        key={level}
+                                        selected={tempLevel === level}
+                                        onPress={() => setTempLevel(level)}
+                                        style={[styles.chip, tempLevel === level && styles.selectedChip]}
+                                    >
+                                        {level}
+                                    </Chip>
+                                ))}
+                            </View>
+                        </View>
+
+                        <View style={styles.filterSection}>
+                            <Text style={styles.filterSectionTitle}>Modalidad</Text>
+                            <View style={styles.chipGroup}>
+                                <Chip
+                                    selected={tempModality === null}
+                                    onPress={() => setTempModality(null)}
+                                    style={[styles.chip, tempModality === null && styles.selectedChip]}
+                                >
+                                    Todas
+                                </Chip>
+                                {modalities.map((modality) => (
+                                    <Chip
+                                        key={modality}
+                                        selected={tempModality === modality}
+                                        onPress={() => setTempModality(modality)}
+                                        style={[styles.chip, tempModality === modality && styles.selectedChip]}
+                                    >
+                                        {modality}
+                                    </Chip>
+                                ))}
+                            </View>
+                        </View>
+
+                        <View style={styles.modalActions}>
+                            <Button onPress={resetFilters} style={styles.resetButton}>
+                                Limpiar filtros
+                            </Button>
+                            <View style={styles.actionButtons}>
+                                <Button onPress={closeFilterModal} style={styles.cancelButton}>
+                                    Cancelar
+                                </Button>
+                                <Button mode="contained" onPress={applyFilters} style={styles.applyButton}>
+                                    Aplicar
+                                </Button>
+                            </View>
+                        </View>
+                    </Surface>
+                </View>
+            </Modal>
         </View>
     )
 }
@@ -200,58 +236,110 @@ const styles = StyleSheet.create({
     container: {
         marginBottom: 16,
     },
-    searchBar: {
-        marginBottom: 12,
-        elevation: 2,
-    },
-    tabsContainer: {
+    searchContainer: {
         flexDirection: "row",
-        borderRadius: 8,
-        overflow: "hidden",
-    },
-    tab: {
-        flex: 1,
-        paddingVertical: 10,
-        paddingHorizontal: 12,
         alignItems: "center",
-        justifyContent: "center",
+        marginBottom: 12,
+    },
+    searchBar: {
+        flex: 1,
+        elevation: 2,
+        borderRadius: 8,
+    },
+    refreshButton: {
+        marginLeft: 8,
+    },
+    filtersRow: {
+        flexDirection: "row",
+        alignItems: "center",
+        flexWrap: "wrap",
+    },
+    filterButton: {
+        flexDirection: "row",
+        alignItems: "center",
         backgroundColor: "#f0f0f0",
-        borderBottomWidth: 2,
-        borderBottomColor: "transparent",
+        borderRadius: 20,
+        paddingRight: 12,
+        marginRight: 8,
+        marginBottom: 8,
     },
-    activeTab: {
-        backgroundColor: "#e0e0e0",
-        borderBottomColor: "#6b00ce",
+    activeFilterButton: {
+        backgroundColor: "#e6d9ff",
     },
-    selectedTabIndicator: {
-        borderBottomColor: "#6b00ce",
+    filterIcon: {
+        margin: 0,
     },
-    tabText: {
+    filterText: {
         fontSize: 14,
         fontWeight: "500",
     },
-    activeTabText: {
+    tagsContainer: {
+        flexDirection: "row",
+        flexWrap: "wrap",
+        flex: 1,
+    },
+    filterTag: {
+        marginRight: 8,
+        marginBottom: 8,
+        backgroundColor: "#e6d9ff",
+    },
+    modalOverlay: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        backgroundColor: "rgba(0, 0, 0, 0.5)",
+        padding: 20,
+    },
+    modalContent: {
+        width: "100%",
+        maxHeight: "80%",
+        borderRadius: 12,
+        padding: 20,
+    },
+    modalTitle: {
+        fontSize: 20,
+        fontWeight: "bold",
+        marginBottom: 16,
+        textAlign: "center",
         color: "#6200ee",
     },
-    selectedTabText: {
-        color: "#6b00ce",
+    filterSection: {
+        marginBottom: 20,
     },
-    tabContentContainer: {
-        borderRadius: 8,
-        marginTop: 1,
+    filterSectionTitle: {
+        fontSize: 16,
+        fontWeight: "bold",
         marginBottom: 8,
+        color: "#333",
     },
-    tabContent: {
-        padding: 12,
-    },
-    chipContainer: {
+    chipGroup: {
         flexDirection: "row",
-        paddingRight: 8,
+        flexWrap: "wrap",
     },
     chip: {
-        marginRight: 8,
+        margin: 4,
     },
     selectedChip: {
+        backgroundColor: "#6200ee",
+    },
+    modalActions: {
+        marginTop: 16,
+    },
+    resetButton: {
+        alignSelf: "center",
+        marginBottom: 16,
+    },
+    actionButtons: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+    },
+    cancelButton: {
+        flex: 1,
+        marginRight: 8,
+    },
+    applyButton: {
+        flex: 1,
+        marginLeft: 8,
         backgroundColor: "#6200ee",
     },
 })

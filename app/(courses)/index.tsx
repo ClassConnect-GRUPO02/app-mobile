@@ -1,13 +1,12 @@
-import { useState, useEffect } from "react"
+import React, { useState, useEffect } from "react"
 import { StyleSheet, View, FlatList, SafeAreaView } from "react-native"
-import { Text, ActivityIndicator, Button, Snackbar, FAB } from "react-native-paper"
+import { Text, ActivityIndicator, Snackbar, FAB } from "react-native-paper"
 import { StatusBar } from "expo-status-bar"
-import {CourseCard} from "@/components/courses/CourseCard";
-import {CourseFilters} from "@/components/courses/CourseFilters";
-import React from "react";
-import {Course} from "@/types/Course";
-import {courseClient} from "@/api/coursesClient";
+import { CourseCard } from "@/components/courses/CourseCard"
+import { CourseFilters } from "@/components/courses/CourseFilters"
+import { courseClient } from "@/api/coursesClient"
 import { router } from "expo-router"
+import {Course} from "@/types/Course";
 
 export default function CoursesScreen() {
     const [loading, setLoading] = useState(true)
@@ -52,9 +51,9 @@ export default function CoursesScreen() {
         fetchCourses()
     }, [])
 
-    const categories = Array.from(new Set(allCourses.map((course) => course.category)));
-    const levels = Array.from(new Set(allCourses.map((course) => course.level)));
-    const modalities = Array.from(new Set(allCourses.map((course) => course.modality)));
+    const categories = Array.from(new Set(allCourses.map((course) => course.category)))
+    const levels = Array.from(new Set(allCourses.map((course) => course.level)))
+    const modalities = Array.from(new Set(allCourses.map((course) => course.modality)))
 
     // Filtrar cursos cuando cambian los filtros
     useEffect(() => {
@@ -88,6 +87,7 @@ export default function CoursesScreen() {
         setFilteredCourses(result)
     }, [searchQuery, selectedCategory, selectedLevel, selectedModality, allCourses])
 
+    // Manejar la acción de recargar
     const handleRefresh = () => {
         setRefreshing(true)
         fetchCourses()
@@ -122,17 +122,6 @@ export default function CoursesScreen() {
                     Explora los cursos disponibles
                 </Text>
 
-                <Button
-                    mode="outlined"
-                    onPress={handleRefresh}
-                    style={styles.refreshButton}
-                    icon="refresh"
-                    loading={refreshing}
-                    disabled={refreshing}
-                >
-                    Actualizar cursos
-                </Button>
-
                 {error && (
                     <View style={styles.errorContainer}>
                         <Text style={styles.errorText}>{error}</Text>
@@ -152,6 +141,8 @@ export default function CoursesScreen() {
                 categories={categories}
                 levels={levels}
                 modalities={modalities}
+                onRefresh={handleRefresh}
+                refreshing={refreshing}
             />
 
             {filteredCourses.length > 0 ? (
@@ -171,11 +162,6 @@ export default function CoursesScreen() {
                             ? "No se pudieron cargar los cursos. Intenta actualizar."
                             : "No se encontraron cursos que coincidan con los filtros seleccionados."}
                     </Text>
-                    {error && (
-                        <Button mode="contained" onPress={handleRefresh} style={styles.retryButton} icon="refresh">
-                            Reintentar
-                        </Button>
-                    )}
                 </View>
             )}
 
@@ -218,12 +204,11 @@ const styles = StyleSheet.create({
         marginTop: 12,
     },
     errorText: {
-        color: "red",
-        textAlign: "center",
-        fontSize: 16,
+        color: "#d32f2f",
+        fontSize: 14,
     },
     header: {
-        marginBottom: 24,
+        marginBottom: 16,
     },
     title: {
         fontWeight: "bold",
@@ -245,13 +230,6 @@ const styles = StyleSheet.create({
         textAlign: "center",
         color: "#666",
         marginBottom: 16,
-    },
-    refreshButton: {
-        marginTop: 8,
-        alignSelf: "flex-start",
-    },
-    retryButton: {
-        marginTop: 16,
     },
     fab: {
         position: "absolute",

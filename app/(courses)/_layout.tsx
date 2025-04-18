@@ -23,7 +23,7 @@ export default function CoursesLayout() {
                     headerTitleStyle: {
                         fontWeight: "bold",
                     },
-                    headerShown: true,
+                    headerShown: false,
                     headerBackVisible: true,
                     headerBackTitle: "",
                 }}
@@ -32,7 +32,7 @@ export default function CoursesLayout() {
                     name="index"
                     options={{
                         title: "Explorar Cursos",
-                        headerShown: true,
+                        headerShown: false,
                     }}
                 />
                 <Stack.Screen
@@ -40,7 +40,7 @@ export default function CoursesLayout() {
                     options={{
                         title: "Crear Curso",
                         presentation: "card",
-                        headerShown: true,
+                        headerShown: false,
                     }}
                 />
                 <Stack.Screen
@@ -48,14 +48,14 @@ export default function CoursesLayout() {
                     options={{
                         title: "Editar Curso",
                         presentation: "card",
-                        headerShown: true,
+                        headerShown: false,
                     }}
                 />
                 <Stack.Screen
                     name="[id]"
                     options={{
                         title: "Detalle del Curso",
-                        headerShown: true,
+                        headerShown: false,
                     }}
                 />
             </Stack>
