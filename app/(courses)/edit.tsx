@@ -1,5 +1,5 @@
-import React, { useState } from "react"
-import { View, ScrollView, StyleSheet } from "react-native"
+import { useState, useEffect } from "react"
+import { View, ScrollView, StyleSheet, Alert } from "react-native"
 import {
     TextInput,
     Button,
@@ -11,15 +11,18 @@ import {
     Surface,
     Snackbar,
 } from "react-native-paper"
-import { router } from "expo-router"
+import { router, useLocalSearchParams } from "expo-router"
 import { courseClient } from "@/api/coursesClient"
 import type { Course } from "@/types/Course"
 import { SelectMenu } from "@/components/courses/SelectMenu"
 import { DateRangePicker } from "@/components/courses/DateRangePicker"
 import { StatusBar } from "expo-status-bar"
+import React from "react"
 
-export default function CreateCourseScreen() {
+export default function EditCourseScreen() {
+    const { id } = useLocalSearchParams<{ id: string }>()
     const [loading, setLoading] = useState(false)
+    const [initialLoading, setInitialLoading] = useState(true)
     const [snackbarVisible, setSnackbarVisible] = useState(false)
     const [snackbarMessage, setSnackbarMessage] = useState("")
     const [snackbarType, setSnackbarType] = useState<"success" | "error">("success")
@@ -27,7 +30,8 @@ export default function CreateCourseScreen() {
     const levels = ["Principiante", "Intermedio", "Avanzado"]
     const modalities = ["Online", "Presencial", "Híbrido"]
 
-    const [course, setCourse] = useState<Omit<Course, "id">>({
+    const [course, setCourse] = useState<Course>({
+        id: "",
         name: "",
         shortDescription: "",
         description: "",
@@ -47,6 +51,33 @@ export default function CreateCourseScreen() {
     })
 
     const [errors, setErrors] = useState<Record<string, string>>({})
+
+    useEffect(() => {
+        const fetchCourse = async () => {
+            try {
+                setInitialLoading(true)
+                const courseData = await courseClient.getCourseById(id)
+                setCourse({
+                    ...courseData,
+                    prerequisites: courseData.prerequisites?.length > 0 ? courseData.prerequisites : [""],
+                    imageUrl:
+                        courseData.imageUrl ||
+                        "https://images.unsplash.com/photo-1587620962725-abab7fe55159?q=80&w=2062&auto=format&fit=crop",
+                })
+            } catch (err) {
+                console.error("Error al cargar el curso:", err)
+                Alert.alert("Error", "No se pudo cargar la información del curso", [
+                    { text: "Volver", onPress: () => router.back() },
+                ])
+            } finally {
+                setInitialLoading(false)
+            }
+        }
+
+        if (id) {
+            fetchCourse()
+        }
+    }, [id])
 
     const validateForm = () => {
         const newErrors: Record<string, string> = {}
@@ -102,7 +133,6 @@ export default function CreateCourseScreen() {
         const minValue = field === "capacity" ? 1 : 0
         if (Number(course[field]) <= minValue) return
 
-        // Si estamos reduciendo la capacidad, asegurarse de que no sea menor que los inscritos
         if (field === "capacity" && Number(course[field]) - 1 < course.enrolled) {
             setCourse({
                 ...course,
@@ -156,7 +186,6 @@ export default function CreateCourseScreen() {
 
         setLoading(true)
         try {
-            // Filtrar prerrequisitos vacíos
             const filteredPrerequisites = course.prerequisites.filter((p) => p.trim() !== "")
 
             const courseToSubmit = {
@@ -166,19 +195,27 @@ export default function CreateCourseScreen() {
                 enrolled: Number(course.enrolled),
             }
 
-            await courseClient.createCourse(courseToSubmit as Course)
-            showSnackbar("¡Curso creado correctamente!", "success")
+            await courseClient.updateCourse(courseToSubmit)
+            showSnackbar("¡Curso actualizado correctamente!", "success")
 
-            // Esperar un momento para que el usuario vea el mensaje antes de redirigir
             setTimeout(() => {
-                router.push("/(courses)")
+                router.back()
             }, 1500)
         } catch (error) {
-            console.error("Error al crear el curso:", error)
-            showSnackbar("No se pudo crear el curso. Inténtalo de nuevo.", "error")
+            console.error("Error al actualizar el curso:", error)
+            showSnackbar("No se pudo actualizar el curso. Inténtalo de nuevo.", "error")
         } finally {
             setLoading(false)
         }
+    }
+
+    if (initialLoading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6200ee" />
+                <Text style={styles.loadingText}>Cargando curso...</Text>
+            </View>
+        )
     }
 
     return (
@@ -187,10 +224,10 @@ export default function CreateCourseScreen() {
 
             <View style={styles.header}>
                 <Text variant="headlineMedium" style={styles.title}>
-                    Crear Nuevo Curso
+                    Editar Curso
                 </Text>
                 <Text variant="bodyLarge" style={styles.subtitle}>
-                    Completa el formulario para crear un nuevo curso
+                    Modifica la información del curso
                 </Text>
             </View>
 
@@ -463,17 +500,7 @@ export default function CreateCourseScreen() {
                             labelStyle={styles.buttonLabel}
                             icon="check"
                         >
-                            Crear Curso
-                        </Button>
-
-                        <Button
-                            mode="outlined"
-                            onPress={() => router.back()}
-                            style={styles.cancelButton}
-                            labelStyle={styles.buttonLabel}
-                            icon="arrow-left"
-                        >
-                            Cancelar
+                            Guardar Cambios
                         </Button>
                     </>
                 )}
@@ -499,6 +526,16 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#f5f5f5",
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 16,
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 16,
     },
     header: {
         padding: 20,

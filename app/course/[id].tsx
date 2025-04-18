@@ -1,5 +1,5 @@
-import { StyleSheet, View, ScrollView, Image } from "react-native"
-import { Text, Button, Chip, Divider, List, ActivityIndicator } from "react-native-paper"
+import { StyleSheet, View, ScrollView, Image, Alert } from "react-native"
+import { Text, Button, Chip, Divider, List, ActivityIndicator, FAB } from "react-native-paper"
 import { useLocalSearchParams, router } from "expo-router"
 import { courseClient } from "@/api/coursesClient"
 import { useState, useEffect } from "react"
@@ -12,6 +12,7 @@ export default function CourseDetailScreen() {
     const [course, setCourse] = useState<Course | null>(null)
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
+    const [deleting, setDeleting] = useState(false)
 
     useEffect(() => {
         const fetchCourse = async () => {
@@ -31,6 +32,40 @@ export default function CourseDetailScreen() {
             fetchCourse()
         }
     }, [id])
+
+    const handleDelete = () => {
+        Alert.alert(
+            "Eliminar curso",
+            "¿Estás seguro de que deseas eliminar este curso? Esta acción no se puede deshacer.",
+            [
+                { text: "Cancelar", style: "cancel" },
+                {
+                    text: "Eliminar",
+                    style: "destructive",
+                    onPress: async () => {
+                        try {
+                            setDeleting(true)
+                            await courseClient.deleteCourse(id)
+                            Alert.alert("Éxito", "El curso ha sido eliminado correctamente", [
+                                { text: "OK", onPress: () => router.replace("/(courses)") },
+                            ])
+                        } catch (error) {
+                            console.error("Error al eliminar el curso:", error)
+                            Alert.alert("Error", "No se pudo eliminar el curso. Inténtalo de nuevo.")
+                            setDeleting(false)
+                        }
+                    },
+                },
+            ],
+        )
+    }
+
+    const handleEdit = () => {
+        router.push({
+            pathname: "/(courses)/edit",
+            params: { id: id },
+        })
+    }
 
     if (loading) {
         return (
@@ -56,103 +91,117 @@ export default function CourseDetailScreen() {
     const isFullyBooked = availableSpots === 0
 
     return (
-        <ScrollView style={styles.container}>
-            <StatusBar style="light" />
+        <View style={styles.container}>
+            <ScrollView>
+                <StatusBar style="light" />
 
-            <Image source={{ uri: course.imageUrl }} style={styles.courseImage} />
+                <Image
+                    source={{
+                        uri:
+                            course.imageUrl ||
+                            "https://www.svgrepo.com/show/441689/page-not-found.svg",
+                    }}
+                    style={styles.courseImage}
+                />
 
-            <View style={styles.contentContainer}>
-                <Text variant="headlineSmall" style={styles.title}>
-                    {course.name}
-                </Text>
-
-                <View style={styles.chipContainer}>
-                    <Chip style={styles.chip}>{course.category}</Chip>
-                    <Chip style={styles.chip}>{course.level}</Chip>
-                    <Chip style={styles.chip}>{course.modality}</Chip>
-                </View>
-
-                <View style={styles.section}>
-                    <Text variant="bodyLarge" style={styles.description}>
-                        {course.description}
-                    </Text>
-                </View>
-
-                <Divider style={styles.divider} />
-
-                <View style={styles.section}>
-                    <Text variant="titleMedium" style={styles.sectionTitle}>
-                        Detalles del curso
+                <View style={styles.contentContainer}>
+                    <Text variant="headlineSmall" style={styles.title}>
+                        {course.name}
                     </Text>
 
-                    <List.Item
-                        title="Fechas"
-                        description={`${new Date(course.startDate).toLocaleDateString()} - ${new Date(course.endDate).toLocaleDateString()}`}
-                        left={(props) => <List.Icon {...props} icon="calendar" />}
-                    />
+                    <View style={styles.chipContainer}>
+                        <Chip style={styles.chip}>{course.category}</Chip>
+                        <Chip style={styles.chip}>{course.level}</Chip>
+                        <Chip style={styles.chip}>{course.modality}</Chip>
+                    </View>
 
-                    <List.Item
-                        title="Instructor"
-                        description={course.instructor.name}
-                        left={(props) => <List.Icon {...props} icon="account" />}
-                    />
+                    <View style={styles.section}>
+                        <Text variant="bodyLarge" style={styles.description}>
+                            {course.description}
+                        </Text>
+                    </View>
 
-                    <List.Item
-                        title="Capacidad"
-                        description={`${course.enrolled} / ${course.capacity} estudiantes`}
-                        left={(props) => <List.Icon {...props} icon="account-group" />}
-                    />
-                </View>
+                    <Divider style={styles.divider} />
 
-                <Divider style={styles.divider} />
+                    <View style={styles.section}>
+                        <Text variant="titleMedium" style={styles.sectionTitle}>
+                            Detalles del curso
+                        </Text>
 
-                <View style={styles.section}>
-                    <Text variant="titleMedium" style={styles.sectionTitle}>
-                        Perfil del instructor
-                    </Text>
-                    <Text variant="bodyMedium">{course.instructor.profile}</Text>
-                </View>
+                        <List.Item
+                            title="Fechas"
+                            description={`${new Date(course.startDate).toLocaleDateString()} - ${new Date(course.endDate).toLocaleDateString()}`}
+                            left={(props) => <List.Icon {...props} icon="calendar" />}
+                        />
 
-                {course.prerequisites.length > 0 && (
-                    <>
-                        <Divider style={styles.divider} />
+                        <List.Item
+                            title="Instructor"
+                            description={course.instructor.name}
+                            left={(props) => <List.Icon {...props} icon="account" />}
+                        />
 
-                        <View style={styles.section}>
-                            <Text variant="titleMedium" style={styles.sectionTitle}>
-                                Requisitos previos
-                            </Text>
-                            {course.prerequisites.map((prerequisite, index) => (
-                                <List.Item
-                                    key={index}
-                                    title={prerequisite}
-                                    left={(props) => <List.Icon {...props} icon="check-circle" />}
-                                />
-                            ))}
-                        </View>
-                    </>
-                )}
+                        <List.Item
+                            title="Capacidad"
+                            description={`${course.enrolled} / ${course.capacity} estudiantes`}
+                            left={(props) => <List.Icon {...props} icon="account-group" />}
+                        />
+                    </View>
 
-                <View style={styles.actionContainer}>
-                    {course.isEnrolled ? (
-                        <Button mode="contained" style={[styles.button, styles.enrolledButton]} disabled>
-                            Ya estás inscrito
-                        </Button>
-                    ) : isFullyBooked ? (
-                        <Button mode="contained" style={[styles.button, styles.fullyBookedButton]} disabled>
-                            Sin cupos disponibles
-                        </Button>
-                    ) : (
-                        <Button mode="contained" style={styles.button} onPress={() => console.log("Inscribirse")}>
-                            Inscribirse
-                        </Button>
+                    <Divider style={styles.divider} />
+
+                    <View style={styles.section}>
+                        <Text variant="titleMedium" style={styles.sectionTitle}>
+                            Perfil del instructor
+                        </Text>
+                        <Text variant="bodyMedium">{course.instructor.profile}</Text>
+                    </View>
+
+                    {course.prerequisites.length > 0 && (
+                        <>
+                            <Divider style={styles.divider} />
+
+                            <View style={styles.section}>
+                                <Text variant="titleMedium" style={styles.sectionTitle}>
+                                    Requisitos previos
+                                </Text>
+                                {course.prerequisites.map((prerequisite, index) => (
+                                    <List.Item
+                                        key={index}
+                                        title={prerequisite}
+                                        left={(props) => <List.Icon {...props} icon="check-circle" />}
+                                    />
+                                ))}
+                            </View>
+                        </>
                     )}
 
-                    <Button mode="outlined" style={styles.button} onPress={() => router.back()}>
-                        Volver
-                    </Button>
+                    <View style={styles.actionContainer}>
+                        {course.isEnrolled ? (
+                            <Button mode="contained" style={[styles.button, styles.enrolledButton]} disabled>
+                                Ya estás inscrito
+                            </Button>
+                        ) : isFullyBooked ? (
+                            <Button mode="contained" style={[styles.button, styles.fullyBookedButton]} disabled>
+                                Sin cupos disponibles
+                            </Button>
+                        ) : (
+                            <Button mode="contained" style={styles.button} onPress={() => console.log("Inscribirse")}>
+                                Inscribirse
+                            </Button>
+                        )}
+
+                        <Button mode="outlined" style={styles.button} onPress={() => router.back()}>
+                            Volver
+                        </Button>
+                    </View>
                 </View>
+            </ScrollView>
+
+            <View style={styles.fabContainer}>
+                <FAB icon="delete" style={[styles.fab, styles.fabDelete]} onPress={handleDelete} color="#fff" small />
+                <FAB icon="pencil" style={[styles.fab, styles.fabEdit]} onPress={handleEdit} color="#fff" small />
             </View>
-        </ScrollView>
+        </View>
     )
 }
 
@@ -183,6 +232,7 @@ const styles = StyleSheet.create({
     },
     contentContainer: {
         padding: 16,
+        paddingBottom: 80,
     },
     title: {
         fontWeight: "bold",
@@ -212,7 +262,7 @@ const styles = StyleSheet.create({
     },
     actionContainer: {
         marginTop: 24,
-        marginBottom: 32,
+        marginBottom: 16,
     },
     button: {
         marginBottom: 12,
@@ -227,5 +277,20 @@ const styles = StyleSheet.create({
     backButton: {
         marginTop: 16,
     },
+    fabContainer: {
+        position: "absolute",
+        right: 16,
+        bottom: 16,
+        alignItems: "center",
+    },
+    fab: {
+        marginBottom: 8,
+        elevation: 4,
+    },
+    fabEdit: {
+        backgroundColor: "#6200ee",
+    },
+    fabDelete: {
+        backgroundColor: "#f44336",
+    },
 })
-

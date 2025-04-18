@@ -125,32 +125,34 @@ export const DateRangePicker: React.FC<DateRangePickerProps> = ({
 
     return (
         <View style={styles.container}>
-            <Text style={styles.label}>Fechas del curso *</Text>
 
-            <View style={styles.dateButtonsContainer}>
-                <TouchableOpacity
-                    style={[styles.dateButton, startDateError ? styles.dateButtonError : null]}
-                    onPress={() => openCalendar(true)}
-                >
-                    <Text style={styles.dateLabel}>Inicio:</Text>
-                    <Text style={styles.dateValue}>{formatDisplayDate(startDate)}</Text>
-                    <IconButton icon="calendar" size={20} style={styles.calendarIcon} />
-                </TouchableOpacity>
+            <View style={styles.datePickersContainer}>
+                <View style={styles.datePickerColumn}>
+                    <Text style={styles.dateLabel}>Fecha de inicio</Text>
+                    <TouchableOpacity
+                        style={[styles.dateButton, startDateError ? styles.dateButtonError : null]}
+                        onPress={() => openCalendar(true)}
+                    >
+                        <Text style={styles.dateValue}>{formatDisplayDate(startDate)}</Text>
+                        <IconButton icon="calendar" size={20} style={styles.calendarIcon} />
+                    </TouchableOpacity>
+                    {startDateError && <Text style={styles.errorText}>{startDateError}</Text>}
+                </View>
 
                 <Text style={styles.separator}>→</Text>
 
-                <TouchableOpacity
-                    style={[styles.dateButton, endDateError ? styles.dateButtonError : null]}
-                    onPress={() => openCalendar(false)}
-                >
-                    <Text style={styles.dateLabel}>Fin:</Text>
-                    <Text style={styles.dateValue}>{formatDisplayDate(endDate)}</Text>
-                    <IconButton icon="calendar" size={20} style={styles.calendarIcon} />
-                </TouchableOpacity>
+                <View style={styles.datePickerColumn}>
+                    <Text style={styles.dateLabel}>Fecha de fin</Text>
+                    <TouchableOpacity
+                        style={[styles.dateButton, endDateError ? styles.dateButtonError : null]}
+                        onPress={() => openCalendar(false)}
+                    >
+                        <Text style={styles.dateValue}>{formatDisplayDate(endDate)}</Text>
+                        <IconButton icon="calendar" size={20} style={styles.calendarIcon} />
+                    </TouchableOpacity>
+                    {endDateError && <Text style={styles.errorText}>{endDateError}</Text>}
+                </View>
             </View>
-
-            {startDateError && <Text style={styles.errorText}>{startDateError}</Text>}
-            {endDateError && <Text style={styles.errorText}>{endDateError}</Text>}
 
             <Modal visible={modalVisible} transparent={true} animationType="fade" onRequestClose={handleCancel}>
                 <View style={styles.modalOverlay}>
@@ -200,34 +202,41 @@ const styles = StyleSheet.create({
         marginBottom: 8,
         color: "#666",
     },
-    dateButtonsContainer: {
+    datePickersContainer: {
         flexDirection: "row",
         alignItems: "center",
         justifyContent: "space-between",
     },
-    dateButton: {
+    datePickerColumn: {
         flex: 1,
+    },
+    dateLabel: {
+        fontSize: 14,
+        marginBottom: 6,
+        color: "#666",
+    },
+    dateButton: {
         flexDirection: "row",
         alignItems: "center",
-        backgroundColor: "#fff",
+        justifyContent: "space-between",
+        backgroundColor: "#f5f5f5",
         borderWidth: 1,
-        borderColor: "#6200ee",
+        borderColor: "#ddd",
         borderRadius: 8,
-        padding: 12,
+        padding: 10,
+        marginHorizontal: 4,
     },
     dateButtonError: {
         borderColor: "#f44336",
     },
-    dateLabel: {
-        fontWeight: "bold",
-        marginRight: 8,
-        color: "#6200ee",
-    },
     dateValue: {
         flex: 1,
+        fontSize: 14,
     },
     calendarIcon: {
         margin: 0,
+        width: 20,
+        height: 20,
     },
     separator: {
         marginHorizontal: 8,

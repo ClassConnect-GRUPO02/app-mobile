@@ -9,7 +9,7 @@ interface SelectMenuProps {
     onSelect: (value: string) => void
 }
 
-export const SelectMenu: React.FC<SelectMenuProps> = ({ label, value, options, onSelect }) => {
+export const SelectMenu = ({ label, value, options, onSelect }: SelectMenuProps) => {
     const [visible, setVisible] = useState(false)
 
     const openMenu = () => setVisible(true)
@@ -27,27 +27,13 @@ export const SelectMenu: React.FC<SelectMenuProps> = ({ label, value, options, o
                 visible={visible}
                 onDismiss={closeMenu}
                 anchor={
-                    <Button
-                        mode="outlined"
-                        onPress={openMenu}
-                        style={styles.button}
-                        contentStyle={styles.buttonContent}
-                        labelStyle={styles.buttonLabel}
-                        icon="chevron-down"
-                    >
+                    <Button mode="outlined" onPress={openMenu} style={styles.button}>
                         {value}
                     </Button>
                 }
-                style={styles.menu}
             >
                 {options.map((option) => (
-                    <Menu.Item
-                        key={option}
-                        onPress={() => handleSelect(option)}
-                        title={option}
-                        style={option === value ? styles.selectedItem : undefined}
-                        titleStyle={option === value ? styles.selectedItemText : undefined}
-                    />
+                    <Menu.Item key={option} onPress={() => handleSelect(option)} title={option} />
                 ))}
             </Menu>
         </View>
@@ -59,31 +45,14 @@ const styles = StyleSheet.create({
         marginBottom: 16,
     },
     label: {
-        fontSize: 16,
-        marginBottom: 8,
+        fontSize: 14,
+        marginBottom: 6,
         color: "#666",
     },
     button: {
         width: "100%",
         borderRadius: 8,
-        borderColor: "#6200ee",
-    },
-    buttonContent: {
-        height: 48,
-        justifyContent: "center",
-    },
-    buttonLabel: {
-        color: "#6200ee",
-    },
-    menu: {
-        marginTop: 4,
-        borderRadius: 8,
-    },
-    selectedItem: {
-        backgroundColor: "#f0e6ff",
-    },
-    selectedItemText: {
-        color: "#6200ee",
-        fontWeight: "bold",
+        borderColor: "#ddd",
+        backgroundColor: "#f5f5f5",
     },
 })
