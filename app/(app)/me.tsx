@@ -31,6 +31,7 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const theme = useTheme();
+  const [showEditModal, setShowEditModal] = useState(false)
   const { id } = useLocalSearchParams(); // ID del perfil a ver, si se pasa
 
   useEffect(() => {
@@ -108,6 +109,15 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const handleEditProfile = () => {
+    setShowEditModal(true)
+  }
+
+  const handleProfileUpdated = (updatedProfile: UserProfile) => {
+    setProfile(updatedProfile)
+    setShowEditModal(false)
+  }
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -181,9 +191,7 @@ export default function ProfileScreen() {
                 title="Editar perfil"
                 left={(props) => <List.Icon {...props} icon="account-edit" />}
                 right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                onPress={() =>
-                  Alert.alert("Información", "Funcionalidad en desarrollo")
-                }
+                onPress={handleEditProfile}
               />
               <Divider />
               <List.Item
