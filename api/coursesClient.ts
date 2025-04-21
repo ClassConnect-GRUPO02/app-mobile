@@ -1,3 +1,4 @@
+import { getItemAsync } from "expo-secure-store"
 import axios from "axios"
 import {Course} from "@/types/Course";
 
@@ -44,10 +45,54 @@ export const courseClient = {
         }
     },
 
+    // Verificar si un usuario está inscrito en un curso
+    isEnrolledInCourse: async (courseId: string, userId: string) => {
+        try {
+            const response = await api.get(`/courses/${courseId}/enrollments/${userId}`)
+            return response.data
+        } catch (error) {
+            console.error(`Error checking enrollment for user ${userId} in course ${courseId}:`, error)
+            throw error
+        }
+    },
+
+    // Verificar si un usuario es instructor en un curso
+    isInstructorInCourse: async (courseId: string, userId: string) => {
+        try {
+            const response = await api.get(`/courses/${courseId}/instructors/${userId}`)
+            return response.data
+        } catch (error) {
+            console.error(`Error checking instructor status for user ${userId} in course ${courseId}:`, error)
+            throw error
+        }
+    },
+
+    // Inscribir a un estudiante en un curso
+    enrollStudentInCourse: async (courseId: string, userId: string) => {
+        try {
+            await api.post(`/courses/${courseId}/enrollments`, { userId })
+            return true
+        } catch (error) {
+            console.error(`Error enrolling user ${userId} in course ${courseId}:`, error)
+            throw error
+        }
+    },
+
     // Crear un nuevo curso
     createCourse: async (course: Course) => {
         try {
-            const response = await api.post("/courses", course)
+            // Obtener el ID del usuario actual para asignarlo como creador
+            const userId = await getItemAsync("userId")
+            if (!userId) {
+                throw new Error("No se encontró el ID del usuario")
+            }
+
+            // Asignar el ID del creador al curso
+            const courseWithCreator = {
+                ...course,
+                creatorId: userId,
+            }
+            const response = await api.post("/courses", courseWithCreator)
             return response.data.data
         } catch (error) {
             console.error("Error creating course:", error)

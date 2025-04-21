@@ -17,4 +17,5 @@ export interface Course {
     prerequisites: string[]
     isEnrolled?: boolean
     imageUrl: string
+    creatorId: string
 }
