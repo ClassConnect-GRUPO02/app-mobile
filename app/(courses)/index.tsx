@@ -1,12 +1,14 @@
-import React, { useState, useEffect } from "react"
+import { useState, useEffect } from "react"
 import { StyleSheet, View, FlatList, SafeAreaView } from "react-native"
 import { Text, ActivityIndicator, Snackbar, FAB } from "react-native-paper"
 import { StatusBar } from "expo-status-bar"
 import { CourseCard } from "@/components/courses/CourseCard"
 import { CourseFilters } from "@/components/courses/CourseFilters"
+import type { Course } from "@/types/Course"
 import { courseClient } from "@/api/coursesClient"
 import { router } from "expo-router"
-import {Course} from "@/types/Course";
+import {userApi} from "@/api/userApi";
+import React from "react"
 
 export default function CoursesScreen() {
     const [loading, setLoading] = useState(true)
@@ -20,17 +22,40 @@ export default function CoursesScreen() {
     const [snackbarVisible, setSnackbarVisible] = useState(false)
     const [snackbarMessage, setSnackbarMessage] = useState("")
     const [refreshing, setRefreshing] = useState(false)
+    const [userType, setUserType] = useState<string | null>(null)
+    const [enrolledCourseIds, setEnrolledCourseIds] = useState<string[]>([])
 
-    const fetchCourses = async () => {
+    const fetchData = async () => {
         try {
             setLoading(true)
-            console.log("Cargando cursos desde la API...")
+            console.log("Cargando cursos y datos de usuario...")
 
+            const userId = await userApi.getUserId()
+            console.log(userId)
+            if (userId) {
+                const userInfo = await userApi.getUserById(userId)
+                setUserType(userInfo?.user?.userType || null)
+                console.log(userInfo?.user?.userType)
+
+                // Si es estudiante, obtener los cursos en los que está inscrito
+                if (userInfo?.user?.userType === "alumno") {
+                    const enrolledCourses = await courseClient.getCoursesByUserId(userId)
+                    setEnrolledCourseIds(enrolledCourses.map((course: { id: any }) => course.id))
+                }
+            }
+
+            // Obtener todos los cursos
             const coursesData = await courseClient.getAllCourses()
             console.log(`Se obtuvieron ${coursesData.length} cursos`)
 
-            setAllCourses(coursesData)
-            setFilteredCourses(coursesData)
+            // Marcar los cursos en los que el usuario está inscrito
+            const coursesWithEnrollmentStatus = coursesData.map((course: { id: string }) => ({
+                ...course,
+                isEnrolled: enrolledCourseIds.includes(course.id),
+            }))
+
+            setAllCourses(coursesWithEnrollmentStatus)
+            setFilteredCourses(coursesWithEnrollmentStatus)
             setError(null)
 
             if (error) {
@@ -48,7 +73,7 @@ export default function CoursesScreen() {
     }
 
     useEffect(() => {
-        fetchCourses()
+        fetchData()
     }, [])
 
     const categories = Array.from(new Set(allCourses.map((course) => course.category)))
@@ -90,8 +115,10 @@ export default function CoursesScreen() {
     // Manejar la acción de recargar
     const handleRefresh = () => {
         setRefreshing(true)
-        fetchCourses()
+        fetchData()
     }
+
+    const shouldShowCreateButton = userType === "docente"
 
     if (loading && !refreshing) {
         return (
@@ -149,7 +176,7 @@ export default function CoursesScreen() {
                 <FlatList
                     data={filteredCourses}
                     keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => <CourseCard course={item} />}
+                    renderItem={({ item }) => <CourseCard course={item} isStudent={userType === "alumno"} />}
                     contentContainerStyle={styles.coursesList}
                     showsVerticalScrollIndicator={false}
                     refreshing={refreshing}
@@ -165,7 +192,9 @@ export default function CoursesScreen() {
                 </View>
             )}
 
-            <FAB icon="plus" style={styles.fab} onPress={() => router.push("/(courses)/create")} color="#fff" />
+            {shouldShowCreateButton && (
+                <FAB icon="plus" style={styles.fab} onPress={() => router.push("/(courses)/create")} color="#fff" />
+            )}
 
             <Snackbar
                 visible={snackbarVisible}

@@ -48,6 +48,7 @@ export default function EditCourseScreen() {
         modality: "Online",
         prerequisites: [""],
         imageUrl: "",
+        creatorId: "",
     })
 
     const [errors, setErrors] = useState<Record<string, string>>({})
@@ -57,8 +58,11 @@ export default function EditCourseScreen() {
             try {
                 setInitialLoading(true)
                 const courseData = await courseClient.getCourseById(id)
+                const instructor = courseData.instructor || { name: "", profile: "" }
+
                 setCourse({
                     ...courseData,
+                    instructor: instructor,
                     prerequisites: courseData.prerequisites?.length > 0 ? courseData.prerequisites : [""],
                     imageUrl:
                         courseData.imageUrl ||

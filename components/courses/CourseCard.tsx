@@ -6,9 +6,10 @@ import {Course} from "@/types/Course";
 
 interface CourseCardProps {
     course: Course
+    isStudent?: boolean
 }
 
-export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
+export const CourseCard: React.FC<CourseCardProps> = ({ course, isStudent = false }) => {
     const availableSpots = course.capacity - course.enrolled
     const isFullyBooked = availableSpots === 0
     const hasLimitedSpots = availableSpots <= 5 && !isFullyBooked
@@ -24,7 +25,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
         <TouchableOpacity onPress={handlePress} style={styles.cardContainer}>
             <Card style={styles.card}>
                 <Card.Cover source={{ uri: course.imageUrl }} style={styles.cardImage} />
-                {course.isEnrolled && <Badge style={styles.enrolledBadge}>Inscripto</Badge>}
+                {isStudent && course.isEnrolled && <Badge style={styles.enrolledBadge}>Inscripto</Badge>}
                 <Card.Content style={styles.cardContent}>
                     <Text variant="titleMedium" style={styles.title}>
                         {course.name}
