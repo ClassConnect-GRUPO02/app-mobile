@@ -12,17 +12,19 @@
       "supportsTablet": true
     },
     "android": {
+       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
-      }
+      },
+      "package": "com.app.classconnect"
     },
     "web": {
       "bundler": "metro",
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": [
+    "plugins": ["@react-native-google-signin/google-signin",
       "expo-router",
       [
         "expo-splash-screen",
@@ -34,8 +36,18 @@
         }
       ]
     ],
+    
+    
     "experiments": {
       "typedRoutes": true
+    },
+    "extra": {
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "adf55b61-1d80-4a97-9a42-b626cc03d958"
+      }
     }
   }
 }
