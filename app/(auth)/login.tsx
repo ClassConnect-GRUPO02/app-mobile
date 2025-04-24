@@ -115,7 +115,7 @@ export default function LoginScreen(): React.JSX.Element {
         );
   
         if (check.exists) {
-          // Paso 2: Preguntar si desea sincronizar info
+          // si desea sincronizar info
           Alert.alert(
             "Cuenta ya registrada",
             "¿Querés sincronizar los datos de tu cuenta con Google?",
@@ -145,7 +145,7 @@ export default function LoginScreen(): React.JSX.Element {
             ]
           );
         } else {
-          // Paso 3: Registrar automáticamente al usuario
+          // registrar automáticamente al usuario
           const locationPermission = await Location.requestForegroundPermissionsAsync();
           if (locationPermission.status !== 'granted') {
             throw new Error('Permiso de ubicación denegado');
@@ -157,7 +157,7 @@ export default function LoginScreen(): React.JSX.Element {
             userApi.register({
               name: user.name || "Usuario",
               email: user.email || "",
-              password: user.sub || "", // usar el sub como placeholder único
+              password: user.sub || "",
               userType: "user",
               latitude,
               longitude,
@@ -173,7 +173,7 @@ export default function LoginScreen(): React.JSX.Element {
       }
   
     } catch (error) {
-      console.error("❌ Error Google Sign-In:", error);
+      console.error("Error Google Sign-In:", error);
       const message = isErrorWithCode(error)
         ? `Error (${error.code}): ${error.message}`
         : "Ocurrió un error inesperado";
