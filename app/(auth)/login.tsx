@@ -14,9 +14,16 @@ import {
   Title,
   ActivityIndicator,
 } from "react-native-paper";
-import { Link, useRouter } from "expo-router";
+import { Link, useRouter, router } from "expo-router";
 import { userApi } from "../../api/userApi";
-//import type { LoginRequest, ApiError } from "../../api/client";
+import {
+  GoogleOneTapSignIn,
+  isErrorWithCode,
+  isSuccessResponse,
+  isNoSavedCredentialFoundResponse,
+  statusCodes,
+} from '@react-native-google-signin/google-signin';
+import * as Location from 'expo-location';
 
 export default function LoginScreen(): React.JSX.Element {
   const router = useRouter();
@@ -93,6 +100,87 @@ export default function LoginScreen(): React.JSX.Element {
     }
   };
 
+  const handleGoogleLogin = async () => {
+    try {
+      await GoogleOneTapSignIn.checkPlayServices();
+      const response = await GoogleOneTapSignIn.signIn();
+  
+      if (isSuccessResponse(response)) {
+        const user = response.data as { email?: string; name?: string; photo?: string; sub?: string };
+        console.log("✅ Usuario de Google:", user);
+  
+        // Consular a la API si ya está registrado
+        const check = await fetchWithTimeout(
+          userApi.checkEmailExists({ email: (user as { email?: string }).email || "" })
+        );
+  
+        if (check.exists) {
+          // Paso 2: Preguntar si desea sincronizar info
+          Alert.alert(
+            "Cuenta ya registrada",
+            "¿Querés sincronizar los datos de tu cuenta con Google?",
+            [
+              {
+                text: "Cancelar",
+                style: "cancel",
+              },
+              {
+                text: "Sí, sincronizar",
+                onPress: async () => {
+                  try {
+                    await fetchWithTimeout(
+                      userApi.syncWithFederated({
+                        email: user.email,
+                        name: user.name,
+                        photo: user.photo,
+                      })
+                    );
+                    Alert.alert("Sincronización exitosa", "Tus datos se actualizaron.");
+                    router.replace("/(app)/home");
+                  } catch (err) {
+                    Alert.alert("Error", "No se pudo sincronizar la información.");
+                  }
+                },
+              },
+            ]
+          );
+        } else {
+          // Paso 3: Registrar automáticamente al usuario
+          const locationPermission = await Location.requestForegroundPermissionsAsync();
+          if (locationPermission.status !== 'granted') {
+            throw new Error('Permiso de ubicación denegado');
+          }
+          const location = await Location.getCurrentPositionAsync({});
+          const { latitude, longitude } = location.coords;
+  
+          await fetchWithTimeout(
+            userApi.register({
+              name: user.name || "Usuario",
+              email: user.email || "",
+              password: user.sub || "", // usar el sub como placeholder único
+              userType: "user",
+              latitude,
+              longitude,
+            })
+          );
+  
+          Alert.alert("Registro exitoso", "Cuenta creada correctamente");
+          router.replace("/(app)/home");
+        }
+  
+      } else if (isNoSavedCredentialFoundResponse(response)) {
+        Alert.alert("Google Login", "No se encontró sesión previa en Google");
+      }
+  
+    } catch (error) {
+      console.error("❌ Error Google Sign-In:", error);
+      const message = isErrorWithCode(error)
+        ? `Error (${error.code}): ${error.message}`
+        : "Ocurrió un error inesperado";
+      Alert.alert("Error de inicio de sesión", message);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -134,6 +222,15 @@ export default function LoginScreen(): React.JSX.Element {
             disabled={loading}
           >
             {loading ? <ActivityIndicator color="#fff" /> : "Iniciar Sesión"}
+          </Button>
+
+          <Button
+            mode="outlined"
+            icon="google"
+            onPress={handleGoogleLogin}
+            style={{ marginTop: 10 }}
+          >
+            Iniciar sesión con Google
           </Button>
 
           <View style={styles.registerContainer}>
