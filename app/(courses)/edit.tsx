@@ -18,6 +18,7 @@ import { SelectMenu } from "@/components/courses/SelectMenu"
 import { DateRangePicker } from "@/components/courses/DateRangePicker"
 import { StatusBar } from "expo-status-bar"
 import React from "react"
+import {userApi} from "@/api/userApi";
 
 export default function EditCourseScreen() {
     const { id } = useLocalSearchParams<{ id: string }>()
@@ -26,6 +27,7 @@ export default function EditCourseScreen() {
     const [snackbarVisible, setSnackbarVisible] = useState(false)
     const [snackbarMessage, setSnackbarMessage] = useState("")
     const [snackbarType, setSnackbarType] = useState<"success" | "error">("success")
+    const [creatorName, setCreatorName] = useState<string>("")
 
     const levels = ["Principiante", "Intermedio", "Avanzado"]
     const modalities = ["Online", "Presencial", "Híbrido"]
@@ -39,7 +41,6 @@ export default function EditCourseScreen() {
         endDate: "",
         instructor: {
             name: "",
-            profile: "",
         },
         capacity: 0,
         enrolled: 0,
@@ -58,7 +59,24 @@ export default function EditCourseScreen() {
             try {
                 setInitialLoading(true)
                 const courseData = await courseClient.getCourseById(id)
-                const instructor = courseData.instructor || { name: "", profile: "" }
+
+                let creatorName = "Docente"
+                if (courseData.creatorId) {
+                    try {
+                        const creatorInfo = await userApi.getUserById(courseData.creatorId)
+                        if (creatorInfo?.user?.name) {
+                            creatorName = creatorInfo.user.name
+                        }
+                    } catch (error) {
+                        console.error("Error al obtener información del creador:", error)
+                    }
+                }
+
+                setCreatorName(creatorName)
+
+                const instructor = {
+                    name: creatorName,
+                }
 
                 setCourse({
                     ...courseData,
@@ -91,8 +109,6 @@ export default function EditCourseScreen() {
         if (!course.description) newErrors.description = "La descripción es obligatoria"
         if (!course.startDate) newErrors.startDate = "La fecha de inicio es obligatoria"
         if (!course.endDate) newErrors.endDate = "La fecha de fin es obligatoria"
-        if (!course.instructor.name) newErrors.instructorName = "El nombre del instructor es obligatorio"
-        if (!course.instructor.profile) newErrors.instructorProfile = "El perfil del instructor es obligatorio"
         if (course.capacity <= 0) newErrors.capacity = "La capacidad debe ser mayor a 0"
         if (!course.category) newErrors.category = "La categoría es obligatoria"
 
@@ -102,16 +118,7 @@ export default function EditCourseScreen() {
 
     const handleChange = (field: string, value: string | number) => {
         if (field.includes(".")) {
-            const [parent, child] = field.split(".")
-            if (parent === "instructor") {
-                setCourse({
-                    ...course,
-                    instructor: {
-                        ...course.instructor,
-                        [child]: value,
-                    },
-                })
-            }
+            return
         } else {
             setCourse({ ...course, [field]: value })
         }
@@ -237,7 +244,7 @@ export default function EditCourseScreen() {
 
             <Card style={styles.formCard}>
                 <Card.Content style={styles.cardContent}>
-                    <Surface style={styles.sectionSurface}>
+                    <View style={styles.section}>
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Información Básica
                         </Text>
@@ -276,11 +283,11 @@ export default function EditCourseScreen() {
                             outlineStyle={styles.inputOutline}
                         />
                         {errors.description && <HelperText type="error">{errors.description}</HelperText>}
-                    </Surface>
+                    </View>
 
                     <Divider style={styles.divider} />
 
-                    <Surface style={styles.sectionSurface}>
+                    <View style={styles.section}>
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Fechas y Capacidad
                         </Text>
@@ -359,43 +366,31 @@ export default function EditCourseScreen() {
                                 </View>
                             </View>
                         </View>
-                    </Surface>
+                    </View>
 
                     <Divider style={styles.divider} />
 
-                    <Surface style={styles.sectionSurface}>
+                    <View style={styles.section}>
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Información del Instructor
                         </Text>
 
                         <TextInput
                             mode="outlined"
-                            label="Nombre del instructor *"
-                            value={course.instructor.name}
-                            onChangeText={(value) => handleChange("instructor.name", value)}
-                            style={styles.input}
-                            error={!!errors.instructorName}
+                            label="Nombre del instructor"
+                            value={creatorName}
+                            disabled={true}
+                            style={[styles.input, styles.disabledInput]}
                             outlineStyle={styles.inputOutline}
                         />
-                        {errors.instructorName && <HelperText type="error">{errors.instructorName}</HelperText>}
-
-                        <TextInput
-                            mode="outlined"
-                            label="Perfil del instructor *"
-                            value={course.instructor.profile}
-                            onChangeText={(value) => handleChange("instructor.profile", value)}
-                            multiline
-                            numberOfLines={3}
-                            style={styles.textArea}
-                            error={!!errors.instructorProfile}
-                            outlineStyle={styles.inputOutline}
-                        />
-                        {errors.instructorProfile && <HelperText type="error">{errors.instructorProfile}</HelperText>}
-                    </Surface>
+                        <Text style={styles.helperText}>
+                            El nombre del instructor se obtiene automáticamente del creador del curso
+                        </Text>
+                    </View>
 
                     <Divider style={styles.divider} />
 
-                    <Surface style={styles.sectionSurface}>
+                    <View style={styles.section}>
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Categorización
                         </Text>
@@ -430,11 +425,11 @@ export default function EditCourseScreen() {
                                 />
                             </View>
                         </View>
-                    </Surface>
+                    </View>
 
                     <Divider style={styles.divider} />
 
-                    <Surface style={styles.sectionSurface}>
+                    <View style={styles.section}>
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Prerrequisitos
                         </Text>
@@ -470,11 +465,11 @@ export default function EditCourseScreen() {
                         >
                             Agregar prerrequisito
                         </Button>
-                    </Surface>
+                    </View>
 
                     <Divider style={styles.divider} />
 
-                    <Surface style={styles.sectionSurface}>
+                    <View style={styles.section}>
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Imagen del Curso
                         </Text>
@@ -488,7 +483,7 @@ export default function EditCourseScreen() {
                             outlineStyle={styles.inputOutline}
                         />
                         <Text style={styles.helperText}>Deja la URL por defecto o ingresa una URL de imagen válida</Text>
-                    </Surface>
+                    </View>
                 </Card.Content>
             </Card>
 
@@ -560,16 +555,13 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         borderRadius: 12,
         overflow: "hidden",
-        elevation: 2,
+        elevation: 1,
     },
     cardContent: {
-        padding: 12,
+        padding: 16,
     },
-    sectionSurface: {
-        borderRadius: 8,
-        padding: 12,
-        marginVertical: 4,
-        backgroundColor: "transparent",
+    section: {
+        marginVertical: 8,
     },
     sectionTitle: {
         fontWeight: "bold",
@@ -579,6 +571,10 @@ const styles = StyleSheet.create({
     input: {
         marginBottom: 12,
         backgroundColor: "#fff",
+    },
+    disabledInput: {
+        backgroundColor: "#f5f5f5",
+        color: "#666",
     },
     textArea: {
         marginBottom: 12,

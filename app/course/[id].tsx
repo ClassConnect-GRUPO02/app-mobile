@@ -15,6 +15,7 @@ export default function CourseDetailScreen() {
     const [error, setError] = useState<string | null>(null)
     const [deleting, setDeleting] = useState(false)
     const [enrolling, setEnrolling] = useState(false)
+    const [instructorName, setInstructorName] = useState<string>("No especificado")
 
     const [isEnrolled, setIsEnrolled] = useState(false)
     const [isInstructor, setIsInstructor] = useState(false)
@@ -40,6 +41,18 @@ export default function CourseDetailScreen() {
                 const courseData = await courseClient.getCourseById(id)
                 if (!courseData) {
                     throw new Error("No se pudo cargar el curso")
+                }
+
+                // Obtener el nombre del creador desde la API de usuarios
+                if (courseData.creatorId) {
+                    try {
+                        const creatorInfo = await userApi.getUserById(courseData.creatorId)
+                        if (creatorInfo?.user?.name) {
+                            setInstructorName(creatorInfo.user.name)
+                        }
+                    } catch (error) {
+                        console.error("Error al obtener información del creador:", error)
+                    }
                 }
 
                 setCourse(courseData)
@@ -157,7 +170,6 @@ export default function CourseDetailScreen() {
     if (!course.instructor) {
         course.instructor = {
             name: "No especificado",
-            profile: "No hay información disponible",
         }
     }
 
@@ -219,8 +231,8 @@ export default function CourseDetailScreen() {
                         />
 
                         <List.Item
-                            title="Instructor"
-                            description={course.instructor?.name || "No especificado"}
+                            title="Docente"
+                            description={instructorName}
                             left={(props) => <List.Icon {...props} icon="account" />}
                         />
 
@@ -229,15 +241,6 @@ export default function CourseDetailScreen() {
                             description={`${course.enrolled} / ${course.capacity} estudiantes`}
                             left={(props) => <List.Icon {...props} icon="account-group" />}
                         />
-                    </View>
-
-                    <Divider style={styles.divider} />
-
-                    <View style={styles.section}>
-                        <Text variant="titleMedium" style={styles.sectionTitle}>
-                            Perfil del instructor
-                        </Text>
-                        <Text variant="bodyMedium">{course.instructor?.profile || "No hay información disponible"}</Text>
                     </View>
 
                     {course.prerequisites.length > 0 && (

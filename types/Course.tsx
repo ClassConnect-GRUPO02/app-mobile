@@ -7,7 +7,6 @@ export interface Course {
     endDate: string
     instructor: {
         name: string
-        profile: string
     }
     capacity: number
     enrolled: number

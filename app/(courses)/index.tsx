@@ -30,28 +30,44 @@ export default function CoursesScreen() {
             setLoading(true)
             console.log("Cargando cursos y datos de usuario...")
 
-            const userId = await userApi.getUserId()
-            console.log(userId)
-            if (userId) {
-                const userInfo = await userApi.getUserById(userId)
-                setUserType(userInfo?.user?.userType || null)
-                console.log(userInfo?.user?.userType)
-
-                // Si es estudiante, obtener los cursos en los que está inscrito
-                if (userInfo?.user?.userType === "alumno") {
-                    const enrolledCourses = await courseClient.getCoursesByUserId(userId)
-                    setEnrolledCourseIds(enrolledCourses.map((course: { id: any }) => course.id))
-                }
-            }
-
-            // Obtener todos los cursos
             const coursesData = await courseClient.getAllCourses()
             console.log(`Se obtuvieron ${coursesData.length} cursos`)
 
-            // Marcar los cursos en los que el usuario está inscrito
-            const coursesWithEnrollmentStatus = coursesData.map((course: { id: string }) => ({
+            const userId = await userApi.getUserId()
+            let enrolledIds: string[] = []
+            let userTypeValue = null
+
+            if (userId) {
+                const userInfo = await userApi.getUserById(userId)
+                userTypeValue = userInfo?.user?.userType || null
+                setUserType(userTypeValue)
+                console.log("Tipo de usuario:", userTypeValue)
+
+                // Si es estudiante, obtener los cursos en los que está inscrito
+                if (userTypeValue === "alumno") {
+                    try {
+                        const enrollmentPromises = coursesData.map((course) =>
+                            courseClient
+                                .isEnrolledInCourse(course.id, userId)
+                                .then((result) => ({ courseId: course.id, isEnrolled: result }))
+                                .catch(() => ({ courseId: course.id, isEnrolled: false })),
+                        )
+
+                        const enrollmentResults = await Promise.all(enrollmentPromises)
+                        enrolledIds = enrollmentResults.filter((result) => result.isEnrolled).map((result) => result.courseId)
+
+                        console.log("Cursos inscritos:", enrolledIds)
+                    } catch (enrollError) {
+                        console.error("Error al obtener inscripciones:", enrollError)
+                    }
+                }
+            }
+
+            setEnrolledCourseIds(enrolledIds)
+
+            const coursesWithEnrollmentStatus = coursesData.map((course) => ({
                 ...course,
-                isEnrolled: enrolledCourseIds.includes(course.id),
+                isEnrolled: enrolledIds.includes(course.id),
             }))
 
             setAllCourses(coursesWithEnrollmentStatus)
@@ -125,14 +141,6 @@ export default function CoursesScreen() {
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#6200ee" />
                 <Text style={styles.loadingText}>Cargando cursos...</Text>
-            </View>
-        )
-    }
-
-    if (error) {
-        return (
-            <View style={styles.errorContainer}>
-                <Text style={styles.errorText}>{error}</Text>
             </View>
         )
     }
