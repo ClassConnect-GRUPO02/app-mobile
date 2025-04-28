@@ -13,14 +13,14 @@ import {
   Text,
   Title,
   ActivityIndicator,
+  Modal,
+  Portal,
+  Provider
 } from "react-native-paper";
 import { Link, useRouter, router } from "expo-router";
 import { userApi } from "../../api/userApi";
 import {
-  GoogleOneTapSignIn,
-  isErrorWithCode,
-  isSuccessResponse,
-  isNoSavedCredentialFoundResponse,
+  GoogleSignin,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 import * as Location from 'expo-location';
@@ -32,6 +32,9 @@ export default function LoginScreen(): React.JSX.Element {
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [showUserTypeModal, setShowUserTypeModal] = useState<boolean>(false);
+const [googleUserData, setGoogleUserData] = useState<any>(null);
+
 
   const validateForm = (): boolean => {
     if (!email || !password) {
@@ -66,6 +69,26 @@ export default function LoginScreen(): React.JSX.Element {
         });
     });
   };
+
+  const handleRegisterWithUserType = async (userType: string) => {
+    if (!googleUserData) return;
+  
+    try {
+      await fetchWithTimeout(
+        userApi.register({
+          ...googleUserData,
+          userType,
+        })
+      );
+      setShowUserTypeModal(false);
+      Alert.alert("Registro exitoso", "Cuenta creada correctamente");
+      router.replace("/(app)/home");
+    } catch (err) {
+      console.error(`Error registrando ${userType}:`, err);
+      Alert.alert("Error", "No se pudo completar el registro");
+    }
+  };
+  
   
 
   const handleLogin = async (): Promise<void> => {
@@ -102,84 +125,81 @@ export default function LoginScreen(): React.JSX.Element {
 
   const handleGoogleLogin = async () => {
     try {
-      await GoogleOneTapSignIn.checkPlayServices();
-      const response = await GoogleOneTapSignIn.signIn();
+      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      const userInfo = await GoogleSignin.signIn();
   
-      if (isSuccessResponse(response)) {
-        const user = response.data as { email?: string; name?: string; photo?: string; sub?: string };
-        console.log("✅ Usuario de Google:", user);
+      console.log('✅ Usuario de Google:', userInfo);
   
-        // Consular a la API si ya está registrado
-        const check = await fetchWithTimeout(
-          userApi.checkEmailExists({ email: (user as { email?: string }).email || "" })
+      const email = userInfo.data?.user.email;
+      const name = userInfo.data?.user.name;
+      const photo = userInfo.data?.user.photo;
+  
+      // Consultar a la API si ya está registrado
+      const check = await fetchWithTimeout(
+        userApi.checkEmailExists({ email: email || "" })
+      );
+  
+      if (check.exists) {
+        Alert.alert(
+          "Cuenta ya registrada",
+          "¿Querés sincronizar los datos de tu cuenta con Google?",
+          [
+            {
+              text: "Cancelar",
+              style: "cancel",
+            },
+            {
+              text: "Sí, sincronizar",
+              onPress: async () => {
+                try {
+                  await fetchWithTimeout(
+                    userApi.syncWithFederated({ email, name, photo })
+                  );
+                  Alert.alert("Sincronización exitosa", "Tus datos se actualizaron.");
+                  router.replace("/(app)/home");
+                } catch (err) {
+                  Alert.alert("Error", "No se pudo sincronizar la información.");
+                }
+              },
+            },
+          ]
         );
-  
-        if (check.exists) {
-          // si desea sincronizar info
-          Alert.alert(
-            "Cuenta ya registrada",
-            "¿Querés sincronizar los datos de tu cuenta con Google?",
-            [
-              {
-                text: "Cancelar",
-                style: "cancel",
-              },
-              {
-                text: "Sí, sincronizar",
-                onPress: async () => {
-                  try {
-                    await fetchWithTimeout(
-                      userApi.syncWithFederated({
-                        email: user.email,
-                        name: user.name,
-                        photo: user.photo,
-                      })
-                    );
-                    Alert.alert("Sincronización exitosa", "Tus datos se actualizaron.");
-                    router.replace("/(app)/home");
-                  } catch (err) {
-                    Alert.alert("Error", "No se pudo sincronizar la información.");
-                  }
-                },
-              },
-            ]
-          );
-        } else {
-          // registrar automáticamente al usuario
-          const locationPermission = await Location.requestForegroundPermissionsAsync();
-          if (locationPermission.status !== 'granted') {
-            throw new Error('Permiso de ubicación denegado');
-          }
-          const location = await Location.getCurrentPositionAsync({});
-          const { latitude, longitude } = location.coords;
-  
-          await fetchWithTimeout(
-            userApi.register({
-              name: user.name || "Usuario",
-              email: user.email || "",
-              password: user.sub || "",
-              userType: "user",
-              latitude,
-              longitude,
-            })
-          );
-  
-          Alert.alert("Registro exitoso", "Cuenta creada correctamente");
-          router.replace("/(app)/home");
+      } else {
+        const locationPermission = await Location.requestForegroundPermissionsAsync();
+        if (locationPermission.status !== 'granted') {
+          throw new Error('Permiso de ubicación denegado');
         }
-  
-      } else if (isNoSavedCredentialFoundResponse(response)) {
-        Alert.alert("Google Login", "No se encontró sesión previa en Google");
+        const location = await Location.getCurrentPositionAsync({});
+        const { latitude, longitude } = location.coords;
+      
+        // Guardamos los datos que necesitamos para el registro después de elegir el tipo de usuario
+        setGoogleUserData({
+          name: name || "Usuario",
+          email: email || "",
+          password: userInfo.data?.user.id || "",
+          latitude,
+          longitude,
+        });
+      
+        // Mostramos el modal para que elija
+        setShowUserTypeModal(true);
       }
+      
   
-    } catch (error) {
-      console.error("Error Google Sign-In:", error);
-      const message = isErrorWithCode(error)
-        ? `Error (${error.code}): ${error.message}`
-        : "Ocurrió un error inesperado";
-      Alert.alert("Error de inicio de sesión", message);
+    } catch (error: any) {
+      console.error('Error Google Sign-In:', error);
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        Alert.alert('Cancelado', 'El inicio de sesión fue cancelado');
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        Alert.alert('En progreso', 'El inicio de sesión está en curso');
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert('Error', 'Servicios de Google Play no disponibles');
+      } else {
+        Alert.alert('Error de inicio de sesión', 'Ocurrió un error inesperado');
+      }
     }
   };
+  
 
   return (
     <KeyboardAvoidingView
@@ -243,6 +263,17 @@ export default function LoginScreen(): React.JSX.Element {
           </View>
         </View>
       </ScrollView>
+      <Portal>
+      <Modal visible={showUserTypeModal} onDismiss={() => setShowUserTypeModal(false)} contentContainerStyle={styles.modalContainer}>
+        <Text style={styles.modalTitle}>¿Qué tipo de usuario sos?</Text>
+        <Button mode="contained" onPress={() => handleRegisterWithUserType("alumno")} style={styles.modalButton}>
+          Alumno
+        </Button>
+        <Button mode="contained" onPress={() => handleRegisterWithUserType("docente")} style={styles.modalButton}>
+          Docente
+        </Button>
+      </Modal>
+    </Portal>
     </KeyboardAvoidingView>
   );
 }
@@ -292,4 +323,21 @@ const styles = StyleSheet.create({
     marginBottom: 10,
     textAlign: "center",
   },
+  modalContainer: {
+    backgroundColor: 'white',
+    padding: 20,
+    margin: 20,
+    borderRadius: 10,
+    alignItems: 'center',
+  },
+  modalTitle: {
+    fontSize: 18,
+    fontWeight: 'bold',
+    marginBottom: 20,
+  },
+  modalButton: {
+    width: '100%',
+    marginVertical: 5,
+  },
+  
 });
