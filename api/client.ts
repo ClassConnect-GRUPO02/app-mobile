@@ -97,4 +97,29 @@ export const apiClient = {
       throw error instanceof Error ? error : new Error('Error desconocido');
     }
   },
+
+  // Método para peticiones PUT con token
+  async put<T>(endpoint: string, data: any): Promise<T> {
+    const url = `${BASE_URL}${endpoint}`;
+    const headers = await getAuthHeaders(); // Obtener los headers con el token
+
+    try {
+      const response = await fetch(url, {
+        method: 'PUT',
+        headers,
+        body: JSON.stringify(data),
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Ocurrió un error en la petición');
+      }
+
+      return responseData;
+    } catch (error) {
+      console.error(`Error en petición PUT a ${endpoint}:`, error);
+      throw error instanceof Error ? error : new Error('Error desconocido');
+    }
+  },
 };
