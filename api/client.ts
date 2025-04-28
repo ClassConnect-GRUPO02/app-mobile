@@ -102,24 +102,39 @@ export const apiClient = {
   async put<T>(endpoint: string, data: any): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
     const headers = await getAuthHeaders(); // Obtener los headers con el token
-
+  
     try {
+      console.log(`Making PUT request to ${endpoint} with data:`, data);
+      
       const response = await fetch(url, {
         method: 'PUT',
-        headers,
+        headers: {
+          ...headers,
+          'Content-Type': 'application/json', // Make sure this header is set
+        },
         body: JSON.stringify(data),
       });
-
-      const responseData = await response.json();
-
-      if (!response.ok) {
-        throw new Error(responseData.message || 'Ocurrió un error en la petición');
+  
+      // Check if the response is JSON
+      const contentType = response.headers.get('content-type');
+      
+      if (contentType && contentType.includes('application/json')) {
+        const responseData = await response.json();
+        
+        if (!response.ok) {
+          throw new Error(responseData.message || 'Ocurrió un error en la petición');
+        }
+        
+        return responseData;
+      } else {
+        // Handle non-JSON response
+        const textResponse = await response.text();
+        console.error('Server returned non-JSON response:', textResponse);
+        throw new Error(`Server returned non-JSON response: ${textResponse.substring(0, 100)}...`);
       }
-
-      return responseData;
     } catch (error) {
       console.error(`Error en petición PUT a ${endpoint}:`, error);
       throw error instanceof Error ? error : new Error('Error desconocido');
     }
-  },
+  }
 };

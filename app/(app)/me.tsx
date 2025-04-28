@@ -1,5 +1,6 @@
+
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, ScrollView, Alert } from "react-native";
+import { View, StyleSheet, ScrollView, Alert, Modal } from "react-native";
 import {
   Text,
   Title,
@@ -16,6 +17,7 @@ import { getItemAsync, deleteItemAsync } from "expo-secure-store";
 import { router, useLocalSearchParams } from "expo-router";
 import { setAuthToken } from "../../api/client";
 import { userApi } from "../../api/userApi";
+import EditProfileScreen from "@/components/EditProfileScreen";
 
 interface UserProfile {
   id: string;
@@ -31,11 +33,12 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const theme = useTheme();
-  const [showEditModal, setShowEditModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false);
   const { id } = useLocalSearchParams(); // ID del perfil a ver, si se pasa
 
   useEffect(() => {
     const fetchProfile = async () => {
+      setLoading(true);
       const storedId = await getItemAsync("userId");
       const token = await getItemAsync("userToken");
 
@@ -48,21 +51,24 @@ export default function ProfileScreen() {
       setAuthToken(token);
 
       try {
-        const response = await fetchWithTimeout(userApi.getUserById(storedId));
+        // Try with a longer timeout
+        const response = await fetchWithTimeout(
+          userApi.getUserById(storedId),
+          10000 // Increased to 10 seconds
+        );
 
         const fetchedUser = response.user;
-
         setProfile(fetchedUser);
       } catch (error) {
         console.error("Error al cargar perfil:", error);
-        setError("No pudimos cargar el perfil. Inténtalo de nuevo.");
+        setError("No pudimos cargar el perfil. Verifica tu conexión.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  });
+  }, []); // Empty dependency array so it only runs once
 
   const fetchWithTimeout = (
     promise: Promise<any>,
@@ -110,13 +116,20 @@ export default function ProfileScreen() {
   };
 
   const handleEditProfile = () => {
-    setShowEditModal(true)
-  }
+    console.log("Opening edit profile modal"); // Add this debug log
+    setShowEditModal(true);
+  };
 
   const handleProfileUpdated = (updatedProfile: UserProfile) => {
-    setProfile(updatedProfile)
-    setShowEditModal(false)
-  }
+    setProfile(updatedProfile);
+    setShowEditModal(false);
+    console.log("Modal closed after update"); // Add this debug log
+  };
+
+  const handleCancelEdit = () => {
+    console.log("Cancelling edit"); // Add this debug log
+    setShowEditModal(false);
+  };
 
   if (loading) {
     return (
@@ -135,7 +148,26 @@ export default function ProfileScreen() {
         </View>
 
         {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
+        <Modal
+          visible={showEditModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => {
+            console.log("Modal closed via onRequestClose");
+            setShowEditModal(false);
+          }}
+        >
+          {profile && (
+            <EditProfileScreen
+              profile={profile}
+              onProfileUpdated={handleProfileUpdated}
+              onCancel={() => {
+                console.log("Cancel button pressed");
+                setShowEditModal(false);
+              }}
+            />
+          )}
+        </Modal>
         <Card style={styles.profileCard}>
           <View style={styles.avatarContainer}>
             <Avatar.Text
