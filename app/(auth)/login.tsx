@@ -93,24 +93,25 @@ const [googleUserData, setGoogleUserData] = useState<any>(null);
 
   const handleLogin = async (): Promise<void> => {
     if (!validateForm()) return;
-
+  
     setLoading(true);
     try {
       const credentials = { email, password };
       const response = await fetchWithTimeout(userApi.login(credentials));
-
+  
       if (response?.token && response?.id) {
         router.replace("/(app)/home");
       } else {
         throw new Error("Token no recibido del servidor.");
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error durante el inicio de sesión:", error);
-
-      if (error instanceof Error) {
-
-          setError("Credenciales incorrectas.");
-        
+  
+      if (error?.response?.status === 403) {
+        // Usuario bloqueado
+        setError("Tu cuenta está bloqueada. Por favor, contactá al soporte.");
+      } else if (error instanceof Error) {
+        setError("Credenciales incorrectas.");
       } else {
         setError("Ocurrió un error al conectar con el servidor");
       }
@@ -118,6 +119,7 @@ const [googleUserData, setGoogleUserData] = useState<any>(null);
       setLoading(false);
     }
   };
+  
 
   const handleGoogleLogin = async () => {
     try {
