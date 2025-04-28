@@ -100,11 +100,7 @@ const [googleUserData, setGoogleUserData] = useState<any>(null);
       const response = await fetchWithTimeout(userApi.login(credentials));
 
       if (response?.token && response?.id) {
-        Alert.alert(
-          "Inicio de sesión exitoso",
-          "Has iniciado sesión correctamente",
-          [{ text: "OK", onPress: () => router.replace("/(app)/home")}]
-        );
+        router.replace("/(app)/home");
       } else {
         throw new Error("Token no recibido del servidor.");
       }
