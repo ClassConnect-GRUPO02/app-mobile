@@ -29,45 +29,51 @@ export default function EditProfileScreen({ profile, onProfileUpdated }: EditPro
       setError("El nombre no puede estar vacío")
       return
     }
-
     if (!email.trim() || !email.includes("@")) {
       setError("Ingresa un correo electrónico válido")
       return
     }
-
-    setLoading(true)
-    setError("")
-
+    
+    Alert.alert(
+      "Confirmar cambios",
+      "¿Deseas guardar los cambios?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        { 
+          text: "Guardar", 
+          onPress: () => submitUpdate()
+        }
+      ]
+    )
+  };
+  
+  const submitUpdate = async () => {
+    setLoading(true);
+    setError("");
+  
     try {
-      const response = await userApi.updateUser(profile.id, {
-        name,
-        email,
-      })
-
+      const response = await userApi.updateUser(profile.id, { name, email });
       if (response.message === "User updated successfully") {
         Alert.alert("Perfil actualizado", "Tu información ha sido actualizada correctamente", [
           {
             text: "OK",
             onPress: () => {
-              onProfileUpdated({
-                ...profile,
-                name,
-                email,
-              })
-              router.back()
+              onProfileUpdated({ ...profile, name, email });
+              router.back();
             },
           },
-        ])
+        ]);
       } else {
-        setError("No se pudo actualizar el perfil. Inténtalo de nuevo.")
+        setError("No se pudo actualizar el perfil. Inténtalo de nuevo.");
       }
     } catch (error) {
-      console.error("Error al actualizar perfil:", error)
-      setError("Ocurrió un error al actualizar. Verifica tu conexión.")
+      console.error("Error al actualizar perfil:", error);
+      setError("Ocurrió un error al actualizar. Verifica tu conexión.");
     } finally {
-      setLoading(false)
+      setLoading(false);
     }
   }
+  
 
   return (
     <View style={styles.container}>
