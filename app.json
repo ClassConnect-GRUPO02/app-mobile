@@ -9,10 +9,11 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.app.classconnect"
     },
     "android": {
-       "googleServicesFile": "./google-services.json",
+      "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
@@ -24,7 +25,8 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": ["@react-native-google-signin/google-signin",
+    "plugins": [
+      "@react-native-google-signin/google-signin",
       "expo-router",
       [
         "expo-splash-screen",
@@ -36,8 +38,6 @@
         }
       ]
     ],
-    
-    
     "experiments": {
       "typedRoutes": true
     },
