@@ -71,7 +71,9 @@ export default function EditProfileScreen({
     console.log("Update data:", updateData);
     try {
       const response = await userApi.updateUser(profile.id, updateData);
-      if (response.message === "User updated successfully") {
+      console.log("Response:", response);
+      const { description } = response;
+      if (response.description === "User updated successfully") {
         Alert.alert(
           "Perfil actualizado",
           "Tu información ha sido actualizada correctamente",

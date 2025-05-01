@@ -86,7 +86,7 @@ export const userApi = {
     return apiClient.get<{ user: UserInfo }>(`/user/${id}`);
   },
 
-  async updateUser(id: string, userData: Partial<UserInfo>): Promise<{ message: string }> {
-    return apiClient.put<{ message: string }>(`/user/${id}`, userData);
+  async updateUser(id: string, userData: Partial<UserInfo>): Promise<{description: string }> {
+    return apiClient.put<{ description: string }>(`/user/${id}`, userData);
   }
 };
