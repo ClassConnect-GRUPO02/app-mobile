@@ -46,7 +46,8 @@ export default function EditProfileScreen({
       return;
     }
 
-    Alert.alert("Confirmar cambios", "¿Deseas guardar los cambios?", [
+    Alert.alert(  "Confirmar cambios",
+      `¿Deseas guardar estos cambios?\n\nNombre: ${name}\nEmail: ${email}`, [
       { text: "Cancelar", style: "cancel" },
       {
         text: "Guardar",
