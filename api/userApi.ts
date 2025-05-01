@@ -85,4 +85,12 @@ export const userApi = {
   async getUserById(id: string): Promise<{ user: UserInfo }> {
     return apiClient.get<{ user: UserInfo }>(`/user/${id}`);
   },
+
+  async checkEmailExists(email: string): Promise<{ exists: boolean }> {
+    const response = await apiClient.get<{ exists: boolean; token: string }>(`/check-email-exists/${email}`);
+    
+    await userApi.storeToken(response.token);
+  
+    return { exists: response.exists };
+  }  
 };

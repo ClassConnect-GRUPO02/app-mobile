@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import {
   View,
   StyleSheet,
@@ -21,9 +21,12 @@ import { Link, useRouter, router } from "expo-router";
 import { userApi } from "../../api/userApi";
 import {
   GoogleSignin,
+  GoogleSigninButton,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 import * as Location from 'expo-location';
+
+
 
 export default function LoginScreen(): React.JSX.Element {
   const router = useRouter();
@@ -34,6 +37,13 @@ export default function LoginScreen(): React.JSX.Element {
   const [error, setError] = useState<string>("");
   const [showUserTypeModal, setShowUserTypeModal] = useState<boolean>(false);
 const [googleUserData, setGoogleUserData] = useState<any>(null);
+
+useEffect(() => {
+  GoogleSignin.configure({
+    // puedes agregar aquí el `webClientId` si lo necesitas
+  });
+}, []);
+
 
 
   const validateForm = (): boolean => {
@@ -130,38 +140,16 @@ const [googleUserData, setGoogleUserData] = useState<any>(null);
   
       const email = userInfo.data?.user.email;
       const name = userInfo.data?.user.name;
-      const photo = userInfo.data?.user.photo;
+      //const photo = userInfo.user?.photo;
   
       // Consultar a la API si ya está registrado
       const check = await fetchWithTimeout(
-        userApi.checkEmailExists({ email: email || "" })
+        userApi.checkEmailExists(email ?? "")
       );
   
       if (check.exists) {
-        Alert.alert(
-          "Cuenta ya registrada",
-          "¿Querés sincronizar los datos de tu cuenta con Google?",
-          [
-            {
-              text: "Cancelar",
-              style: "cancel",
-            },
-            {
-              text: "Sí, sincronizar",
-              onPress: async () => {
-                try {
-                  await fetchWithTimeout(
-                    userApi.syncWithFederated({ email, name, photo })
-                  );
-                  Alert.alert("Sincronización exitosa", "Tus datos se actualizaron.");
-                  router.replace("/(app)/home");
-                } catch (err) {
-                  Alert.alert("Error", "No se pudo sincronizar la información.");
-                }
-              },
-            },
-          ]
-        );
+        Alert.alert("Cuenta ya registrada");
+        router.replace("/(app)/home");
       } else {
         const locationPermission = await Location.requestForegroundPermissionsAsync();
         if (locationPermission.status !== 'granted') {
@@ -169,20 +157,19 @@ const [googleUserData, setGoogleUserData] = useState<any>(null);
         }
         const location = await Location.getCurrentPositionAsync({});
         const { latitude, longitude } = location.coords;
-      
-        // Guardamos los datos que necesitamos para el registro después de elegir el tipo de usuario
+  
+        // Guardamos los datos para registro
         setGoogleUserData({
           name: name || "Usuario",
           email: email || "",
-          password: userInfo.data?.user.id || "",
+          password: userInfo.data?.user.id || "", // el id como password (??? depende de tu app)
           latitude,
           longitude,
         });
-      
-        // Mostramos el modal para que elija
+  
+        // Mostrar modal para elegir tipo de usuario
         setShowUserTypeModal(true);
       }
-      
   
     } catch (error: any) {
       console.error('Error Google Sign-In:', error);
@@ -197,6 +184,7 @@ const [googleUserData, setGoogleUserData] = useState<any>(null);
       }
     }
   };
+  
   
 
   return (
@@ -252,7 +240,7 @@ const [googleUserData, setGoogleUserData] = useState<any>(null);
           </Button>
 
           <View style={styles.registerContainer}>
-            <Text>¿No tienes una cuenta? </Text>
+            <Text>¿No tienes una cuentaaa? </Text>
             <Link href="/(auth)/register" asChild>
               <Button mode="text" compact>
                 Registrarse
