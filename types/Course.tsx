@@ -7,7 +7,6 @@ export interface Course {
     endDate: string
     instructor: {
         name: string
-        profile: string
     }
     capacity: number
     enrolled: number
@@ -17,4 +16,5 @@ export interface Course {
     prerequisites: string[]
     isEnrolled?: boolean
     imageUrl: string
+    creatorId: string
 }
