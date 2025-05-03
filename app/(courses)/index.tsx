@@ -49,12 +49,14 @@ export default function CoursesScreen() {
                         const enrollmentPromises = coursesData.map((course) =>
                             courseClient
                                 .isEnrolledInCourse(course.id, userId)
-                                .then((result) => ({ courseId: course.id, isEnrolled: result }))
+                                .then((isEnrolled) => ({ courseId: course.id, isEnrolled }))
                                 .catch(() => ({ courseId: course.id, isEnrolled: false })),
                         )
 
                         const enrollmentResults = await Promise.all(enrollmentPromises)
-                        enrolledIds = enrollmentResults.filter((result) => result.isEnrolled).map((result) => result.courseId)
+                        enrolledIds = enrollmentResults
+                            .filter((result) => result.isEnrolled === true)
+                            .map((result) => result.courseId)
 
                         console.log("Cursos inscritos:", enrolledIds)
                     } catch (enrollError) {
@@ -64,14 +66,8 @@ export default function CoursesScreen() {
             }
 
             setEnrolledCourseIds(enrolledIds)
-
-            const coursesWithEnrollmentStatus = coursesData.map((course) => ({
-                ...course,
-                isEnrolled: enrolledIds.includes(course.id),
-            }))
-
-            setAllCourses(coursesWithEnrollmentStatus)
-            setFilteredCourses(coursesWithEnrollmentStatus)
+            setAllCourses(coursesData)
+            setFilteredCourses(coursesData)
             setError(null)
 
             if (error) {
@@ -79,8 +75,8 @@ export default function CoursesScreen() {
                 setSnackbarVisible(true)
             }
         } catch (apiError) {
-            console.error("Error al cargar cursos:", apiError)
-            setSnackbarMessage("No se pudieron cargar los cursos. Verifica la conexión.")
+            console.error("Error al cargar datos:", apiError)
+            setSnackbarMessage("No se pudieron cargar los datos. Verifica la conexión.")
             setSnackbarVisible(true)
         } finally {
             setLoading(false)
@@ -127,6 +123,10 @@ export default function CoursesScreen() {
 
         setFilteredCourses(result)
     }, [searchQuery, selectedCategory, selectedLevel, selectedModality, allCourses])
+
+    const isEnrolledInCourse = (courseId: string) => {
+        return enrolledCourseIds.includes(courseId)
+    }
 
     // Manejar la acción de recargar
     const handleRefresh = () => {
@@ -184,7 +184,9 @@ export default function CoursesScreen() {
                 <FlatList
                     data={filteredCourses}
                     keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => <CourseCard course={item} isStudent={userType === "alumno"} />}
+                    renderItem={({ item }) => (
+                        <CourseCard course={item} isStudent={userType === "alumno"} isEnrolled={isEnrolledInCourse(item.id)} />
+                    )}
                     contentContainerStyle={styles.coursesList}
                     showsVerticalScrollIndicator={false}
                     refreshing={refreshing}

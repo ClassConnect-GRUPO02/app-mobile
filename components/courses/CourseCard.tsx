@@ -2,14 +2,15 @@ import React from "react"
 import { StyleSheet, View, TouchableOpacity } from "react-native"
 import { Card, Text, Chip, Badge } from "react-native-paper"
 import { router } from "expo-router"
-import {Course} from "@/types/Course";
+import { Course } from "@/types/Course";
 
 interface CourseCardProps {
     course: Course
     isStudent?: boolean
+    isEnrolled?: boolean
 }
 
-export const CourseCard: React.FC<CourseCardProps> = ({ course, isStudent = false }) => {
+export const CourseCard: React.FC<CourseCardProps> = ({ course, isStudent = false, isEnrolled = false }) => {
     const availableSpots = course.capacity - course.enrolled
     const isFullyBooked = availableSpots === 0
     const hasLimitedSpots = availableSpots <= 5 && !isFullyBooked
@@ -25,7 +26,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isStudent = fals
         <TouchableOpacity onPress={handlePress} style={styles.cardContainer}>
             <Card style={styles.card}>
                 <Card.Cover source={{ uri: course.imageUrl }} style={styles.cardImage} />
-                {isStudent && course.isEnrolled && <Badge style={styles.enrolledBadge}>Inscripto</Badge>}
+                {isStudent && isEnrolled && <Badge style={styles.enrolledBadge}>Inscripto</Badge>}
                 <Card.Content style={styles.cardContent}>
                     <Text variant="titleMedium" style={styles.title}>
                         {course.name}
