@@ -1,18 +1,9 @@
 import { getItemAsync } from "expo-secure-store"
 import axios from "axios"
 import {Course} from "@/types/Course";
+import { getBaseUrlCourses } from './client';
 
-// Configura la URL base de la API
-// En desarrollo con Expo, puedes usar la IP de tu máquina en lugar de localhost
-const getBaseUrl = (): string => {
-    //const LOCAL_IP = "192.168.100.25";
-    const LOCAL_IP = "35.223.247.76";
-    return `http://${LOCAL_IP}:3000`;
-}
-
-
-const API_URL = getBaseUrl()
-
+const API_URL = getBaseUrlCourses()
 
 // Crea una instancia de axios con la configuración base
 const api = axios.create({
