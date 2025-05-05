@@ -22,6 +22,7 @@ import { userApi } from "../../api/userApi";
 import {
   GoogleSignin,
   GoogleSigninButton,
+  isSuccessResponse,
   statusCodes,
 } from '@react-native-google-signin/google-signin';
 import * as Location from 'expo-location';
@@ -37,13 +38,6 @@ export default function LoginScreen(): React.JSX.Element {
   const [error, setError] = useState<string>("");
   const [showUserTypeModal, setShowUserTypeModal] = useState<boolean>(false);
 const [googleUserData, setGoogleUserData] = useState<any>(null);
-
-useEffect(() => {
-  GoogleSignin.configure({
-    // puedes agregar aquí el `webClientId` si lo necesitas
-  });
-}, []);
-
 
 
   const validateForm = (): boolean => {
@@ -133,14 +127,23 @@ useEffect(() => {
 
   const handleGoogleLogin = async () => {
     try {
+      // Configurar Google Sign-In
+      GoogleSignin.configure(
+        {
+          webClientId: "120382293299-ds3j4ogbipqrb553mj4qj8rqt5ihgjo2.apps.googleusercontent.com"
+        }
+      );
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
       const userInfo = await GoogleSignin.signIn();
+
+      if(isSuccessResponse(userInfo)) {
   
       console.log('✅ Usuario de Google:', userInfo);
   
       const email = userInfo.data?.user.email;
       const name = userInfo.data?.user.name;
       //const photo = userInfo.user?.photo;
+      
   
       // Consultar a la API si ya está registrado
       const check = await fetchWithTimeout(
@@ -170,6 +173,9 @@ useEffect(() => {
         // Mostrar modal para elegir tipo de usuario
         setShowUserTypeModal(true);
       }
+    }else{
+      Alert.alert("Error", "No se pudo obtener la información de Google");
+    }
   
     } catch (error: any) {
       console.error('Error Google Sign-In:', error);
