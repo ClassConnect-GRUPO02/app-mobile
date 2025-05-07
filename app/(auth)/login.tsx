@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -16,15 +16,34 @@ import {
 } from "react-native-paper";
 import { Link, useRouter } from "expo-router";
 import { userApi } from "../../api/userApi";
+import * as LocalAuthentication from "expo-local-authentication";
+import * as SecureStore from "expo-secure-store";
 //import type { LoginRequest, ApiError } from "../../api/client";
 
 export default function LoginScreen(): React.JSX.Element {
   const router = useRouter();
 
+  useEffect(() => {
+    const checkBiometricAvailability = async () => {
+      const savedRefreshToken = await SecureStore.getItemAsync("refreshToken");
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (savedRefreshToken && hasHardware && isEnrolled) {
+        setCanUseBiometric(true);
+      } else {
+        setCanUseBiometric(false);
+      }
+    };
+
+    checkBiometricAvailability();
+  }, []);
+
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [canUseBiometric, setCanUseBiometric] = useState(false);
 
   const validateForm = (): boolean => {
     if (!email || !password) {
@@ -42,12 +61,15 @@ export default function LoginScreen(): React.JSX.Element {
     return true;
   };
 
-  const fetchWithTimeout = (promise: Promise<any>, timeout = 5000): Promise<any> => {
+  const fetchWithTimeout = (
+    promise: Promise<any>,
+    timeout = 5000
+  ): Promise<any> => {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error("Tiempo de espera agotado. Verifica tu conexión."));
       }, timeout);
-  
+
       promise
         .then((res) => {
           clearTimeout(timer);
@@ -59,7 +81,6 @@ export default function LoginScreen(): React.JSX.Element {
         });
     });
   };
-  
 
   const handleLogin = async (): Promise<void> => {
     if (!validateForm()) return;
@@ -69,12 +90,8 @@ export default function LoginScreen(): React.JSX.Element {
       const credentials = { email, password };
       const response = await fetchWithTimeout(userApi.login(credentials));
 
-      if (response?.token && response?.id) {
-        Alert.alert(
-          "Inicio de sesión exitoso",
-          "Has iniciado sesión correctamente",
-          [{ text: "OK", onPress: () => router.replace("/(app)/home")}]
-        );
+      if (response?.token && response?.id && response?.refreshToken) {
+        router.replace("/(app)/home");
       } else {
         throw new Error("Token no recibido del servidor.");
       }
@@ -82,12 +99,61 @@ export default function LoginScreen(): React.JSX.Element {
       console.error("Error durante el inicio de sesión:", error);
 
       if (error instanceof Error) {
-
-          setError("Credenciales incorrectas.");
-        
+        setError("Credenciales incorrectas.");
       } else {
         setError("Ocurrió un error al conectar con el servidor");
       }
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleBiometricLogin = async () => {
+    const savedRefreshToken = await SecureStore.getItemAsync("refreshToken");
+
+    if (!savedRefreshToken) {
+      Alert.alert(
+        "Sin sesión previa",
+        "Por favor inicia sesión manualmente primero."
+      );
+      return;
+    }
+
+    const biometricAuth = await LocalAuthentication.authenticateAsync({
+      promptMessage: "Iniciar sesión con biometría",
+      fallbackLabel: "Usar contraseña",
+    });
+
+    if (!biometricAuth.success) {
+      Alert.alert(
+        "Autenticación fallida",
+        "No se pudo verificar tu identidad."
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      const response = await fetch("https://TU_BACKEND_URL/auth/refresh", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ refreshToken: savedRefreshToken }),
+      });
+
+      if (!response.ok) throw new Error("Sesión expirada");
+
+      const data = await response.json();
+
+      await SecureStore.setItemAsync("userToken", data.access_token);
+
+      Alert.alert("¡Bienvenido!", "Sesión iniciada con Face ID / Huella.");
+      router.replace("/(app)/home");
+    } catch (err) {
+      Alert.alert(
+        "Sesión expirada",
+        "Por favor inicia sesión con email y contraseña."
+      );
     } finally {
       setLoading(false);
     }
@@ -135,6 +201,17 @@ export default function LoginScreen(): React.JSX.Element {
           >
             {loading ? <ActivityIndicator color="#fff" /> : "Iniciar Sesión"}
           </Button>
+          {canUseBiometric && (
+            <Button
+              mode="outlined"
+              icon="fingerprint"
+              onPress={handleBiometricLogin}
+              style={{ marginTop: 10 }}
+              disabled={loading}
+            >
+              Iniciar con biometría
+            </Button>
+          )}
 
           <View style={styles.registerContainer}>
             <Text>¿No tienes una cuenta? </Text>

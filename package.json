@@ -31,7 +31,7 @@
     "expo-linking": "~7.0.5",
     "expo-location": "^18.0.10",
     "expo-router": "~4.0.20",
-    "expo-secure-store": "^14.0.1",
+    "expo-secure-store": "~14.0.1",
     "expo-splash-screen": "~0.29.24",
     "expo-status-bar": "~2.0.1",
     "expo-symbols": "~0.2.2",
@@ -48,7 +48,8 @@
     "react-native-screens": "~4.4.0",
     "react-native-vector-icons": "^10.2.0",
     "react-native-web": "~0.19.13",
-    "react-native-webview": "13.12.5"
+    "react-native-webview": "13.12.5",
+    "expo-local-authentication": "~15.0.2"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

@@ -52,6 +52,7 @@ export const userApi = {
         console.log('ID de usuario recibido:', response.id);
         await userApi.storeToken(response.token);  // Guardamos el token
         await userApi.storeUserId(response.id);    // Guardamos el id del usuario
+        await userApi.storeRefreshTojen(response.refreshToken);
       }
 
       return response;
@@ -70,6 +71,10 @@ export const userApi = {
   storeUserId: async (id: string): Promise<void> => {
     await setItemAsync('userId', id);  // Guardamos el userId en secure-store
   },
+
+  storeRefreshTojen: async (refreshToken: string): Promise<void> => {
+    await setItemAsync('refreshToken', refreshToken);  // Guardamos el refreshToken en secure-store
+  }
 
   // Obtener el ID del usuario desde secure-store
   getUserId: async (): Promise<string | null> => {

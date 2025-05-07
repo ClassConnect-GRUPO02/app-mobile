@@ -101,6 +101,8 @@ export default function ProfileScreen() {
         onPress: async () => {
           try {
             await deleteItemAsync("userToken");
+            await deleteItemAsync("userId");
+            await deleteItemAsync("refreshToken");
             router.replace("/(auth)/login");
           } catch (error) {
             console.error("Error al cerrar sesión:", error);
@@ -131,7 +133,7 @@ export default function ProfileScreen() {
   };
 
   const navigateToMyCourses = () => {
-    router.push("/(app)/my-courses")
+    router.push("./(app)/my-courses")
   }
 
   if (loading) {
