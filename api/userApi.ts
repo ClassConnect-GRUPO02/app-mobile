@@ -1,3 +1,4 @@
+import { registerPushToken } from '@/lib/pushNotifications';
 import { apiClient, setAuthToken } from './client';
 import { getItemAsync, setItemAsync } from 'expo-secure-store';
 

@@ -131,7 +131,7 @@ export default function ProfileScreen() {
   };
 
   const navigateToMyCourses = () => {
-    router.push("/(app)/my-courses")
+    router.push("./(app)/my-courses")
   }
 
   if (loading) {
@@ -250,6 +250,14 @@ export default function ProfileScreen() {
                     right={(props) => <List.Icon {...props} icon="chevron-right" />}
                     onPress={() => Alert.alert("Información", "Funcionalidad en desarrollo")}
                 />
+                <Divider />
+              <List.Item
+                title="Configurar notificaciones"
+                description="Personaliza tus preferencias de notificaciones"
+                left={(props) => <List.Icon {...props} icon="bell-outline" />}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={() => router.push("./(app)/notification-settings")}
+              />
               </List.Section>
             </Card.Content>
           </Card>
