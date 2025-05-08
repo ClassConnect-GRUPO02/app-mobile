@@ -92,12 +92,12 @@ const LoginScreen = (): React.JSX.Element => {
 
   const handleRegisterWithUserType = async (userType: string) => {
     if (!googleUserData) return;
+    googleUserData.userType = userType;
   
     try {
       await fetchWithTimeout(
         userApi.register({
           ...googleUserData,
-          userType,
         })
       );
       setShowUserTypeModal(false);
@@ -172,7 +172,7 @@ const LoginScreen = (): React.JSX.Element => {
             
             // Guardamos los datos para registro
             setGoogleUserData({
-              name: googleInfo.user.name || "Usuario",
+              name: googleInfo.user.givenName || "Usuario",
               email: googleInfo.user.email,
               password: googleInfo.user.id, // el id como password (??? depende de tu app)
               latitude,
@@ -181,6 +181,7 @@ const LoginScreen = (): React.JSX.Element => {
   
             // Mostrar modal para elegir tipo de usuario
             setShowUserTypeModal(true);
+            return;
           }
         } catch (error) {
           console.error("Error checking email:", error);
