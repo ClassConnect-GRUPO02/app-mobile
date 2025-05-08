@@ -47,6 +47,8 @@ export default function MyCoursesScreen() {
                     ...course,
                     isEnrolled: true,
                 }))
+                console.log("Obteniendo lista de cursos favoritos")
+
             } else if (userTypeValue === "docente") {
                 // para docentes obtener cursos que ha creado
                 console.log("Obteniendo cursos creados por el docente")
@@ -109,7 +111,7 @@ export default function MyCoursesScreen() {
                 <FlatList
                     data={courses}
                     keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => <CourseCard course={item} isStudent={userType === "alumno"} />}
+                    renderItem={({ item }) => <CourseCard course={item} isStudent={userType === "alumno"}/>}
                     contentContainerStyle={styles.coursesList}
                     showsVerticalScrollIndicator={false}
                     refreshing={refreshing}

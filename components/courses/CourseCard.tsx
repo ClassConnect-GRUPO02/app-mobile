@@ -3,6 +3,7 @@ import { StyleSheet, View, TouchableOpacity } from "react-native"
 import { Card, Text, Chip, Badge } from "react-native-paper"
 import { router } from "expo-router"
 import { Course } from "@/types/Course";
+import ToggleFavoriteButton from "../ToggleFavoriteButton";
 
 interface CourseCardProps {
     course: Course
@@ -68,6 +69,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course, isStudent = fals
                         )}
                     </View>
                 </Card.Content>
+                <View style={styles.favoriteButtonContainer}>
+                    <ToggleFavoriteButton courseId={course.id}/>
+                </View>
             </Card>
         </TouchableOpacity>
     )
@@ -136,6 +140,11 @@ const styles = StyleSheet.create({
         right: 10,
         backgroundColor: "#4caf50",
         color: "white",
+    },
+    favoriteButtonContainer: {
+        position: "absolute",
+        bottom: 10,
+        right: 10,
     },
 })
 

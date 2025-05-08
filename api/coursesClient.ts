@@ -208,4 +208,37 @@ export const courseClient = {
             return []
         }
     },
+
+    // Agregar curso a favoritos del usuario (UserId es el id del estudiante)
+    addFavorite: async (userId: string, courseId: string) => {
+        try {
+            const response = await api.post(`/students/${userId}/favorite-courses/${courseId}`);
+            return response.data;
+        } catch (error) {
+            console.error(`Error adding favorite course ${courseId} for student ${userId}:`, error);
+            throw error;
+        }
+    },
+
+    // Eliminar curso de favoritos del usuario (UserId es el id del estudiante)
+    removeFavorite: async (userId: string, courseId: string) => {
+        try {
+            const response = await api.delete(`/students/${userId}/favorite-courses/${courseId}`);
+            return response.data;
+        } catch (error) {
+            console.error(`Error removing favorite course ${courseId} for student ${userId}:`, error);
+            throw error;
+        }
+    },
+
+    // Verificar si un curso es favorito del usuario (UserId es el id del estudiante)
+    checkIfFavorite: async (userId: string, courseId: string) => {
+        try {
+            const response = await api.get(`/students/${userId}/favorite-courses/${courseId}`);
+            return response.data.isFavorite === true;
+        } catch (error) {
+            console.error(`Error checking favorite status for course ${courseId} for student ${userId}:`, error);
+            return false;
+        }
+    }
 }
