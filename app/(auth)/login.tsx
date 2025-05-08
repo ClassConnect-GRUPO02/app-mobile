@@ -258,7 +258,7 @@ const LoginScreen = (): React.JSX.Element => {
           </Button>
 
           <View style={styles.registerContainer}>
-            <Text>¿No tienes una cuentaaa? </Text>
+            <Text>¿No tienes una cuenta? </Text>
             <Link href="/(auth)/register" asChild>
               <Button mode="text" compact>
                 Registrarse

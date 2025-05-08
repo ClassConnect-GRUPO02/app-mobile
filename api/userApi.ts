@@ -89,7 +89,9 @@ export const userApi = {
   async checkEmailExists(email: string): Promise<{ exists: boolean }> {
     const response = await apiClient.get<{ exists: boolean; token: string }>(`/check-email-exists/${email}`);
     
-    await userApi.storeToken(response.token);
+    if(response.exists){
+      userApi.storeToken(response.token); // Guardamos el token si el email existe
+    }
   
     return { exists: response.exists };
   }  
