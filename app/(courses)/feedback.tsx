@@ -7,6 +7,7 @@ import {
   HelperText,
   Snackbar,
   ActivityIndicator,
+  IconButton,
 } from "react-native-paper"
 import { router, useLocalSearchParams } from "expo-router"
 import { courseClient } from "@/api/coursesClient"
@@ -18,10 +19,8 @@ export default function FeedbackScreen() {
   const [comment, setComment] = useState("")
   const [punctuation, setPunctuation] = useState("")
   const [errors, setErrors] = useState<{ comment?: string; punctuation?: string }>({})
-
   const [loading, setLoading] = useState(false)
   const [initialLoading, setInitialLoading] = useState(true)
-
   const [snackbarVisible, setSnackbarVisible] = useState(false)
   const [snackbarMessage, setSnackbarMessage] = useState("")
   const [snackbarType, setSnackbarType] = useState<"success" | "error">("success")
@@ -68,33 +67,31 @@ export default function FeedbackScreen() {
         punctuation: Number(punctuation),
       })
 
-      
       setSnackbarMessage("Feedback enviado con éxito")
       setSnackbarType("success")
       setSnackbarVisible(true)
       setComment("")
       setPunctuation("")
     } catch (err: any) {
-        console.error(err)
-        const status = err?.response?.status
-      
-        if (status === 400 ) {
-          setSnackbarMessage("Ya enviaste feedback para este curso")
-        } else if (status === 403 ) {
-          setSnackbarMessage("Debés estar inscrito en el curso para dejar feedback")
-        } else {
-          setSnackbarMessage("Error al enviar feedback")
-        }
-      
-        setSnackbarType("error")
-        setSnackbarVisible(true)
+      console.error(err)
+      const status = err?.response?.status
+
+      if (status === 400) {
+        setSnackbarMessage("Ya enviaste feedback para este curso")
+      } else if (status === 403) {
+        setSnackbarMessage("Debés estar inscrito en el curso para dejar feedback")
+      } else {
+        setSnackbarMessage("Error al enviar feedback")
       }
-       finally {
-        console.log("Feedback enviado:", {
-          courseId: id, 
-          comment,
-          punctuation: Number(punctuation),
-        })
+
+      setSnackbarType("error")
+      setSnackbarVisible(true)
+    } finally {
+      console.log("Feedback enviado:", {
+        courseId: id,
+        comment,
+        punctuation: Number(punctuation),
+      })
       setLoading(false)
     }
   }
@@ -109,6 +106,9 @@ export default function FeedbackScreen() {
 
   return (
     <ScrollView contentContainerStyle={styles.container}>
+      {/* 🔙 Flecha arriba del título */}
+      <IconButton icon="arrow-left" size={24} onPress={() => router.back()} style={styles.backButton} />
+
       <Text variant="headlineSmall" style={styles.title}>
         Dejá tu feedback del curso
       </Text>
@@ -159,6 +159,12 @@ export default function FeedbackScreen() {
 const styles = StyleSheet.create({
   container: {
     padding: 20,
+    paddingTop: 10,
+  },
+  backButton: {
+    marginBottom: 0,
+    padding: 0,
+    alignSelf: "flex-start",
   },
   title: {
     marginBottom: 20,
@@ -177,4 +183,4 @@ const styles = StyleSheet.create({
   errorSnackbar: {
     backgroundColor: "red",
   },
-});
+})
