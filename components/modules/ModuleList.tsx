@@ -1,9 +1,10 @@
 import React from "react"
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { View, StyleSheet, Alert } from "react-native"
 import { Text, IconButton, ActivityIndicator, Card } from "react-native-paper"
 import DraggableFlatList, { type RenderItemParams } from "react-native-draggable-flatlist"
 import type { Module } from "@/types/Module"
+import { GestureHandlerRootView } from "react-native-gesture-handler"
 import {moduleClient} from "@/api/modulesClient";
 
 interface ModuleListProps {
@@ -24,6 +25,12 @@ export const ModuleList: React.FC<ModuleListProps> = ({
                                                         onDeleteModule,
                                                       }) => {
   const [reordering, setReordering] = useState(false)
+  const [localModules, setLocalModules] = useState<Module[]>(modules)
+
+  // Update local modules when props change
+  useEffect(() => {
+    setLocalModules(modules)
+  }, [modules])
 
   const handleDeleteModule = async (moduleId: string) => {
     Alert.alert(
@@ -47,13 +54,17 @@ export const ModuleList: React.FC<ModuleListProps> = ({
   const handleDragEnd = async ({ data }: { data: Module[] }) => {
     try {
       setReordering(true)
+      setLocalModules(data)
 
       // Actualizar el orden en el backend
       const orderedIds = data.map((module) => module.id)
+      console.log("Updating module order with IDs:", orderedIds)
       await moduleClient.updateModulesOrder(courseId, orderedIds)
     } catch (error) {
       console.error("Error al reordenar módulos:", error)
       Alert.alert("Error", "No se pudo actualizar el orden de los módulos")
+      // Revert to original order
+      setLocalModules(modules)
     } finally {
       setReordering(false)
     }
@@ -105,7 +116,7 @@ export const ModuleList: React.FC<ModuleListProps> = ({
             </View>
         )}
 
-        {modules.length === 0 ? (
+        {localModules.length === 0 ? (
             <View style={styles.emptyContainer}>
               <Text style={styles.emptyText}>
                 {isCreator
@@ -114,14 +125,16 @@ export const ModuleList: React.FC<ModuleListProps> = ({
               </Text>
             </View>
         ) : (
-            <DraggableFlatList
-                data={modules}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id}
-                onDragEnd={handleDragEnd}
-                contentContainerStyle={styles.listContent}
-                disabled={!isCreator}
-            />
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <DraggableFlatList
+                  data={localModules}
+                  renderItem={renderItem}
+                  keyExtractor={(item) => item.id}
+                  onDragEnd={handleDragEnd}
+                  contentContainerStyle={styles.listContent}
+                  disabled={!isCreator}
+              />
+            </GestureHandlerRootView>
         )}
       </View>
   )

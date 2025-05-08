@@ -3,14 +3,15 @@ import { StyleSheet, View, ScrollView, Image, Alert } from "react-native"
 import { Text, Button, Chip, Divider, List, ActivityIndicator, FAB, Modal } from "react-native-paper"
 import { useLocalSearchParams, router } from "expo-router"
 import { courseClient } from "@/api/coursesClient"
-import {userApi} from "@/api/userApi";
 import type { Course } from "@/types/Course"
 import type { Module } from "@/types/Module"
 import { StatusBar } from "expo-status-bar"
 import { ModuleList } from "@/components/modules/ModuleList"
 import { ModuleForm } from "@/components/modules/ModuleForm"
-import React from "react"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import {userApi} from "@/api/userApi";
 import {moduleClient} from "@/api/modulesClient";
+import React from "react"
 
 export default function CourseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -25,10 +26,40 @@ export default function CourseDetailScreen() {
   const [selectedModule, setSelectedModule] = useState<Module | null>(null)
   const [activeTab, setActiveTab] = useState<"info" | "modules">("info")
 
+  // Estados para los roles del usuario
   const [isEnrolled, setIsEnrolled] = useState(false)
   const [isInstructor, setIsInstructor] = useState(false)
   const [isCreator, setIsCreator] = useState(false)
   const [userType, setUserType] = useState<string | null>(null)
+
+  // Load the active tab from AsyncStorage when the component mounts
+  useEffect(() => {
+    const loadActiveTab = async () => {
+      try {
+        const savedTab = await AsyncStorage.getItem(`course_${id}_activeTab`)
+        if (savedTab === "modules" || savedTab === "info") {
+          setActiveTab(savedTab)
+        }
+      } catch (error) {
+        console.error("Error loading active tab:", error)
+      }
+    }
+
+    loadActiveTab()
+  }, [id])
+
+  // Save the active tab to AsyncStorage when it changes
+  useEffect(() => {
+    const saveActiveTab = async () => {
+      try {
+        await AsyncStorage.setItem(`course_${id}_activeTab`, activeTab)
+      } catch (error) {
+        console.error("Error saving active tab:", error)
+      }
+    }
+
+    saveActiveTab()
+  }, [activeTab, id])
 
   useEffect(() => {
     const fetchCourseAndUserStatus = async () => {

@@ -8,6 +8,9 @@ import { resourceClient } from "@/api/resourceClient"
 import { supabaseClient } from "@/api/supabaseClient"
 import type { Resource, ResourceType, ResourceCreationData } from "@/types/Resource"
 
+// Add router import
+import { router } from "expo-router"
+
 interface ResourceFormProps {
   moduleId: string
   courseId: string
@@ -152,6 +155,7 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({ moduleId, courseId, 
     }
   }
 
+  // Update the handleSubmit function to navigate to the resource detail screen
   const handleSubmit = async () => {
     if (!validateForm()) {
       return
@@ -202,6 +206,14 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({ moduleId, courseId, 
 
       if (savedResource) {
         onSave(savedResource)
+
+        // Navigate to the resource detail screen if it's a new resource
+        if (!isEditing && savedResource) {
+          router.push({
+            pathname: "/course/module/resource/[resourceId]",
+            params: { resourceId: savedResource.id, moduleId },
+          })
+        }
       } else {
         setErrors({
           form: isEditing

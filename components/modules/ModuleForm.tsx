@@ -3,6 +3,7 @@ import { useState } from "react"
 import { View, StyleSheet, ScrollView, Alert } from "react-native"
 import { TextInput, Button, Text, HelperText, Card, ActivityIndicator } from "react-native-paper"
 import type { Module, ModuleCreationData } from "@/types/Module"
+import { router } from "expo-router"
 import {moduleClient} from "@/api/modulesClient";
 
 interface ModuleFormProps {
@@ -70,7 +71,21 @@ export const ModuleForm: React.FC<ModuleFormProps> = ({ courseId, initialData, o
         Alert.alert(
             isEditing ? "Módulo actualizado" : "Módulo creado",
             isEditing ? "El módulo se ha actualizado correctamente" : "El módulo se ha creado correctamente",
-            [{ text: "OK", onPress: () => onSave(savedModule!) }],
+            [
+              {
+                text: "OK",
+                onPress: () => {
+                  onSave(savedModule!)
+                  // Navigate to the module detail screen
+                  if (!isEditing) {
+                    router.push({
+                      pathname: "/course/module/[moduleId]",
+                      params: { moduleId: savedModule.id, courseId },
+                    })
+                  }
+                },
+              },
+            ],
         )
       } else {
         setErrors({
