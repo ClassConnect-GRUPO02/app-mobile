@@ -6,14 +6,16 @@ import DraggableFlatList, { type RenderItemParams } from "react-native-draggable
 import { resourceClient } from "@/api/resourceClient"
 import type { Resource, ResourceType } from "@/types/Resource"
 import { router } from "expo-router"
+import { GestureHandlerRootView } from "react-native-gesture-handler"
 
 interface ResourceListProps {
   moduleId: string
   isCreator: boolean
+  onAddResource?: () => void
   onEditResource?: (resource: Resource) => void
 }
 
-export const ResourceList: React.FC<ResourceListProps> = ({ moduleId, isCreator, onEditResource }) => {
+export const ResourceList: React.FC<ResourceListProps> = ({ moduleId, isCreator, onAddResource, onEditResource }) => {
   const [resources, setResources] = useState<Resource[]>([])
   const [loading, setLoading] = useState(true)
   const [reordering, setReordering] = useState(false)
@@ -191,15 +193,17 @@ export const ResourceList: React.FC<ResourceListProps> = ({ moduleId, isCreator,
               </Text>
             </View>
         ) : (
-            <DraggableFlatList
-                data={resources}
-                renderItem={renderItem}
-                keyExtractor={(item) => item.id}
-                onDragEnd={handleDragEnd}
-                contentContainerStyle={styles.listContent}
-                scrollEnabled={true}
-                disabled={!isCreator}
-            />
+            <GestureHandlerRootView style={{ flex: 1 }}>
+              <DraggableFlatList
+                  data={resources}
+                  renderItem={renderItem}
+                  keyExtractor={(item) => item.id}
+                  onDragEnd={handleDragEnd}
+                  contentContainerStyle={styles.listContent}
+                  scrollEnabled={true}
+                  disabled={!isCreator}
+              />
+            </GestureHandlerRootView>
         )}
       </View>
   )

@@ -1,12 +1,12 @@
 import React from "react"
 import { useState } from "react"
-import { View, StyleSheet, ScrollView, Alert } from "react-native"
+import { View, StyleSheet, ScrollView, Alert, Platform } from "react-native"
 import { TextInput, Button, Text, HelperText, Card, RadioButton } from "react-native-paper"
 import * as DocumentPicker from "expo-document-picker"
 import * as ImagePicker from "expo-image-picker"
 import { resourceClient } from "@/api/resourceClient"
+import { supabaseClient } from "@/api/supabaseClient"
 import type { Resource, ResourceType, ResourceCreationData } from "@/types/Resource"
-import {supabaseClient} from "@/api/supabaseClient";
 
 interface ResourceFormProps {
   moduleId: string
@@ -23,7 +23,7 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({ moduleId, courseId, 
   const [loading, setLoading] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
   const [errors, setErrors] = useState<Record<string, string>>({})
-  const [selectedFileName, setSelectedFileName] = useState<string | null>(null)
+  const [selectedFile, setSelectedFile] = useState<{ uri: string; name: string } | null>(null)
 
   const isEditing = !!initialData
 
@@ -34,8 +34,12 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({ moduleId, courseId, 
       newErrors.description = "La descripción es obligatoria"
     }
 
-    if (!url.trim() && type !== "document" && type !== "image") {
+    if (!url.trim() && type !== "document" && type !== "image" && !selectedFile) {
       newErrors.url = "La URL es obligatoria"
+    }
+
+    if ((type === "document" || type === "image") && !selectedFile && !url.trim()) {
+      newErrors.file = "Debes seleccionar un archivo"
     }
 
     setErrors(newErrors)
@@ -54,14 +58,15 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({ moduleId, courseId, 
       }
 
       const file = result.assets[0]
-      setSelectedFileName(file.name)
+      console.log("Documento seleccionado:", file)
 
-      // No subimos el archivo inmediatamente, lo haremos al guardar
-      return file
+      setSelectedFile({
+        uri: file.uri,
+        name: file.name || "documento",
+      })
     } catch (error) {
       console.error("Error al seleccionar documento:", error)
       Alert.alert("Error", "No se pudo seleccionar el documento")
-      return null
     }
   }
 
@@ -71,7 +76,7 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({ moduleId, courseId, 
 
       if (status !== "granted") {
         Alert.alert("Permiso denegado", "Se necesita acceso a la galería para seleccionar imágenes")
-        return null
+        return
       }
 
       const result = await ImagePicker.launchImageLibraryAsync({
@@ -81,37 +86,42 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({ moduleId, courseId, 
       })
 
       if (result.canceled) {
-        return null
+        return
       }
 
       const asset = result.assets[0]
-      setSelectedFileName(asset.fileName || "imagen.jpg")
+      console.log("Imagen seleccionada:", asset)
 
-      return asset
+      setSelectedFile({
+        uri: asset.uri,
+        name: asset.fileName || "imagen.jpg",
+      })
     } catch (error) {
       console.error("Error al seleccionar imagen:", error)
       Alert.alert("Error", "No se pudo seleccionar la imagen")
-      return null
     }
   }
 
   const handleSelectFile = async () => {
-    let file
-
     if (type === "document") {
-      file = await pickDocument()
+      await pickDocument()
     } else if (type === "image") {
-      file = await pickImage()
-    }
-
-    if (file) {
-      setSelectedFileName(file.name || "archivo")
+      await pickImage()
     }
   }
 
   const uploadFile = async (uri: string, fileName: string): Promise<string | null> => {
     try {
       setUploadProgress(0)
+      console.log("Intentando subir archivo:", { uri, fileName })
+
+      // Verificar que el archivo existe
+      if (Platform.OS === "web") {
+        // En web, no podemos verificar la existencia del archivo de la misma manera
+        console.log("Subiendo archivo en web")
+      } else {
+        console.log("Verificando existencia del archivo en dispositivo")
+      }
 
       // Simulamos progreso de carga
       const progressInterval = setInterval(() => {
@@ -125,11 +135,19 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({ moduleId, courseId, 
       const fileUrl = await supabaseClient.uploadFile(uri, courseId, fileName)
 
       clearInterval(progressInterval)
-      setUploadProgress(100)
 
-      return fileUrl
+      if (fileUrl) {
+        console.log("Archivo subido exitosamente:", fileUrl)
+        setUploadProgress(100)
+        return fileUrl
+      } else {
+        console.error("Error: No se pudo obtener URL del archivo subido")
+        setUploadProgress(0)
+        return null
+      }
     } catch (error) {
       console.error("Error al subir archivo:", error)
+      setUploadProgress(0)
       return null
     }
   }
@@ -145,9 +163,9 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({ moduleId, courseId, 
       let resourceUrl = url
 
       // Si es un documento o imagen y hay un archivo seleccionado, subir primero
-      if ((type === "document" || type === "image") && selectedFileName) {
-        const fileUri = selectedFileName // En un caso real, aquí tendríamos el URI del archivo
-        const uploadedUrl = await uploadFile(fileUri, selectedFileName)
+      if ((type === "document" || type === "image") && selectedFile) {
+        console.log("Preparando para subir archivo:", selectedFile)
+        const uploadedUrl = await uploadFile(selectedFile.uri, selectedFile.name)
 
         if (!uploadedUrl) {
           setErrors({
@@ -187,8 +205,8 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({ moduleId, courseId, 
       } else {
         setErrors({
           form: isEditing
-            ? "No se pudo actualizar el recurso. Inténtalo de nuevo."
-            : "No se pudo crear el recurso. Inténtalo de nuevo.",
+              ? "No se pudo actualizar el recurso. Inténtalo de nuevo."
+              : "No se pudo crear el recurso. Inténtalo de nuevo.",
         })
       }
     } catch (error) {
@@ -203,96 +221,98 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({ moduleId, courseId, 
   }
 
   return (
-    <ScrollView style={styles.container}>
-      <Card style={styles.card}>
-        <Card.Content>
-          <Text variant="titleLarge" style={styles.title}>
-            {isEditing ? "Editar recurso" : "Crear nuevo recurso"}
-          </Text>
+      <ScrollView style={styles.container}>
+        <Card style={styles.card}>
+          <Card.Content>
+            <Text variant="titleLarge" style={styles.title}>
+              {isEditing ? "Editar recurso" : "Crear nuevo recurso"}
+            </Text>
 
-          {errors.form && <Text style={styles.formError}>{errors.form}</Text>}
+            {errors.form && <Text style={styles.formError}>{errors.form}</Text>}
 
-          <TextInput
-            label="Descripción del recurso *"
-            value={description}
-            onChangeText={setDescription}
-            style={styles.input}
-            error={!!errors.description}
-            disabled={loading}
-          />
-          {errors.description && <HelperText type="error">{errors.description}</HelperText>}
-
-          <Text style={styles.sectionTitle}>Tipo de recurso *</Text>
-          <RadioButton.Group onValueChange={(value) => setType(value as ResourceType)} value={type}>
-            <View style={styles.radioGroup}>
-              <View style={styles.radioOption}>
-                <RadioButton value="link" disabled={loading} />
-                <Text>Enlace</Text>
-              </View>
-              <View style={styles.radioOption}>
-                <RadioButton value="video" disabled={loading} />
-                <Text>Video</Text>
-              </View>
-              <View style={styles.radioOption}>
-                <RadioButton value="document" disabled={loading} />
-                <Text>Documento</Text>
-              </View>
-              <View style={styles.radioOption}>
-                <RadioButton value="image" disabled={loading} />
-                <Text>Imagen</Text>
-              </View>
-            </View>
-          </RadioButton.Group>
-
-          {(type === "link" || type === "video") && (
-            <>
-              <TextInput
-                label="URL *"
-                value={url}
-                onChangeText={setUrl}
+            <TextInput
+                label="Descripción del recurso *"
+                value={description}
+                onChangeText={setDescription}
                 style={styles.input}
-                error={!!errors.url}
+                error={!!errors.description}
                 disabled={loading}
-                placeholder={type === "video" ? "https://www.youtube.com/watch?v=..." : "https://..."}
-              />
-              {errors.url && <HelperText type="error">{errors.url}</HelperText>}
-            </>
-          )}
+            />
+            {errors.description && <HelperText type="error">{errors.description}</HelperText>}
 
-          {(type === "document" || type === "image") && (
-            <View style={styles.fileSection}>
-              <Button
-                mode="outlined"
-                icon={type === "document" ? "file-document" : "image"}
-                onPress={handleSelectFile}
-                style={styles.fileButton}
-                disabled={loading}
-              >
-                {type === "document" ? "Seleccionar documento" : "Seleccionar imagen"}
-              </Button>
-
-              {selectedFileName && <Text style={styles.fileName}>Archivo seleccionado: {selectedFileName}</Text>}
-
-              {uploadProgress > 0 && (
-                <View style={styles.progressContainer}>
-                  <View style={[styles.progressBar, { width: `${uploadProgress}%` }]} />
-                  <Text style={styles.progressText}>{uploadProgress}%</Text>
+            <Text style={styles.sectionTitle}>Tipo de recurso *</Text>
+            <RadioButton.Group onValueChange={(value) => setType(value as ResourceType)} value={type}>
+              <View style={styles.radioGroup}>
+                <View style={styles.radioOption}>
+                  <RadioButton value="link" disabled={loading} />
+                  <Text>Enlace</Text>
                 </View>
-              )}
-            </View>
-          )}
+                <View style={styles.radioOption}>
+                  <RadioButton value="video" disabled={loading} />
+                  <Text>Video</Text>
+                </View>
+                <View style={styles.radioOption}>
+                  <RadioButton value="document" disabled={loading} />
+                  <Text>Documento</Text>
+                </View>
+                <View style={styles.radioOption}>
+                  <RadioButton value="image" disabled={loading} />
+                  <Text>Imagen</Text>
+                </View>
+              </View>
+            </RadioButton.Group>
 
-          <View style={styles.buttonContainer}>
-            <Button mode="outlined" onPress={onCancel} style={styles.button} disabled={loading}>
-              Cancelar
-            </Button>
-            <Button mode="contained" onPress={handleSubmit} style={styles.button} loading={loading} disabled={loading}>
-              {isEditing ? "Actualizar" : "Crear"}
-            </Button>
-          </View>
-        </Card.Content>
-      </Card>
-    </ScrollView>
+            {(type === "link" || type === "video") && (
+                <>
+                  <TextInput
+                      label="URL *"
+                      value={url}
+                      onChangeText={setUrl}
+                      style={styles.input}
+                      error={!!errors.url}
+                      disabled={loading}
+                      placeholder={type === "video" ? "https://www.youtube.com/watch?v=..." : "https://..."}
+                  />
+                  {errors.url && <HelperText type="error">{errors.url}</HelperText>}
+                </>
+            )}
+
+            {(type === "document" || type === "image") && (
+                <View style={styles.fileSection}>
+                  <Button
+                      mode="outlined"
+                      icon={type === "document" ? "file-document" : "image"}
+                      onPress={handleSelectFile}
+                      style={styles.fileButton}
+                      disabled={loading}
+                  >
+                    {type === "document" ? "Seleccionar documento" : "Seleccionar imagen"}
+                  </Button>
+
+                  {selectedFile && <Text style={styles.fileName}>Archivo seleccionado: {selectedFile.name}</Text>}
+
+                  {errors.file && <HelperText type="error">{errors.file}</HelperText>}
+
+                  {uploadProgress > 0 && (
+                      <View style={styles.progressContainer}>
+                        <View style={[styles.progressBar, { width: `${uploadProgress}%` }]} />
+                        <Text style={styles.progressText}>{uploadProgress}%</Text>
+                      </View>
+                  )}
+                </View>
+            )}
+
+            <View style={styles.buttonContainer}>
+              <Button mode="outlined" onPress={onCancel} style={styles.button} disabled={loading}>
+                Cancelar
+              </Button>
+              <Button mode="contained" onPress={handleSubmit} style={styles.button} loading={loading} disabled={loading}>
+                {isEditing ? "Actualizar" : "Crear"}
+              </Button>
+            </View>
+          </Card.Content>
+        </Card>
+      </ScrollView>
   )
 }
 

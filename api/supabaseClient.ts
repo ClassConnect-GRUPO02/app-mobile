@@ -4,7 +4,8 @@ import * as FileSystem from "expo-file-system"
 
 // Configuración de Supabase
 const SUPABASE_URL = "https://gqqdprckhbiprthyfgcq.supabase.co"
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcWRwcmNraGJpcHJ0aHlmZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0MTA1NzYsImV4cCI6MjA2MTk4NjU3Nn0.9HMJJCJrCOjY4ITIlE7PSJwDy8LghG-Fc7j81h6O8RA"
+const SUPABASE_ANON_KEY =
+    "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdxcWRwcmNraGJpcHJ0aHlmZ2NxIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDY0MTA1NzYsImV4cCI6MjA2MTk4NjU3Nn0.9HMJJCJrCOjY4ITIlE7PSJwDy8LghG-Fc7j81h6O8RA"
 
 // Crear cliente de Supabase
 export const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
@@ -14,31 +15,31 @@ const BUCKET_NAME = "course-resources"
 
 // Mapeo simple de extensiones a tipos MIME
 const MIME_TYPES: Record<string, string> = {
-  'jpg': 'image/jpeg',
-  'jpeg': 'image/jpeg',
-  'png': 'image/png',
-  'gif': 'image/gif',
-  'webp': 'image/webp',
-  'pdf': 'application/pdf',
-  'doc': 'application/msword',
-  'docx': 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
-  'xls': 'application/vnd.ms-excel',
-  'xlsx': 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet',
-  'ppt': 'application/vnd.ms-powerpoint',
-  'pptx': 'application/vnd.openxmlformats-officedocument.presentationml.presentation',
-  'txt': 'text/plain',
-  'csv': 'text/csv',
-  'html': 'text/html',
-  'htm': 'text/html',
-  'json': 'application/json',
-  'xml': 'application/xml',
-  'zip': 'application/zip',
-  'mp3': 'audio/mpeg',
-  'mp4': 'video/mp4',
-  'avi': 'video/x-msvideo',
-  'mov': 'video/quicktime',
-  'wmv': 'video/x-ms-wmv',
-};
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  gif: "image/gif",
+  webp: "image/webp",
+  pdf: "application/pdf",
+  doc: "application/msword",
+  docx: "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+  xls: "application/vnd.ms-excel",
+  xlsx: "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+  ppt: "application/vnd.ms-powerpoint",
+  pptx: "application/vnd.openxmlformats-officedocument.presentationml.presentation",
+  txt: "text/plain",
+  csv: "text/csv",
+  html: "text/html",
+  htm: "text/html",
+  json: "application/json",
+  xml: "application/xml",
+  zip: "application/zip",
+  mp3: "audio/mpeg",
+  mp4: "video/mp4",
+  avi: "video/x-msvideo",
+  mov: "video/quicktime",
+  wmv: "video/x-ms-wmv",
+}
 
 export const supabaseClient = {
   // Subir un archivo a Supabase Storage

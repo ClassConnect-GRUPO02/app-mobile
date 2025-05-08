@@ -5,7 +5,7 @@ import axios from "axios";
 const API_URL = getBaseUrlCourses()
 
 // Crea una instancia de axios con la configuración base
-const api = axios.create({
+const apiClient = axios.create({
     baseURL: API_URL,
     headers: {
         "Content-Type": "application/json",
@@ -16,7 +16,7 @@ export const moduleClient = {
     // Obtener todos los módulos de un curso
     getModulesByCourseId: async (courseId: string): Promise<Module[]> => {
         try {
-            const response = await api.get(`/courses/${courseId}/modules`)
+            const response = await apiClient.get<{ data: Module[] }>(`/courses/${courseId}/modules`)
             return response.data.data || []
         } catch (error) {
             console.error(`Error fetching modules for course ${courseId}:`, error)
@@ -27,7 +27,7 @@ export const moduleClient = {
     // Obtener un módulo específico
     getModuleById: async (courseId: string, moduleId: string): Promise<Module | null> => {
         try {
-            const response = await api.get(`/courses/${courseId}/modules/${moduleId}`)
+            const response = await apiClient.get<{ data: Module }>(`/courses/${courseId}/modules/${moduleId}`)
             return response.data.data
         } catch (error) {
             console.error(`Error fetching module ${moduleId}:`, error)
@@ -38,29 +38,29 @@ export const moduleClient = {
     // Crear un nuevo módulo
     createModule: async (courseId: string, module: Omit<Module, "id">): Promise<Module | null> => {
         try {
-            const response = await api.post(`/courses/${courseId}/modules`, module)
+            const response = await apiClient.post<{ data: Module }>(`/courses/${courseId}/modules`, module)
             return response.data.data
         } catch (error) {
-            console.error("Error creating module:", error)
-            throw error
+            console.error(`Error creating module for course ${courseId}:`, error)
+            return null
         }
     },
 
-    // Actualizar un módulo
+    // Actualizar un módulo existente
     updateModule: async (courseId: string, moduleId: string, moduleData: Partial<Module>): Promise<Module | null> => {
         try {
-            const response = await api.patch(`/courses/${courseId}/modules/${moduleId}`, moduleData)
+            const response = await apiClient.patch<{ data: Module }>(`/courses/${courseId}/modules/${moduleId}`, moduleData)
             return response.data.data
         } catch (error) {
             console.error(`Error updating module ${moduleId}:`, error)
-            throw error
+            return null
         }
     },
 
     // Eliminar un módulo
     deleteModule: async (courseId: string, moduleId: string): Promise<boolean> => {
         try {
-            await api.delete(`/courses/${courseId}/modules/${moduleId}`)
+            await apiClient.delete(`/courses/${courseId}/modules/${moduleId}`)
             return true
         } catch (error) {
             console.error(`Error deleting module ${moduleId}:`, error)
@@ -71,10 +71,10 @@ export const moduleClient = {
     // Actualizar el orden de los módulos
     updateModulesOrder: async (courseId: string, orderedModuleIds: string[]): Promise<boolean> => {
         try {
-            await api.patch(`/courses/${courseId}/modules/order`, { orderedModuleIds })
+            await apiClient.patch(`/courses/${courseId}/modules/order`, { orderedModuleIds })
             return true
         } catch (error) {
-            console.error("Error updating modules order:", error)
+            console.error(`Error updating modules order for course ${courseId}:`, error)
             return false
         }
     },

@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react"
-import { StyleSheet, View, ScrollView, Alert, Linking } from "react-native"
+import { StyleSheet, View, Alert, Linking } from "react-native"
 import { Text, Button, Card, ActivityIndicator, IconButton, Divider, FAB, Modal } from "react-native-paper"
 import { useLocalSearchParams, router } from "expo-router"
 import { courseClient } from "@/api/coursesClient"
@@ -139,44 +139,46 @@ export default function ModuleDetailScreen() {
       <View style={styles.container}>
         <StatusBar style="auto" />
 
-        <ScrollView contentContainerStyle={styles.scrollContent}>
-          <View style={styles.header}>
-            <IconButton icon="arrow-left" size={24} onPress={() => router.back()} style={styles.backIcon} />
-            <Text variant="headlineMedium" style={styles.title}>
-              {module.name}
+        {/* Header section */}
+        <View style={styles.header}>
+          <IconButton icon="arrow-left" size={24} onPress={() => router.back()} style={styles.backIcon} />
+          <Text variant="headlineMedium" style={styles.title}>
+            {module.name}
+          </Text>
+        </View>
+
+        {/* Module info card */}
+        <Card style={styles.moduleCard}>
+          <Card.Content>
+            <Text variant="bodyLarge" style={styles.description}>
+              {module.description}
             </Text>
-          </View>
 
-          <Card style={styles.moduleCard}>
-            <Card.Content>
-              <Text variant="bodyLarge" style={styles.description}>
-                {module.description}
-              </Text>
-
-              {module.url && (
-                  <Button mode="outlined" icon="link" onPress={() => Linking.openURL(module.url)} style={styles.urlButton}>
-                    Abrir enlace del módulo
-                  </Button>
-              )}
-            </Card.Content>
-          </Card>
-
-          <Divider style={styles.divider} />
-
-          <View style={styles.resourcesContainer}>
-            {isCreator && (
-                <Button mode="contained" icon="plus" onPress={handleAddResource} style={styles.addResourceButton}>
-                  Agregar recurso
+            {module.url && (
+                <Button mode="outlined" icon="link" onPress={() => Linking.openURL(module.url)} style={styles.urlButton}>
+                  Abrir enlace del módulo
                 </Button>
             )}
+          </Card.Content>
+        </Card>
 
-            <ResourceList
-                moduleId={moduleId}
-                isCreator={isCreator}
-                onEditResource={isCreator ? handleEditResource : undefined}
-            />
-          </View>
-        </ScrollView>
+        <Divider style={styles.divider} />
+
+        {/* Resources section - No longer in ScrollView */}
+        <View style={styles.resourcesContainer}>
+          {isCreator && (
+              <Button mode="contained" icon="plus" onPress={handleAddResource} style={styles.addResourceButton}>
+                Agregar recurso
+              </Button>
+          )}
+
+          <ResourceList
+              moduleId={moduleId}
+              isCreator={isCreator}
+              onAddResource={isCreator ? handleAddResource : undefined}
+              onEditResource={isCreator ? handleEditResource : undefined}
+          />
+        </View>
 
         {isCreator && (
             <View style={styles.fabContainer}>
@@ -208,9 +210,46 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
-  scrollContent: {
-    padding: 16,
-    paddingBottom: 80,
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    marginTop: 16,
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  backIcon: {
+    margin: 0,
+    marginRight: 8,
+  },
+  title: {
+    flex: 1,
+    fontWeight: "bold",
+    color: "#6200ee",
+  },
+  moduleCard: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+    borderRadius: 8,
+    elevation: 2,
+  },
+  description: {
+    marginBottom: 16,
+    lineHeight: 24,
+  },
+  urlButton: {
+    alignSelf: "flex-start",
+  },
+  divider: {
+    marginHorizontal: 16,
+    marginBottom: 16,
+  },
+  resourcesContainer: {
+    flex: 1,
+    paddingHorizontal: 16,
+  },
+  addResourceButton: {
+    marginBottom: 16,
+    backgroundColor: "#6200ee",
   },
   loadingContainer: {
     flex: 1,
@@ -237,35 +276,6 @@ const styles = StyleSheet.create({
     marginBottom: 20,
     color: "#666",
   },
-  header: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 16,
-  },
-  backIcon: {
-    margin: 0,
-    marginRight: 8,
-  },
-  title: {
-    flex: 1,
-    fontWeight: "bold",
-    color: "#6200ee",
-  },
-  moduleCard: {
-    marginBottom: 16,
-    borderRadius: 8,
-    elevation: 2,
-  },
-  description: {
-    marginBottom: 16,
-    lineHeight: 24,
-  },
-  urlButton: {
-    alignSelf: "flex-start",
-  },
-  divider: {
-    marginVertical: 16,
-  },
   backButton: {
     marginTop: 16,
   },
@@ -290,12 +300,5 @@ const styles = StyleSheet.create({
     margin: 0,
     padding: 0,
     flex: 1,
-  },
-  resourcesContainer: {
-    flex: 1,
-  },
-  addResourceButton: {
-    marginBottom: 16,
-    backgroundColor: "#6200ee",
   },
 })
