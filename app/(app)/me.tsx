@@ -16,6 +16,7 @@ import { getItemAsync, deleteItemAsync } from "expo-secure-store";
 import { router, useLocalSearchParams } from "expo-router";
 import { setAuthToken } from "../../api/client";
 import { userApi } from "../../api/userApi";
+import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 interface UserProfile {
   id: string;
@@ -94,6 +95,7 @@ export default function ProfileScreen() {
         text: "Sí, salir",
         onPress: async () => {
           try {
+            await GoogleSignin.signOut();
             await deleteItemAsync("userToken");
             router.replace("/(auth)/login");
           } catch (error) {
