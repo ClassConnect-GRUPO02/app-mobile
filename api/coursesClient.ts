@@ -5,8 +5,8 @@ import {Course} from "@/types/Course";
 // Configura la URL base de la API
 // En desarrollo con Expo, puedes usar la IP de tu máquina en lugar de localhost
 const getBaseUrl = (): string => {
-    //const LOCAL_IP = "192.168.100.25";
-    const LOCAL_IP = "35.223.247.76";
+    const LOCAL_IP = "192.168.0.177"; //192.168.0.177
+    //const LOCAL_IP = "35.223.247.76";
     return `http://${LOCAL_IP}:3000`;
 }
 
@@ -242,7 +242,7 @@ export const courseClient = {
         }
     },
 
-    // Obtener cursos favoritos del usuario (UserId es el id del estudiante)
+    // Obtener ids de los cursos favoritos del usuario (UserId es el id del estudiante)
     getFavoriteCourses: async (userId: string) => {
         try {
             const response = await api.get(`/students/${userId}/favorite-courses`);

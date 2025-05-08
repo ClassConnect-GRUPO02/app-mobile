@@ -105,6 +105,17 @@ export default function MyCoursesScreen() {
                         <Text style={styles.errorText}>{error}</Text>
                     </View>
                 )}
+
+                {/* Botón para navegar a los cursos favoritos */}
+                {userType === "alumno" && (
+                    <Button
+                        mode="outlined"
+                        onPress={() => router.push("/(courses)/favorites")}
+                        style={styles.goToFavoritesButton}
+                    >
+                        Ver cursos favoritos
+                    </Button>
+                )}
             </View>
 
             {courses.length > 0 ? (
@@ -200,5 +211,10 @@ const styles = StyleSheet.create({
     },
     exploreButton: {
         paddingHorizontal: 16,
+    },
+    goToFavoritesButton: {
+        marginTop: 10,
+        borderColor: "#6200ee",
+        borderWidth: 1,
     },
 })
