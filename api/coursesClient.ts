@@ -1,6 +1,8 @@
 import { getItemAsync } from "expo-secure-store"
 import axios from "axios"
 import {Course} from "@/types/Course";
+import { apiClient } from "./client";
+import { userApi } from "./userApi";
 
 // Configura la URL base de la API
 // En desarrollo con Expo, puedes usar la IP de tu máquina en lugar de localhost
@@ -208,4 +210,39 @@ export const courseClient = {
             return []
         }
     },
-}
+
+    getStudentsInCourse: async (courseId: string) => {
+        try {
+          // Obtener las inscripciones para el curso (con los userIds)
+          const enrollmentResponse = await api.get(`/courses/${courseId}/enrollments`);
+          const enrollments = enrollmentResponse.data.data; // Esta es la lista de enrollments
+    
+          // Obtener los detalles de los estudiantes usando los userIds
+          const studentIds = enrollments.map((enrollment: { userId: string }) => enrollment.userId);
+    
+          // Si no hay estudiantes inscritos, retornar un array vacío
+          if (studentIds.length === 0) return [];
+    
+          // Obtener la información completa de los estudiantes
+          const students = []
+          for (const userId of studentIds) {
+            const userResponse = await userApi.getUserById(userId); // Utilizando el método getUserById
+            students.push(userResponse.user); // Agregamos al array de estudiantes
+          }
+    
+          return students; // Retornar la lista de estudiantes con los detalles completos
+        } catch (error) {
+          console.error("Error al obtener los estudiantes:", error);
+          throw new Error("No se pudieron obtener los estudiantes del curso");
+        }
+      },
+
+      addFeedbackToStudent: async (courseId: string, studentId: string, instructorId: string, comment: string, punctuation: number) => {
+        await api.post(`/courses/${courseId}/feedback`, {
+            studentId,
+            instructorId,
+            comment,
+            punctuation
+        })
+      }
+    }
