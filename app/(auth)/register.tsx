@@ -80,11 +80,10 @@ export default function RegisterScreen(): React.JSX.Element {
   
       await fetchWithTimeout(userApi.register(userData));
   
-      Alert.alert(
-        "Registro exitoso",
-        "Tu cuenta ha sido creada correctamente",
-        [{ text: "OK", onPress: () => router.push("/(auth)/login") }]
-      );
+      // Redirigir a la pantalla de verificación de PIN
+      router.push("./verify-pin");  // Redirigir a la pantalla de verificación de PIN
+
+      Alert.alert("Registro exitoso", "Verifica tu cuenta ingresando el PIN enviado al correo electrónico.", [{ text: "OK" }]);
     } catch (error) {
       console.error("Error:", error);
       setError(error instanceof Error ? error.message : "Ocurrió un error al conectar con el servidor");

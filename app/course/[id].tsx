@@ -64,7 +64,7 @@ export default function CourseDetailScreen() {
                 setIsInstructor(instructorStatus.isInstructor)
 
                 const enrollmentStatus = await courseClient.isEnrolledInCourse(id, userId)
-                setIsEnrolled(enrollmentStatus.isEnrolled)
+                setIsEnrolled(enrollmentStatus)
             } catch (err) {
                 console.error("Error al cargar el curso:", err)
                 setError("No se pudo cargar la información del curso")
