@@ -32,10 +32,6 @@ import * as Location from 'expo-location';
 interface GoogleUserData {
   name: string;
   email: string;
-  password: string;
-  latitude?: number;
-  longitude?: number;
-  userType?: string;
 }
 
 const LoginScreen = (): React.JSX.Element => {
@@ -45,7 +41,6 @@ const LoginScreen = (): React.JSX.Element => {
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [showUserTypeModal, setShowUserTypeModal] = useState<boolean>(false);
   const [googleUserData, setGoogleUserData] = useState<GoogleUserData | null>(null);
 
   useEffect(() => {
@@ -88,25 +83,6 @@ const LoginScreen = (): React.JSX.Element => {
           reject(err);
         });
     });
-  };
-
-  const handleRegisterWithUserType = async (userType: string) => {
-    if (!googleUserData) return;
-    googleUserData.userType = userType;
-  
-    try {
-      await fetchWithTimeout(
-        userApi.register({
-          ...googleUserData,
-        })
-      );
-      setShowUserTypeModal(false);
-      Alert.alert("Registro exitoso", "Cuenta creada correctamente");
-      router.replace("/(app)/home");
-    } catch (err) {
-      console.error(`Error registrando ${userType}:`, err);
-      Alert.alert("Error", "No se pudo completar el registro");
-    }
   };
   
 
@@ -163,25 +139,21 @@ const LoginScreen = (): React.JSX.Element => {
             Alert.alert("Cuenta ya registrada", "Iniciando sesión...");
             router.replace("/(app)/home");
           } else {
-            const locationPermission = await Location.requestForegroundPermissionsAsync();
-            if (locationPermission.status !== 'granted') {
-              throw new Error('Permiso de ubicación denegado');
-            }
-            const location = await Location.getCurrentPositionAsync({});
-            const { latitude, longitude } = location.coords;
-            
             // Guardamos los datos para registro
             setGoogleUserData({
-              name: googleInfo.user.givenName || "Usuario",
+              name: googleInfo.user.givenName + " " +googleInfo.user.familyName || "Usuario",
               email: googleInfo.user.email,
-              password: googleInfo.user.id, // el id como password (??? depende de tu app)
-              latitude,
-              longitude,
             });
   
-            // Mostrar modal para elegir tipo de usuario
-            setShowUserTypeModal(true);
-            return;
+            router.push({
+              pathname: "/(auth)/register",
+              params: {
+                googleUserData: JSON.stringify({
+                  name: googleInfo.user.givenName + " " +googleInfo.user.familyName || "Usuario",
+                  email: googleInfo.user.email,
+                }),
+              },
+            });
           }
         } catch (error) {
           console.error("Error checking email:", error);
@@ -268,27 +240,6 @@ const LoginScreen = (): React.JSX.Element => {
           </View>
         </View>
       </ScrollView>
-      <Portal>
-        <Modal visible={showUserTypeModal} onDismiss={() => setShowUserTypeModal(false)}>
-          <View style={styles.modalContent}>
-            <Title style={styles.modalTitle}>¿Qué tipo de usuario sos?</Title>
-            <Button
-              mode="contained"
-              onPress={() => handleRegisterWithUserType("alumno")}
-              style={styles.modalButton}
-            >
-              Alumno
-            </Button>
-            <Button
-              mode="contained"
-              onPress={() => handleRegisterWithUserType("docente")}
-              style={styles.modalButton}
-            >
-              Docente
-            </Button>
-          </View>
-        </Modal>
-      </Portal>
     </KeyboardAvoidingView>
   );
 }
