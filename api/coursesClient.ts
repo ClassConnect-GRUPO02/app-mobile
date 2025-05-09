@@ -5,8 +5,8 @@ import { Course } from "@/types/Course";
 // Configura la URL base de la API
 // En desarrollo con Expo, puedes usar la IP de tu máquina en lugar de localhost
 const getBaseUrl = (): string => {
-  //const LOCAL_IP = "192.168.100.25";
-  const LOCAL_IP = "35.223.247.76";
+  const LOCAL_IP = "localhost";
+  //const LOCAL_IP = "35.223.247.76";
   return `http://${LOCAL_IP}:3000`;
 };
 
@@ -249,6 +249,28 @@ export const courseClient = {
       return response.data.data;
     } catch (error) {
       console.error(`Error sending feedback for course ${courseId}:`, error);
+      throw error;
+    }
+  },
+
+  // Obtener todos los feedbacks de un curso
+  getFeedbacksByCourseId: async (courseId: string) => {
+    try {
+      const response = await api.get(`/courses/${courseId}/feedback`);
+      return response.data.data;
+    } catch (error) {
+      console.error(`Error fetching feedbacks for course ${courseId}:`, error);
+      throw error;
+    }
+  },
+
+  // Obtener el resumen de feedbacks de un curso
+  getCourseFeedbackSummary: async (courseId: string) => {
+    try {
+      const response = await api.get(`/courses/${courseId}/feedback-summary`);
+      return response.data.summary;
+    } catch (error) {
+      console.error(`Error fetching feedback summary for course ${courseId}:`, error);
       throw error;
     }
   },

@@ -340,6 +340,21 @@ export default function CourseDetailScreen() {
                 </Button>
               ))}
 
+            {isTeacher && (
+              <Button
+                mode="outlined"
+                style={styles.button}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(courses)/feedbacks",
+                    params: { id: id },
+                  })
+                }
+              >
+                Ver Feedbacks del Curso
+              </Button>
+            )}
+
             <Button
               mode="outlined"
               style={styles.button}
