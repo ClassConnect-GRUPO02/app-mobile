@@ -8,6 +8,8 @@ interface ToggleFavoriteButtonProps {
   courseId: string;
 }
 
+// This component allows users to toggle the favorite status of a course.
+// It checks if the course is already a favorite and updates the status accordingly.
 const ToggleFavoriteButton: React.FC<ToggleFavoriteButtonProps> = ({ courseId }) => {
   const [isFavorite, setIsFavorite] = useState<boolean | null>(null);
 
@@ -20,6 +22,7 @@ const ToggleFavoriteButton: React.FC<ToggleFavoriteButtonProps> = ({ courseId })
           return;
         }
         const isFav = await courseClient.checkIfFavorite(userId, courseId);
+        console.log(`Estado favorito para el curso ${courseId}:`, isFav);
         setIsFavorite(isFav);
       } catch (error) {
         console.error("Error al verificar si es favorito:", error);

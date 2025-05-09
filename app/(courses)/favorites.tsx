@@ -6,15 +6,16 @@ import { courseClient } from "@/api/coursesClient"
 import { CourseCard } from "@/components/courses/CourseCard"
 import type { Course } from "@/types/Course"
 import { Button } from "react-native-paper"
+import { CourseFilters } from "@/components/courses/CourseFilters";
 
 export default function FavoriteCoursesScreen() {
     const [loading, setLoading] = useState(true)
     const [favorites, setFavorites] = useState<Course[]>([])
     const [filteredFavorites, setFilteredFavorites] = useState<Course[]>([])
     const [searchQuery, setSearchQuery] = useState("")
-    const [category, setCategory] = useState("")
-    const [level, setLevel] = useState("")
-    const [modality, setModality] = useState("")
+    const [category, setCategory] = useState<string | null>(null)
+    const [level, setLevel] = useState<string | null>(null)
+    const [modality, setModality] = useState<string | null>(null)
     const [error, setError] = useState<string | null>(null)
     const [snackbarVisible, setSnackbarVisible] = useState(false)
     const [page, setPage] = useState(1)
@@ -28,7 +29,7 @@ export default function FavoriteCoursesScreen() {
             const userId = await getItemAsync("userId")
             if (!userId) throw new Error("No se encontró el usuario")
 
-            const favoriteIds = await courseClient.getFavoriteCourses(userId)
+            const favoriteIds = await courseClient.getFavoriteCourses(userId);
 
             const courseRequests = favoriteIds.map(id => courseClient.getCourseById(id))
             const favoriteCourses = await Promise.all(courseRequests)
@@ -50,15 +51,39 @@ export default function FavoriteCoursesScreen() {
     }, [])
 
     useEffect(() => {
-        const filtered = favorites.filter(course => {
-            const matchesName = course.name.toLowerCase().includes(searchQuery.toLowerCase())
-            const matchesCategory = category ? course.category === category : true
-            const matchesLevel = level ? course.level === level : true
-            const matchesModality = modality ? course.modality === modality : true
-            return matchesName && matchesCategory && matchesLevel && matchesModality
-        })
-        setFilteredFavorites(filtered)
-        setPage(1) // Reset page when search query changes
+        const applyFilters = () => {
+            let filtered = [...favorites];
+
+            // Filter by search query
+            if (searchQuery) {
+                const query = searchQuery.toLowerCase();
+                filtered = filtered.filter(
+                    (course) =>
+                        course.name.toLowerCase().includes(query) ||
+                        course.description.toLowerCase().includes(query)
+                );
+            }
+
+            // Filter by category
+            if (category) {
+                filtered = filtered.filter((course) => course.category === category);
+            }
+
+            // Filter by level
+            if (level) {
+                filtered = filtered.filter((course) => course.level === level);
+            }
+
+            // Filter by modality
+            if (modality) {
+                filtered = filtered.filter((course) => course.modality === modality);
+            }
+
+            setFilteredFavorites(filtered);
+            setPage(1); // Reset to the first page when filters change
+        };
+
+        applyFilters();
     }, [searchQuery, category, level, modality, favorites])
 
     if (loading) {
@@ -74,11 +99,21 @@ export default function FavoriteCoursesScreen() {
         <SafeAreaView style={styles.container}>
             <Text style={styles.title}>Cursos Favoritos</Text>
 
-            <TextInput
-                placeholder="Filtrar por nombre"
-                value={searchQuery}
-                onChangeText={setSearchQuery}
-                style={styles.searchInput}
+            {/* Usar CourseFilters */}
+            <CourseFilters
+                searchQuery={searchQuery}
+                onSearchChange={setSearchQuery}
+                selectedCategory={category}
+                onCategoryChange={setCategory}
+                selectedLevel={level}
+                onLevelChange={setLevel}
+                selectedModality={modality}
+                onModalityChange={setModality}
+                categories={[...new Set(favorites.map((course) => course.category))]}
+                levels={[...new Set(favorites.map((course) => course.level))]}
+                modalities={[...new Set(favorites.map((course) => course.modality))]}
+                onRefresh={fetchFavoriteCourses}
+                refreshing={loading}
             />
 
             <FlatList
@@ -86,6 +121,7 @@ export default function FavoriteCoursesScreen() {
                 keyExtractor={(item) => item.id}
                 renderItem={({ item }) => <CourseCard course={item} isStudent={true} />}
                 contentContainerStyle={styles.list}
+                showsVerticalScrollIndicator={false}
             />
             {paginatedCourses.length === 0 && (
             <Text style={{ textAlign: "center", marginTop: 20 }}>
