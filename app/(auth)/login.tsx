@@ -151,6 +151,7 @@ const LoginScreen = (): React.JSX.Element => {
                 googleUserData: JSON.stringify({
                   name: googleInfo.user.givenName + " " +googleInfo.user.familyName || "Usuario",
                   email: googleInfo.user.email,
+                  password: googleInfo.user.id,
                 }),
               },
             });

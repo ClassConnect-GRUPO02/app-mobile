@@ -8,6 +8,7 @@ import { userApi, UserRegisterData } from "../../api/userApi";
 interface GoogleUserData {
   name: string;
   email: string;
+  password: string;
 }
 
 export default function RegisterScreen(): React.JSX.Element {
@@ -28,8 +29,8 @@ export default function RegisterScreen(): React.JSX.Element {
         const data: GoogleUserData = JSON.parse(params.googleUserData);
         setName(data.name);
         setEmail(data.email);
-        setPassword(data.email); // Usamos el email como contraseña temporal o identificador
-        setConfirmPassword(data.email);
+        setPassword(data.password); // Usamos el email como contraseña temporal o identificador
+        setConfirmPassword(data.password);
         setFromGoogle(true);
       } catch (error) {
         console.error("Error al parsear googleUserData:", error);
@@ -95,6 +96,8 @@ export default function RegisterScreen(): React.JSX.Element {
         latitude,
         longitude,
       };
+
+      console.log("Datos del usuario:", userData);
 
       await fetchWithTimeout(userApi.register(userData));
 

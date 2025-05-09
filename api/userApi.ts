@@ -38,7 +38,7 @@ export interface UserInfo {
 export const userApi = {
   // Registro de un nuevo usuario
   async register(userData: UserRegisterData): Promise<RegisterResponse> {
-    return apiClient.post<RegisterResponse>('/users', userData);
+    return apiClient.postWithoutAuth<RegisterResponse>('/users', userData);
   },
 
   // Login de un usuario
