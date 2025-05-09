@@ -226,7 +226,7 @@ export const courseClient = {
     checkIfFavorite: async (userId: string, courseId: string) => {
         try {
             const response = await api.get(`/students/${userId}/favorite-courses/${courseId}`);
-            return response.data.isFavorite === true;
+            return !!response.data.data;
         } catch (error) {
             console.error(`Error checking favorite status for course ${courseId} for student ${userId}:`, error);
             return false;
