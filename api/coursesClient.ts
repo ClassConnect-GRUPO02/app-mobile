@@ -206,8 +206,8 @@ export const courseClient = {
             const response = await api.post(`/students/${userId}/favorite-courses/${courseId}`);
             return response.data;
         } catch (error) {
-            console.error(`Error adding favorite course ${courseId} for student ${userId}:`, error);
-            throw error;
+            //console.error(`Error adding favorite course ${courseId} for student ${userId}:`, error);
+            //throw error;
         }
     },
 

@@ -40,6 +40,14 @@ const ToggleFavoriteButton: React.FC<ToggleFavoriteButtonProps> = ({ courseId })
         console.error("No se pudo obtener el ID del usuario");
         return;
       }
+      const isEnrolled = await courseClient.isEnrolledInCourse(courseId, userId);
+      if (!isEnrolled) {
+        Alert.alert(
+          "No inscrito",
+          "Debes estar inscrito en el curso para agregarlo a tus favoritos."
+        );
+        return;
+      }
       if (isFavorite) {
         await courseClient.removeFavorite(userId, courseId);
         setIsFavorite(false);
@@ -50,8 +58,8 @@ const ToggleFavoriteButton: React.FC<ToggleFavoriteButtonProps> = ({ courseId })
         Alert.alert("Favorito agregado", "El curso ha sido guardado como favorito.");
       }
     } catch (error) {
-      console.error("Error al actualizar favorito:", error);
-      Alert.alert("Error", "No se pudo actualizar el estado del curso. Debes estar inscrito en el curso.");
+      // console.error("Error al actualizar favorito:", error);
+      Alert.alert("Error", "No se pudo actualizar el estado del curso.");
     }
   };
 
