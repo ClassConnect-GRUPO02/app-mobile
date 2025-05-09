@@ -15,14 +15,16 @@ const FeedbackForm = ({
   onFeedbackSubmitted: () => void;
 }) => {
   const [comment, setComment] = useState("");
-  const [punctuation, setPunctuation] = useState(0);
+  const [punctuation, setPunctuation] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [successMessage, setSuccessMessage] = useState("");
 
   const handleSubmitFeedback = async () => {
-    if (!comment || punctuation === 0) {
-      setErrorMessage("Comentario y puntuación son obligatorios.");
+    const score = parseInt(punctuation, 10);
+
+    if (!comment || !score || score < 1 || score > 5) {
+      setErrorMessage("Comentario y puntuación válida (1-5) son obligatorios.");
       return;
     }
 
@@ -39,7 +41,7 @@ const FeedbackForm = ({
         studentId,
         instructorId,
         comment,
-        punctuation
+        score
       );
       setSuccessMessage("Feedback enviado exitosamente.");
       onFeedbackSubmitted(); // Callback para actualizar la UI
@@ -53,13 +55,21 @@ const FeedbackForm = ({
   return (
     <View style={styles.formContainer}>
       {errorMessage ? (
-        <Snackbar visible={true} onDismiss={() => setErrorMessage("")}>
+        <Snackbar
+          visible={true}
+          onDismiss={() => setErrorMessage("")}
+          style={styles.snackbar}
+        >
           {errorMessage}
         </Snackbar>
       ) : null}
 
       {successMessage ? (
-        <Snackbar visible={true} onDismiss={() => setSuccessMessage("")}>
+        <Snackbar
+          visible={true}
+          onDismiss={() => setSuccessMessage("")}
+          style={styles.snackbar}
+        >
           {successMessage}
         </Snackbar>
       ) : null}
@@ -74,8 +84,8 @@ const FeedbackForm = ({
       />
       <TextInput
         label="Puntuación (1-5)"
-        value={punctuation.toString()}
-        onChangeText={(text) => setPunctuation(parseInt(text))}
+        value={punctuation}
+        onChangeText={(text) => setPunctuation(text.replace(/[^0-9]/g, ""))}
         style={styles.input}
         keyboardType="numeric"
       />
@@ -102,12 +112,19 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
+    position: "relative", // Hacer que el contenedor tenga posición relativa
+    minHeight: "100%", // Asegurarnos que ocupe toda la pantalla
   },
   input: {
     marginBottom: 12,
   },
   button: {
     marginTop: 16,
+  },
+  snackbar: {
+    position: "absolute", // Fijar el Snackbar al fondo
+    bottom: 0, // Alinearlo en la parte inferior
+    width: "100%", // Asegurarnos de que ocupe todo el ancho
   },
 });
 

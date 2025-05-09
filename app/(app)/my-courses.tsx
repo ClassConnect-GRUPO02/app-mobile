@@ -43,7 +43,7 @@ export default function MyCoursesScreen() {
                 console.log("Obteniendo cursos inscritos para el estudiante")
                 const enrolledCourses = await courseClient.getCoursesByUserId(currentUserId)
 
-                userCourses = enrolledCourses.map((course) => ({
+                userCourses = enrolledCourses.map((course: any) => ({
                     ...course,
                     isEnrolled: true,
                 }))
@@ -51,7 +51,7 @@ export default function MyCoursesScreen() {
                 // para docentes obtener cursos que ha creado
                 console.log("Obteniendo cursos creados por el docente")
                 const allCourses = await courseClient.getAllCourses()
-                userCourses = allCourses.filter((course) => course.creatorId === currentUserId)
+                userCourses = allCourses.filter((course: { creatorId: string }) => course.creatorId === currentUserId)
             }
 
             console.log(`Se obtuvieron ${userCourses.length} cursos`)
