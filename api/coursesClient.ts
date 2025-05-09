@@ -244,5 +244,43 @@ export const courseClient = {
             comment,
             punctuation
         })
-      }
+      },
+
+// En el archivo courseClient.ts
+
+getFeedbacksByStudentId: async (studentId: string, token: string, filterCourse?: string, filterType?: string) => {
+    try {
+        // Crear un objeto de parámetros
+        const params: any = {};
+        if (filterCourse) params.course = filterCourse;
+        if (filterType) params.type = filterType;
+
+        const response = await api.get(`/students/${studentId}/feedback`, {
+            headers: {
+                Authorization: `Bearer ${token}`,
+            },
+            params,  // Pasamos los filtros como parámetros de la consulta
+        });
+        return response.data.data; // Retorna los feedbacks
+    } catch (error) {
+        console.error("Error fetching feedbacks:", error);
+        throw error;
+    }
+},
+
+
+    // Obtener el resumen de los feedbacks de un estudiante
+    getFeedbackSummaryByStudentId: async (studentId: string, token: string) => {
+        try {
+            const response = await api.get(`/students/${studentId}/feedback-summary`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return response.data.summary; // Retorna el resumen
+        } catch (error) {
+            console.error("Error fetching feedback summary:", error);
+            throw error;
+        }
+    },
     }

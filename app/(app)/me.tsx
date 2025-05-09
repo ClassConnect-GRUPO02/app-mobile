@@ -131,8 +131,8 @@ export default function ProfileScreen() {
   };
 
   const navigateToMyCourses = () => {
-    router.push("/(app)/my-courses")
-  }
+    router.push("/(app)/my-courses");
+  };
 
   if (loading) {
     return (
@@ -143,122 +143,145 @@ export default function ProfileScreen() {
   }
 
   return (
-      <View style={styles.container}>
-        <StatusBar style="auto" />
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.headerContainer}>
-            <Title style={styles.title}>{"Mi Perfil"}</Title>
-          </View>
+    <View style={styles.container}>
+      <StatusBar style="auto" />
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.headerContainer}>
+          <Title style={styles.title}>{"Mi Perfil"}</Title>
+        </View>
 
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          <Modal
-              visible={showEditModal}
-              animationType="slide"
-              presentationStyle="pageSheet"
-              onRequestClose={() => {
-                console.log("Modal closed via onRequestClose")
-                setShowEditModal(false)
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        <Modal
+          visible={showEditModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => {
+            console.log("Modal closed via onRequestClose");
+            setShowEditModal(false);
+          }}
+        >
+          {profile && (
+            <EditProfileScreen
+              profile={profile}
+              onProfileUpdated={handleProfileUpdated}
+              onCancel={() => {
+                console.log("Cancel button pressed");
+                setShowEditModal(false);
               }}
-          >
-            {profile && (
-                <EditProfileScreen
-                    profile={profile}
-                    onProfileUpdated={handleProfileUpdated}
-                    onCancel={() => {
-                      console.log("Cancel button pressed")
-                      setShowEditModal(false)
-                    }}
-                />
-            )}
-          </Modal>
-          <Card style={styles.profileCard}>
-            <View style={styles.avatarContainer}>
-              <Avatar.Text
-                  size={80}
-                  label={profile?.name.substring(0, 2).toUpperCase() || "U"}
-                  style={{ backgroundColor: theme.colors.primary }}
-              />
+            />
+          )}
+        </Modal>
+        <Card style={styles.profileCard}>
+          <View style={styles.avatarContainer}>
+            <Avatar.Text
+              size={80}
+              label={profile?.name.substring(0, 2).toUpperCase() || "U"}
+              style={{ backgroundColor: theme.colors.primary }}
+            />
+          </View>
+          <Card.Content style={styles.profileInfo}>
+            <Title style={styles.profileName}>{profile?.name}</Title>
+            <Text style={styles.profileEmail}>{profile?.email}</Text>
+            <View style={styles.profileTypeContainer}>
+              <Text style={styles.profileTypeLabel}>
+                {profile?.userType === "alumno" ? "👨‍🎓 Alumno" : "👨‍🏫 Docente"}
+              </Text>
             </View>
-            <Card.Content style={styles.profileInfo}>
-              <Title style={styles.profileName}>{profile?.name}</Title>
-              <Text style={styles.profileEmail}>{profile?.email}</Text>
-              <View style={styles.profileTypeContainer}>
-                <Text style={styles.profileTypeLabel}>
-                  {profile?.userType === "alumno" ? "👨‍🎓 Alumno" : "👨‍🏫 Docente"}
-                </Text>
-              </View>
-            </Card.Content>
-          </Card>
+          </Card.Content>
+        </Card>
 
-          <Card style={styles.infoCard}>
-            <Card.Content>
-              <List.Section>
-                <List.Subheader>Información personal</List.Subheader>
-                <List.Item
-                    title="Correo electrónico"
-                    description={profile?.email}
-                    left={(props) => <List.Icon {...props} icon="email" />}
-                />
-                <List.Item
-                    title="Tipo de cuenta"
-                    description={profile?.userType === "alumno" ? "Alumno" : "Docente"}
-                    left={(props) => <List.Icon {...props} icon="account" />}
-                />
-              </List.Section>
-            </Card.Content>
-          </Card>
-          <List.Item
-              title="Ubicación actual"
-              description={
-                profile && profile.lat !== undefined && profile.lng !== undefined
-                    ? `Lat: ${profile.lat.toFixed(5)}, Lng: ${profile.lng.toFixed(5)}`
-                    : "Ubicación no disponible"
-              }
-              left={(props) => <List.Icon {...props} icon="map-marker" />}
-          />
-          <Card style={styles.actionsCard}>
-            <Card.Content>
-              <List.Section>
-                <List.Subheader>Acciones</List.Subheader>
-                <List.Item
-                    title="Mis Cursos"
-                    description={
-                      profile?.userType === "alumno" ? "Cursos en los que estás inscrito" : "Cursos que has creado"
-                    }
-                    left={(props) => <List.Icon {...props} icon="book-open-variant" />}
-                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                    onPress={navigateToMyCourses}
-                />
-                <Divider />
-                <List.Item
-                    title="Editar perfil"
-                    left={(props) => <List.Icon {...props} icon="account-edit" />}
-                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                    onPress={handleEditProfile}
-                />
-                <Divider />
-                <List.Item
-                    title="Cambiar contraseña"
-                    left={(props) => <List.Icon {...props} icon="lock-reset" />}
-                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                    onPress={() => Alert.alert("Información", "Funcionalidad en desarrollo")}
-                />
-                <Divider />
-                <List.Item
-                    title="Ajustes"
-                    left={(props) => <List.Icon {...props} icon="cog" />}
-                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                    onPress={() => Alert.alert("Información", "Funcionalidad en desarrollo")}
-                />
-              </List.Section>
-            </Card.Content>
-          </Card>
-          <Button mode="contained" icon="logout" style={styles.logoutButton} onPress={handleLogout}>
-            Cerrar sesión
-          </Button>
-        </ScrollView>
-      </View>
-  )
+        <Card style={styles.infoCard}>
+          <Card.Content>
+            <List.Section>
+              <List.Subheader>Información personal</List.Subheader>
+              <List.Item
+                title="Correo electrónico"
+                description={profile?.email}
+                left={(props) => <List.Icon {...props} icon="email" />}
+              />
+              <List.Item
+                title="Tipo de cuenta"
+                description={
+                  profile?.userType === "alumno" ? "Alumno" : "Docente"
+                }
+                left={(props) => <List.Icon {...props} icon="account" />}
+              />
+            </List.Section>
+          </Card.Content>
+        </Card>
+        <List.Item
+          title="Ubicación actual"
+          description={
+            profile && profile.lat !== undefined && profile.lng !== undefined
+              ? `Lat: ${profile.lat.toFixed(5)}, Lng: ${profile.lng.toFixed(5)}`
+              : "Ubicación no disponible"
+          }
+          left={(props) => <List.Icon {...props} icon="map-marker" />}
+        />
+        <Card style={styles.actionsCard}>
+          <Card.Content>
+            <List.Section>
+              <List.Subheader>Acciones</List.Subheader>
+              <List.Item
+                title="Mis Cursos"
+                description={
+                  profile?.userType === "alumno"
+                    ? "Cursos en los que estás inscrito"
+                    : "Cursos que has creado"
+                }
+                left={(props) => (
+                  <List.Icon {...props} icon="book-open-variant" />
+                )}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={navigateToMyCourses}
+              />
+              <Divider />
+              <List.Item
+                title="Mis Feedbacks"
+                description="Revisa los comentarios y sugerencias de tus docentes"
+                left={(props) => <List.Icon {...props} icon="comment" />}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={() => router.push("/(app)/my-feedbacks")} // Aquí agregamos la navegación
+              />
+              <Divider />
+              <List.Item
+                title="Editar perfil"
+                left={(props) => <List.Icon {...props} icon="account-edit" />}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={handleEditProfile}
+              />
+              <Divider />
+              <List.Item
+                title="Cambiar contraseña"
+                left={(props) => <List.Icon {...props} icon="lock-reset" />}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={() =>
+                  Alert.alert("Información", "Funcionalidad en desarrollo")
+                }
+              />
+              <Divider />
+              <List.Item
+                title="Ajustes"
+                left={(props) => <List.Icon {...props} icon="cog" />}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={() =>
+                  Alert.alert("Información", "Funcionalidad en desarrollo")
+                }
+              />
+            </List.Section>
+          </Card.Content>
+        </Card>
+        <Button
+          mode="contained"
+          icon="logout"
+          style={styles.logoutButton}
+          onPress={handleLogout}
+        >
+          Cerrar sesión
+        </Button>
+      </ScrollView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
