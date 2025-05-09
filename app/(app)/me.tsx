@@ -94,6 +94,7 @@ export default function ProfileScreen() {
         text: "Sí, salir",
         onPress: async () => {
           try {
+            
             await deleteItemAsync("userToken");
             router.replace("/(auth)/login");
           } catch (error) {
