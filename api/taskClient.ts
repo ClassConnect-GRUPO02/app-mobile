@@ -16,7 +16,9 @@ export const taskClient = {
     // Get all tasks for a course
     getTasksByCourseId: async (courseId: string): Promise<Task[]> => {
         try {
+            console.log("Fetching tasks for course:", courseId)
             const response = await apiClient.get<{ data: Task[] }>(`/courses/${courseId}/tasks`)
+            console.log("Tasks response:", response)
             return response.data.data || []
         } catch (error) {
             console.error(`Error fetching tasks for course ${courseId}:`, error)
@@ -27,6 +29,7 @@ export const taskClient = {
     // Get a specific task by ID
     getTaskById: async (courseId: string, taskId: string): Promise<Task | null> => {
         try {
+            console.log(`Fetching task ${taskId} for course ${courseId}`)
             const response = await apiClient.get<{ data: Task }>(`/courses/${courseId}/tasks/${taskId}`)
             return response.data.data
         } catch (error) {
@@ -38,11 +41,20 @@ export const taskClient = {
     // Create a new task
     createTask: async (courseId: string, task: Omit<Task, "id" | "course_id">): Promise<Task | null> => {
         try {
-            const response = await apiClient.post<{ data: Task }>(`/courses/${courseId}/tasks`, task)
+            console.log("Creating task with data:", { courseId, task })
+
+            // Ensure the task has the course_id
+            const taskWithCourseId = {
+                ...task,
+                course_id: courseId,
+            }
+
+            const response = await apiClient.post<{ data: Task }>(`/courses/${courseId}/tasks`, taskWithCourseId)
+            console.log("Create task response:", response)
             return response.data.data
         } catch (error) {
             console.error(`Error creating task for course ${courseId}:`, error)
-            return null
+            throw error
         }
     },
 
@@ -128,7 +140,7 @@ export const taskClient = {
     // Get tasks by student ID
     getTasksByStudentId: async (studentId: string): Promise<Task[]> => {
         try {
-            const response = await apiClient.get<{ data: Task[] }>(`/tasks/students/${studentId}`)
+            const response = await apiClient.get<{ data: Task[] }>(`/students/${studentId}/tasks`)
             return response.data.data || []
         } catch (error) {
             console.error(`Error fetching tasks for student ${studentId}:`, error)
