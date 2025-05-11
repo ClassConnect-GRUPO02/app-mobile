@@ -15,30 +15,41 @@ import {
   ActivityIndicator,
   Modal,
   Portal,
-  Provider
 } from "react-native-paper";
-import { Link, useRouter, router } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import { userApi } from "../../api/userApi";
 import {
   GoogleSignin,
-  GoogleSigninButton,
   isSuccessResponse,
+  SignInSuccessResponse,
   statusCodes,
+  type User
 } from '@react-native-google-signin/google-signin';
 import * as Location from 'expo-location';
 
 
 
-export default function LoginScreen(): React.JSX.Element {
+interface GoogleUserData {
+  name: string;
+  email: string;
+}
+
+const LoginScreen = (): React.JSX.Element => {
   const router = useRouter();
 
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const [showUserTypeModal, setShowUserTypeModal] = useState<boolean>(false);
-const [googleUserData, setGoogleUserData] = useState<any>(null);
+  const [googleUserData, setGoogleUserData] = useState<GoogleUserData | null>(null);
 
+  useEffect(() => {
+    // Configurar Google Sign-In
+    GoogleSignin.configure({
+      webClientId: "120382293299-ds3j4ogbipqrb553mj4qj8rqt5ihgjo2.apps.googleusercontent.com",
+      offlineAccess: true,
+    });
+  }, []);
 
   const validateForm = (): boolean => {
     if (!email || !password) {
@@ -73,26 +84,6 @@ const [googleUserData, setGoogleUserData] = useState<any>(null);
         });
     });
   };
-
-  const handleRegisterWithUserType = async (userType: string) => {
-    if (!googleUserData) return;
-  
-    try {
-      await fetchWithTimeout(
-        userApi.register({
-          ...googleUserData,
-          userType,
-        })
-      );
-      setShowUserTypeModal(false);
-      Alert.alert("Registro exitoso", "Cuenta creada correctamente");
-      router.replace("/(app)/home");
-    } catch (err) {
-      console.error(`Error registrando ${userType}:`, err);
-      Alert.alert("Error", "No se pudo completar el registro");
-    }
-  };
-  
   
 
   const handleLogin = async (): Promise<void> => {
@@ -127,56 +118,51 @@ const [googleUserData, setGoogleUserData] = useState<any>(null);
 
   const handleGoogleLogin = async () => {
     try {
-      // Configurar Google Sign-In
-      GoogleSignin.configure(
-        {
-          webClientId: "120382293299-ds3j4ogbipqrb553mj4qj8rqt5ihgjo2.apps.googleusercontent.com"
-        }
-      );
+      // Verificar si Google Play Services está disponible
       await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-      const userInfo = await GoogleSignin.signIn();
-
-      if(isSuccessResponse(userInfo)) {
-  
-      console.log('✅ Usuario de Google:', userInfo);
-  
-      const email = userInfo.data?.user.email;
-      const name = userInfo.data?.user.name;
-      //const photo = userInfo.user?.photo;
+      const response = await GoogleSignin.signIn();
+      
+      console.log('✅ Respuesta de Google:', response);
+      
+      if(isSuccessResponse(response)) {
+        try {
+          const googleInfo = response.data
+          //const photo = googleInfo.user?.photo;
       
   
       // Consultar a la API si ya está registrado
-      const check = await fetchWithTimeout(
-        userApi.checkEmailExists(email ?? "")
-      );
+          const check = await fetchWithTimeout(
+            userApi.checkEmailExists(googleInfo.user.email)
+          );
+          
+          if (check.exists) {
+            Alert.alert("Cuenta ya registrada", "Iniciando sesión...");
+            router.replace("/(app)/home");
+          } else {
+            // Guardamos los datos para registro
+            setGoogleUserData({
+              name: googleInfo.user.givenName + " " +googleInfo.user.familyName || "Usuario",
+              email: googleInfo.user.email,
+            });
   
-      if (check.exists) {
-        Alert.alert("Cuenta ya registrada");
-        router.replace("/(app)/home");
-      } else {
-        const locationPermission = await Location.requestForegroundPermissionsAsync();
-        if (locationPermission.status !== 'granted') {
-          throw new Error('Permiso de ubicación denegado');
+            router.push({
+              pathname: "/(auth)/register",
+              params: {
+                googleUserData: JSON.stringify({
+                  name: googleInfo.user.givenName + " " +googleInfo.user.familyName || "Usuario",
+                  email: googleInfo.user.email,
+                  password: googleInfo.user.id,
+                }),
+              },
+            });
+          }
+        } catch (error) {
+          console.error("Error checking email:", error);
+          Alert.alert("Error", "No se pudo verificar si el correo existe");
         }
-        const location = await Location.getCurrentPositionAsync({});
-        const { latitude, longitude } = location.coords;
-  
-        // Guardamos los datos para registro
-        setGoogleUserData({
-          name: name || "Usuario",
-          email: email || "",
-          password: userInfo.data?.user.id || "", // el id como password (??? depende de tu app)
-          latitude,
-          longitude,
-        });
-  
-        // Mostrar modal para elegir tipo de usuario
-        setShowUserTypeModal(true);
+      } else {
+        Alert.alert("Error", "No se pudo obtener la información de Google");
       }
-    }else{
-      Alert.alert("Error", "No se pudo obtener la información de Google");
-    }
-  
     } catch (error: any) {
       console.error('Error Google Sign-In:', error);
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
@@ -186,7 +172,7 @@ const [googleUserData, setGoogleUserData] = useState<any>(null);
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
         Alert.alert('Error', 'Servicios de Google Play no disponibles');
       } else {
-        Alert.alert('Error de inicio de sesión', 'Ocurrió un error inesperado');
+        Alert.alert('Error de inicio de sesión', error.message || 'Ocurrió un error inesperado');
       }
     }
   };
@@ -246,7 +232,7 @@ const [googleUserData, setGoogleUserData] = useState<any>(null);
           </Button>
 
           <View style={styles.registerContainer}>
-            <Text>¿No tienes una cuentaaa? </Text>
+            <Text>¿No tienes una cuenta? </Text>
             <Link href="/(auth)/register" asChild>
               <Button mode="text" compact>
                 Registrarse
@@ -255,17 +241,6 @@ const [googleUserData, setGoogleUserData] = useState<any>(null);
           </View>
         </View>
       </ScrollView>
-      <Portal>
-      <Modal visible={showUserTypeModal} onDismiss={() => setShowUserTypeModal(false)} contentContainerStyle={styles.modalContainer}>
-        <Text style={styles.modalTitle}>¿Qué tipo de usuario sos?</Text>
-        <Button mode="contained" onPress={() => handleRegisterWithUserType("alumno")} style={styles.modalButton}>
-          Alumno
-        </Button>
-        <Button mode="contained" onPress={() => handleRegisterWithUserType("docente")} style={styles.modalButton}>
-          Docente
-        </Button>
-      </Modal>
-    </Portal>
     </KeyboardAvoidingView>
   );
 }
@@ -277,59 +252,61 @@ const styles = StyleSheet.create({
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: 20,
+    padding: 16,
   },
   logoContainer: {
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: 24,
   },
   title: {
-    fontSize: 24,
+    fontSize: 28,
+    marginBottom: 16,
     fontWeight: "bold",
+    color: "#333",
   },
   formContainer: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
-    elevation: 3,
+    width: "100%",
+    backgroundColor: "#fff",
+    padding: 16,
+    borderRadius: 8,
+    elevation: 2,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowRadius: 4,
   },
   input: {
-    marginBottom: 15,
+    marginBottom: 12,
   },
   button: {
-    marginTop: 10,
-    paddingVertical: 6,
+    marginTop: 16,
+    paddingVertical: 8,
   },
   registerContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 20,
+    marginTop: 16,
   },
   errorText: {
     color: "red",
-    marginBottom: 10,
+    marginBottom: 12,
     textAlign: "center",
   },
-  modalContainer: {
+  modalContent: {
     backgroundColor: 'white',
     padding: 20,
     margin: 20,
     borderRadius: 10,
-    alignItems: 'center',
   },
   modalTitle: {
     fontSize: 18,
-    fontWeight: 'bold',
     marginBottom: 20,
+    textAlign: "center",
   },
   modalButton: {
-    width: '100%',
     marginVertical: 5,
   },
-  
 });
+
+export default LoginScreen;
