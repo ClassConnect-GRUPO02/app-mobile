@@ -76,30 +76,32 @@ export const apiClient = {
   },
 
   async postWithoutAuth<T>(endpoint: string, data: any): Promise<T> {
-  const url = `${BASE_URL}${endpoint}`;
-  const headers = {
-    'Content-Type': 'application/json'
-  };
 
-  try {
-    const response = await fetch(url, {
-      method: 'POST',
-      headers,
-      body: JSON.stringify(data),
-    });
-
-    const responseData = await response.json();
-
-    if (!response.ok) {
-      throw new Error(responseData.message || 'Ocurrió un error en la petición');
+    const url = `${BASE_URL}${endpoint}`;
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+  
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      });
+  
+      const responseData = await response.json();
+      console.log('Response:', responseData); // Verificar la respuesta
+  
+      if (!response.ok) {
+        throw new Error(responseData.detail || responseData.message || 'Ocurrió un error en la petición');
+      }
+  
+      return responseData;
+    } catch (error) {
+      console.error(`Error en petición POST sin auth a ${endpoint}:`, error);
+      throw error instanceof Error ? error : new Error('Error desconocido');
     }
-
-    return responseData;
-  } catch (error) {
-    console.error(`Error en petición POST sin auth a ${endpoint}:`, error);
-    throw error instanceof Error ? error : new Error('Error desconocido');
-  }
-},
+  },
 
 
   // Método para peticiones GET con token

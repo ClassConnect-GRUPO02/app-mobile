@@ -5,7 +5,7 @@ export interface UserRegisterData {
   name: string;
   email: string;
   password: string;
-  userType: string;
+  userType?: string;
   latitude?: number;
   longitude?: number;
 }
@@ -38,7 +38,8 @@ export interface UserInfo {
 export const userApi = {
   // Registro de un nuevo usuario
   async register(userData: UserRegisterData): Promise<RegisterResponse> {
-    return apiClient.postWithoutAuth<RegisterResponse>("/users", userData);
+    return apiClient.postWithoutAuth<RegisterResponse>('/users', userData);
+
   },
 
   // Login de un usuario
@@ -89,10 +90,21 @@ export const userApi = {
     return apiClient.get<{ user: UserInfo }>(`/user/${id}`);
   },
 
+
+  async checkEmailExists(email: string): Promise<{ exists: boolean; token: string; id: string }> {
+    const response = await apiClient.get<{ exists: boolean; token: string, id: string }>(`/check-email-exists/${email}`);
+
+    return { exists: response.exists,
+              token: response.token,
+              id: response.id  // Agregamos el ID a la respuesta
+    };
+  },  
+
   async updateUser(
     id: string,
     userData: Partial<UserInfo>
   ): Promise<{ description: string }> {
     return apiClient.put<{ description: string }>(`/user/${id}`, userData);
   },
+
 };
