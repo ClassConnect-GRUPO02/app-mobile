@@ -16,6 +16,13 @@ import { getItemAsync, deleteItemAsync } from "expo-secure-store";
 import { router, useLocalSearchParams } from "expo-router";
 import { setAuthToken } from "../../api/client";
 import { userApi } from "../../api/userApi";
+import {
+  GoogleSignin,
+  isSuccessResponse,
+  SignInSuccessResponse,
+  statusCodes,
+  type User
+} from '@react-native-google-signin/google-signin';
 
 interface UserProfile {
   id: string;
@@ -96,6 +103,8 @@ export default function ProfileScreen() {
           try {
             
             await deleteItemAsync("userToken");
+            await deleteItemAsync("userId");
+            GoogleSignin.signOut();
             router.replace("/(auth)/login");
           } catch (error) {
             console.error("Error al cerrar sesión:", error);

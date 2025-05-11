@@ -136,6 +136,9 @@ const LoginScreen = (): React.JSX.Element => {
           );
           
           if (check.exists) {
+            await userApi.storeToken(check.token);
+            await userApi.storeUserId(check.id);
+            console.log("Id de usuario:", check.id);
             Alert.alert("Cuenta ya registrada", "Iniciando sesión...");
             router.replace("/(app)/home");
           } else {
