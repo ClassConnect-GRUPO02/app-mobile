@@ -4,7 +4,9 @@ import { useEffect, useState } from 'react';
 import { getItemAsync } from 'expo-secure-store';
 import { ActivityIndicator, View } from 'react-native';
 import React from 'react';
-import { Provider as PaperProvider } from 'react-native-paper';
+import {PaperProvider} from "react-native-paper";
+import {SafeAreaProvider} from "react-native-safe-area-context";
+import {GestureHandlerRootView} from "react-native-gesture-handler";
 
 SplashScreen.preventAutoHideAsync();
 
@@ -52,8 +54,12 @@ export default function RootLayout() {
 
   // Debe devolver algo siempre: Slot maneja el resto de las rutas
   return (
-    <PaperProvider>
-      <Slot />
-    </PaperProvider>
-);
+      <GestureHandlerRootView style={{ flex: 1 }}>
+        <SafeAreaProvider>
+          <PaperProvider>
+            <Slot />
+          </PaperProvider>
+        </SafeAreaProvider>
+      </GestureHandlerRootView>
+  )
 }

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { View, StyleSheet, ScrollView, Alert } from "react-native";
+import { View, StyleSheet, ScrollView, Alert, Modal } from "react-native";
 import {
   Text,
   Title,
@@ -23,6 +23,8 @@ import {
   statusCodes,
   type User
 } from '@react-native-google-signin/google-signin';
+import EditProfileScreen from "@/components/EditProfileScreen";
+
 
 interface UserProfile {
   id: string;
@@ -38,10 +40,12 @@ export default function ProfileScreen() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const theme = useTheme();
+  const [showEditModal, setShowEditModal] = useState(false);
   const { id } = useLocalSearchParams(); // ID del perfil a ver, si se pasa
 
   useEffect(() => {
     const fetchProfile = async () => {
+      setLoading(true);
       const storedId = await getItemAsync("userId");
       const token = await getItemAsync("userToken");
 
@@ -54,21 +58,24 @@ export default function ProfileScreen() {
       setAuthToken(token);
 
       try {
-        const response = await fetchWithTimeout(userApi.getUserById(storedId));
+        // Try with a longer timeout
+        const response = await fetchWithTimeout(
+          userApi.getUserById(storedId),
+          10000 // Increased to 10 seconds
+        );
 
         const fetchedUser = response.user;
-
         setProfile(fetchedUser);
       } catch (error) {
         console.error("Error al cargar perfil:", error);
-        setError("No pudimos cargar el perfil. Inténtalo de nuevo.");
+        setError("No pudimos cargar el perfil. Verifica tu conexión.");
       } finally {
         setLoading(false);
       }
     };
 
     fetchProfile();
-  });
+  }, []); // Empty dependency array so it only runs once
 
   const fetchWithTimeout = (
     promise: Promise<any>,
@@ -118,6 +125,26 @@ export default function ProfileScreen() {
     ]);
   };
 
+  const handleEditProfile = () => {
+    console.log("Opening edit profile modal"); // Add this debug log
+    setShowEditModal(true);
+  };
+
+  const handleProfileUpdated = (updatedProfile: UserProfile) => {
+    setProfile(updatedProfile);
+    setShowEditModal(false);
+    console.log("Modal closed after update"); // Add this debug log
+  };
+
+  const handleCancelEdit = () => {
+    console.log("Cancelling edit"); // Add this debug log
+    setShowEditModal(false);
+  };
+
+  const navigateToMyCourses = () => {
+    router.push("/(app)/my-courses")
+  }
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -127,106 +154,122 @@ export default function ProfileScreen() {
   }
 
   return (
-    <View style={styles.container}>
-      <StatusBar style="auto" />
-      <ScrollView contentContainerStyle={styles.scrollContainer}>
-        <View style={styles.headerContainer}>
-          <Title style={styles.title}>{"Mi Perfil"}</Title>
-        </View>
-
-        {error ? <Text style={styles.errorText}>{error}</Text> : null}
-
-        <Card style={styles.profileCard}>
-          <View style={styles.avatarContainer}>
-            <Avatar.Text
-              size={80}
-              label={profile?.name.substring(0, 2).toUpperCase() || "U"}
-              style={{ backgroundColor: theme.colors.primary }}
-            />
+      <View style={styles.container}>
+        <StatusBar style="auto" />
+        <ScrollView contentContainerStyle={styles.scrollContainer}>
+          <View style={styles.headerContainer}>
+            <Title style={styles.title}>{"Mi Perfil"}</Title>
           </View>
-          <Card.Content style={styles.profileInfo}>
-            <Title style={styles.profileName}>{profile?.name}</Title>
-            <Text style={styles.profileEmail}>{profile?.email}</Text>
-            <View style={styles.profileTypeContainer}>
-              <Text style={styles.profileTypeLabel}>
-                {profile?.userType === "alumno" ? "👨‍🎓 Alumno" : "👨‍🏫 Docente"}
-              </Text>
-            </View>
-          </Card.Content>
-        </Card>
 
-        <Card style={styles.infoCard}>
-          <Card.Content>
-            <List.Section>
-              <List.Subheader>Información personal</List.Subheader>
-              <List.Item
-                title="Correo electrónico"
-                description={profile?.email}
-                left={(props) => <List.Icon {...props} icon="email" />}
+          {error ? <Text style={styles.errorText}>{error}</Text> : null}
+          <Modal
+              visible={showEditModal}
+              animationType="slide"
+              presentationStyle="pageSheet"
+              onRequestClose={() => {
+                console.log("Modal closed via onRequestClose")
+                setShowEditModal(false)
+              }}
+          >
+            {profile && (
+                <EditProfileScreen
+                    profile={profile}
+                    onProfileUpdated={handleProfileUpdated}
+                    onCancel={() => {
+                      console.log("Cancel button pressed")
+                      setShowEditModal(false)
+                    }}
+                />
+            )}
+          </Modal>
+          <Card style={styles.profileCard}>
+            <View style={styles.avatarContainer}>
+              <Avatar.Text
+                  size={80}
+                  label={profile?.name.substring(0, 2).toUpperCase() || "U"}
+                  style={{ backgroundColor: theme.colors.primary }}
               />
-              <List.Item
-                title="Tipo de cuenta"
-                description={
-                  profile?.userType === "alumno" ? "Alumno" : "Docente"
-                }
-                left={(props) => <List.Icon {...props} icon="account" />}
-              />
-            </List.Section>
-          </Card.Content>
-        </Card>
-        <List.Item
-          title="Ubicación actual"
-          description={
-            profile && profile.lat !== undefined && profile.lng !== undefined
-              ? `Lat: ${profile.lat.toFixed(5)}, Lng: ${profile.lng.toFixed(5)}`
-              : "Ubicación no disponible"
-          }
-          left={(props) => <List.Icon {...props} icon="map-marker" />}
-        />
-        <Card style={styles.actionsCard}>
-          <Card.Content>
-            <List.Section>
-              <List.Subheader>Acciones</List.Subheader>
-              <List.Item
-                title="Editar perfil"
-                left={(props) => <List.Icon {...props} icon="account-edit" />}
-                right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                onPress={() =>
-                  Alert.alert("Información", "Funcionalidad en desarrollo")
-                }
-              />
-              <Divider />
-              <List.Item
-                title="Cambiar contraseña"
-                left={(props) => <List.Icon {...props} icon="lock-reset" />}
-                right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                onPress={() =>
-                  Alert.alert("Información", "Funcionalidad en desarrollo")
-                }
-              />
-              <Divider />
-              <List.Item
-                title="Ajustes"
-                left={(props) => <List.Icon {...props} icon="cog" />}
-                right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                onPress={() =>
-                  Alert.alert("Información", "Funcionalidad en desarrollo")
-                }
-              />
-            </List.Section>
-          </Card.Content>
-        </Card>
-        <Button
-          mode="contained"
-          icon="logout"
-          style={styles.logoutButton}
-          onPress={handleLogout}
-        >
-          Cerrar sesión
-        </Button>
-      </ScrollView>
-    </View>
-  );
+            </View>
+            <Card.Content style={styles.profileInfo}>
+              <Title style={styles.profileName}>{profile?.name}</Title>
+              <Text style={styles.profileEmail}>{profile?.email}</Text>
+              <View style={styles.profileTypeContainer}>
+                <Text style={styles.profileTypeLabel}>
+                  {profile?.userType === "alumno" ? "👨‍🎓 Alumno" : "👨‍🏫 Docente"}
+                </Text>
+              </View>
+            </Card.Content>
+          </Card>
+
+          <Card style={styles.infoCard}>
+            <Card.Content>
+              <List.Section>
+                <List.Subheader>Información personal</List.Subheader>
+                <List.Item
+                    title="Correo electrónico"
+                    description={profile?.email}
+                    left={(props) => <List.Icon {...props} icon="email" />}
+                />
+                <List.Item
+                    title="Tipo de cuenta"
+                    description={profile?.userType === "alumno" ? "Alumno" : "Docente"}
+                    left={(props) => <List.Icon {...props} icon="account" />}
+                />
+              </List.Section>
+            </Card.Content>
+          </Card>
+          <List.Item
+              title="Ubicación actual"
+              description={
+                profile && profile.lat !== undefined && profile.lng !== undefined
+                    ? `Lat: ${profile.lat.toFixed(5)}, Lng: ${profile.lng.toFixed(5)}`
+                    : "Ubicación no disponible"
+              }
+              left={(props) => <List.Icon {...props} icon="map-marker" />}
+          />
+          <Card style={styles.actionsCard}>
+            <Card.Content>
+              <List.Section>
+                <List.Subheader>Acciones</List.Subheader>
+                <List.Item
+                    title="Mis Cursos"
+                    description={
+                      profile?.userType === "alumno" ? "Cursos en los que estás inscrito" : "Cursos que has creado"
+                    }
+                    left={(props) => <List.Icon {...props} icon="book-open-variant" />}
+                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                    onPress={navigateToMyCourses}
+                />
+                <Divider />
+                <List.Item
+                    title="Editar perfil"
+                    left={(props) => <List.Icon {...props} icon="account-edit" />}
+                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                    onPress={handleEditProfile}
+                />
+                <Divider />
+                <List.Item
+                    title="Cambiar contraseña"
+                    left={(props) => <List.Icon {...props} icon="lock-reset" />}
+                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                    onPress={() => Alert.alert("Información", "Funcionalidad en desarrollo")}
+                />
+                <Divider />
+                <List.Item
+                    title="Ajustes"
+                    left={(props) => <List.Icon {...props} icon="cog" />}
+                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                    onPress={() => Alert.alert("Información", "Funcionalidad en desarrollo")}
+                />
+              </List.Section>
+            </Card.Content>
+          </Card>
+          <Button mode="contained" icon="logout" style={styles.logoutButton} onPress={handleLogout}>
+            Cerrar sesión
+          </Button>
+        </ScrollView>
+      </View>
+  )
 }
 
 const styles = StyleSheet.create({

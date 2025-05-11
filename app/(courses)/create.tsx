@@ -1,5 +1,5 @@
-import React, { useState } from "react"
-import { View, ScrollView, StyleSheet } from "react-native"
+import React, { useState, useEffect } from "react"
+import { View, ScrollView, StyleSheet, Alert } from "react-native"
 import {
     TextInput,
     Button,
@@ -17,12 +17,18 @@ import type { Course } from "@/types/Course"
 import { SelectMenu } from "@/components/courses/SelectMenu"
 import { DateRangePicker } from "@/components/courses/DateRangePicker"
 import { StatusBar } from "expo-status-bar"
+import {userApi} from "@/api/userApi";
 
 export default function CreateCourseScreen() {
     const [loading, setLoading] = useState(false)
+    const [initialLoading, setInitialLoading] = useState(true)
     const [snackbarVisible, setSnackbarVisible] = useState(false)
     const [snackbarMessage, setSnackbarMessage] = useState("")
     const [snackbarType, setSnackbarType] = useState<"success" | "error">("success")
+    const [userId, setUserId] = useState<string | null>(null)
+    const [userType, setUserType] = useState<string | null>(null)
+    const [isTeacher, setIsTeacher] = useState(false)
+    const [creatorName, setCreatorName] = useState<string>("")
 
     const levels = ["Principiante", "Intermedio", "Avanzado"]
     const modalities = ["Online", "Presencial", "Híbrido"]
@@ -35,7 +41,6 @@ export default function CreateCourseScreen() {
         endDate: "",
         instructor: {
             name: "",
-            profile: "",
         },
         capacity: 0,
         enrolled: 0,
@@ -43,10 +48,62 @@ export default function CreateCourseScreen() {
         level: "Principiante",
         modality: "Online",
         prerequisites: [""],
-        imageUrl: "",
+        imageUrl: "https://upload.wikimedia.org/wikipedia/commons/thumb/d/d1/Image_not_available.png/640px-Image_not_available.png",
+        creatorId: "",
     })
 
     const [errors, setErrors] = useState<Record<string, string>>({})
+
+    // Verificar que el usuario sea docente
+    useEffect(() => {
+        const checkUserType = async () => {
+            try {
+                setInitialLoading(true)
+                const currentUserId = await userApi.getUserId()
+
+                if (!currentUserId) {
+                    Alert.alert("Error", "Debes iniciar sesión para crear un curso", [
+                        { text: "OK", onPress: () => router.replace("/(auth)/login") },
+                    ])
+                    return
+                }
+
+                setUserId(currentUserId)
+
+                // Obtener información del usuario
+                const userInfo = await userApi.getUserById(currentUserId)
+                const type = userInfo?.user?.userType || null
+                const name = userInfo?.user?.name || "Docente"
+
+                setUserType(type)
+                setCreatorName(name)
+                setIsTeacher(type === "docente")
+
+                // Si no es docente, redirigir
+                if (type !== "docente") {
+                    Alert.alert("Acceso denegado", "Solo los docentes pueden crear cursos", [
+                        { text: "OK", onPress: () => router.back() },
+                    ])
+                }
+
+                // Actualizar el creatorId en el curso
+                setCourse((prev) => ({
+                    ...prev,
+                    creatorId: currentUserId,
+                    instructor: {
+                        name: name,
+                    },
+                }))
+            } catch (error) {
+                console.error("Error al verificar el tipo de usuario:", error)
+                Alert.alert("Error", "No se pudo verificar tu rol de usuario")
+            } finally {
+                setInitialLoading(false)
+            }
+        }
+
+        checkUserType()
+    }, [])
 
     const validateForm = () => {
         const newErrors: Record<string, string> = {}
@@ -56,8 +113,6 @@ export default function CreateCourseScreen() {
         if (!course.description) newErrors.description = "La descripción es obligatoria"
         if (!course.startDate) newErrors.startDate = "La fecha de inicio es obligatoria"
         if (!course.endDate) newErrors.endDate = "La fecha de fin es obligatoria"
-        if (!course.instructor.name) newErrors.instructorName = "El nombre del instructor es obligatorio"
-        if (!course.instructor.profile) newErrors.instructorProfile = "El perfil del instructor es obligatorio"
         if (course.capacity <= 0) newErrors.capacity = "La capacidad debe ser mayor a 0"
         if (!course.category) newErrors.category = "La categoría es obligatoria"
 
@@ -67,16 +122,7 @@ export default function CreateCourseScreen() {
 
     const handleChange = (field: string, value: string | number) => {
         if (field.includes(".")) {
-            const [parent, child] = field.split(".")
-            if (parent === "instructor") {
-                setCourse({
-                    ...course,
-                    instructor: {
-                        ...course.instructor,
-                        [child]: value,
-                    },
-                })
-            }
+            return
         } else {
             setCourse({ ...course, [field]: value })
         }
@@ -154,6 +200,16 @@ export default function CreateCourseScreen() {
             return
         }
 
+        if (!userId) {
+            showSnackbar("No se pudo identificar al usuario creador", "error")
+            return
+        }
+
+        if (!isTeacher) {
+            showSnackbar("Solo los docentes pueden crear cursos", "error")
+            return
+        }
+
         setLoading(true)
         try {
             // Filtrar prerrequisitos vacíos
@@ -164,6 +220,7 @@ export default function CreateCourseScreen() {
                 prerequisites: filteredPrerequisites,
                 capacity: Number(course.capacity),
                 enrolled: Number(course.enrolled),
+                creatorId: userId,
             }
 
             await courseClient.createCourse(courseToSubmit as Course)
@@ -181,6 +238,30 @@ export default function CreateCourseScreen() {
         }
     }
 
+    if (initialLoading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <ActivityIndicator size="large" color="#6200ee" />
+                <Text style={styles.loadingText}>Cargando...</Text>
+            </View>
+        )
+    }
+
+    // Si no es docente, no mostrar el formulario
+    if (!isTeacher) {
+        return (
+            <View style={styles.notAllowedContainer}>
+                <Text variant="headlineMedium" style={styles.notAllowedTitle}>
+                    Acceso denegado
+                </Text>
+                <Text style={styles.notAllowedText}>Solo los docentes pueden crear cursos.</Text>
+                <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
+                    Volver
+                </Button>
+            </View>
+        )
+    }
+
     return (
         <ScrollView style={styles.container}>
             <StatusBar style="light" />
@@ -196,7 +277,7 @@ export default function CreateCourseScreen() {
 
             <Card style={styles.formCard}>
                 <Card.Content style={styles.cardContent}>
-                    <Surface style={styles.sectionSurface}>
+                    <View style={styles.section}>
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Información Básica
                         </Text>
@@ -235,11 +316,11 @@ export default function CreateCourseScreen() {
                             outlineStyle={styles.inputOutline}
                         />
                         {errors.description && <HelperText type="error">{errors.description}</HelperText>}
-                    </Surface>
+                    </View>
 
                     <Divider style={styles.divider} />
 
-                    <Surface style={styles.sectionSurface}>
+                    <View style={styles.section}>
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Fechas y Capacidad
                         </Text>
@@ -318,43 +399,29 @@ export default function CreateCourseScreen() {
                                 </View>
                             </View>
                         </View>
-                    </Surface>
+                    </View>
 
                     <Divider style={styles.divider} />
 
-                    <Surface style={styles.sectionSurface}>
+                    <View style={styles.section}>
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Información del Instructor
                         </Text>
 
                         <TextInput
                             mode="outlined"
-                            label="Nombre del instructor *"
-                            value={course.instructor.name}
-                            onChangeText={(value) => handleChange("instructor.name", value)}
-                            style={styles.input}
-                            error={!!errors.instructorName}
+                            label="Nombre del instructor"
+                            value={creatorName}
+                            disabled={true}
+                            style={[styles.input, styles.disabledInput]}
                             outlineStyle={styles.inputOutline}
                         />
-                        {errors.instructorName && <HelperText type="error">{errors.instructorName}</HelperText>}
-
-                        <TextInput
-                            mode="outlined"
-                            label="Perfil del instructor *"
-                            value={course.instructor.profile}
-                            onChangeText={(value) => handleChange("instructor.profile", value)}
-                            multiline
-                            numberOfLines={3}
-                            style={styles.textArea}
-                            error={!!errors.instructorProfile}
-                            outlineStyle={styles.inputOutline}
-                        />
-                        {errors.instructorProfile && <HelperText type="error">{errors.instructorProfile}</HelperText>}
-                    </Surface>
+                        <Text style={styles.helperText}>El nombre del instructor se obtiene automáticamente de tu perfil</Text>
+                    </View>
 
                     <Divider style={styles.divider} />
 
-                    <Surface style={styles.sectionSurface}>
+                    <View style={styles.section}>
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Categorización
                         </Text>
@@ -389,11 +456,11 @@ export default function CreateCourseScreen() {
                                 />
                             </View>
                         </View>
-                    </Surface>
+                    </View>
 
                     <Divider style={styles.divider} />
 
-                    <Surface style={styles.sectionSurface}>
+                    <View style={styles.section}>
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Prerrequisitos
                         </Text>
@@ -429,11 +496,11 @@ export default function CreateCourseScreen() {
                         >
                             Agregar prerrequisito
                         </Button>
-                    </Surface>
+                    </View>
 
                     <Divider style={styles.divider} />
 
-                    <Surface style={styles.sectionSurface}>
+                    <View style={styles.section}>
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Imagen del Curso
                         </Text>
@@ -447,7 +514,7 @@ export default function CreateCourseScreen() {
                             outlineStyle={styles.inputOutline}
                         />
                         <Text style={styles.helperText}>Deja la URL por defecto o ingresa una URL de imagen válida</Text>
-                    </Surface>
+                    </View>
                 </Card.Content>
             </Card>
 
@@ -519,16 +586,13 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         borderRadius: 12,
         overflow: "hidden",
-        elevation: 2,
+        elevation: 1,
     },
     cardContent: {
-        padding: 12,
+        padding: 16,
     },
-    sectionSurface: {
-        borderRadius: 8,
-        padding: 12,
-        marginVertical: 4,
-        backgroundColor: "transparent",
+    section: {
+        marginVertical: 8,
     },
     sectionTitle: {
         fontWeight: "bold",
@@ -538,6 +602,10 @@ const styles = StyleSheet.create({
     input: {
         marginBottom: 12,
         backgroundColor: "#fff",
+    },
+    disabledInput: {
+        backgroundColor: "#f5f5f5",
+        color: "#666",
     },
     textArea: {
         marginBottom: 12,
@@ -638,5 +706,35 @@ const styles = StyleSheet.create({
     },
     errorSnackbar: {
         backgroundColor: "#f44336",
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 16,
+    },
+    loadingText: {
+        marginTop: 16,
+        fontSize: 16,
+    },
+    notAllowedContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 24,
+    },
+    notAllowedTitle: {
+        fontWeight: "bold",
+        marginBottom: 16,
+        color: "#d32f2f",
+    },
+    notAllowedText: {
+        fontSize: 16,
+        textAlign: "center",
+        marginBottom: 24,
+        color: "#666",
+    },
+    backButton: {
+        marginTop: 16,
     },
 })

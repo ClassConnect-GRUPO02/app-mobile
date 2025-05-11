@@ -1,5 +1,5 @@
-import { apiClient, setAuthToken } from './client';
-import { getItemAsync, setItemAsync } from 'expo-secure-store';
+import { apiClient, setAuthToken } from "./client";
+import { getItemAsync, setItemAsync } from "expo-secure-store";
 
 export interface UserRegisterData {
   name: string;
@@ -39,24 +39,28 @@ export const userApi = {
   // Registro de un nuevo usuario
   async register(userData: UserRegisterData): Promise<RegisterResponse> {
     return apiClient.postWithoutAuth<RegisterResponse>('/users', userData);
+
   },
 
   // Login de un usuario
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     try {
-      const response = await apiClient.post<LoginResponse>('/login', credentials);
-      
+      const response = await apiClient.post<LoginResponse>(
+        "/login",
+        credentials
+      );
+
       // Si login es exitoso, almacenamos el token y el userId
       if (response.token && response.id) {
-        console.log('Token recibido:', response.token);
-        console.log('ID de usuario recibido:', response.id);
-        await userApi.storeToken(response.token);  // Guardamos el token
-        await userApi.storeUserId(response.id);    // Guardamos el id del usuario
+        console.log("Token recibido:", response.token);
+        console.log("ID de usuario recibido:", response.id);
+        await userApi.storeToken(response.token); // Guardamos el token
+        await userApi.storeUserId(response.id); // Guardamos el id del usuario
       }
 
       return response;
     } catch (error) {
-      console.error('Error en el login:', error);
+      console.error("Error en el login:", error);
       throw error;
     }
   },
@@ -68,23 +72,24 @@ export const userApi = {
 
   // Guardar el ID del usuario en el almacenamiento seguro
   storeUserId: async (id: string): Promise<void> => {
-    await setItemAsync('userId', id);  // Guardamos el userId en secure-store
+    await setItemAsync("userId", id); // Guardamos el userId en secure-store
   },
 
   // Obtener el ID del usuario desde secure-store
   getUserId: async (): Promise<string | null> => {
-    return await getItemAsync('userId');  // Recuperamos el ID del usuario
+    return await getItemAsync("userId"); // Recuperamos el ID del usuario
   },
 
   // Obtener todos los usuarios
   async getAllUsers(): Promise<{ users: UserInfo[] }> {
-    return apiClient.get<{ users: UserInfo[] }>('/users');
+    return apiClient.get<{ users: UserInfo[] }>("/users");
   },
 
   // Obtener un usuario específico por ID
   async getUserById(id: string): Promise<{ user: UserInfo }> {
     return apiClient.get<{ user: UserInfo }>(`/user/${id}`);
   },
+
 
   async checkEmailExists(email: string): Promise<{ exists: boolean; token: string; id: string }> {
     const response = await apiClient.get<{ exists: boolean; token: string, id: string }>(`/check-email-exists/${email}`);
@@ -93,5 +98,13 @@ export const userApi = {
               token: response.token,
               id: response.id  // Agregamos el ID a la respuesta
     };
-  }  
+  },  
+
+  async updateUser(
+    id: string,
+    userData: Partial<UserInfo>
+  ): Promise<{ description: string }> {
+    return apiClient.put<{ description: string }>(`/user/${id}`, userData);
+  },
+
 };

@@ -2,13 +2,16 @@ import React from "react"
 import { StyleSheet, View, TouchableOpacity } from "react-native"
 import { Card, Text, Chip, Badge } from "react-native-paper"
 import { router } from "expo-router"
-import {Course} from "@/types/Course";
+import { Course } from "@/types/Course";
+import ToggleFavoriteButton from "../ToggleFavoriteButton";
 
 interface CourseCardProps {
     course: Course
+    isStudent?: boolean
+    isEnrolled?: boolean
 }
 
-export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
+export const CourseCard: React.FC<CourseCardProps> = ({ course, isStudent = false, isEnrolled = false }) => {
     const availableSpots = course.capacity - course.enrolled
     const isFullyBooked = availableSpots === 0
     const hasLimitedSpots = availableSpots <= 5 && !isFullyBooked
@@ -24,7 +27,7 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
         <TouchableOpacity onPress={handlePress} style={styles.cardContainer}>
             <Card style={styles.card}>
                 <Card.Cover source={{ uri: course.imageUrl }} style={styles.cardImage} />
-                {course.isEnrolled && <Badge style={styles.enrolledBadge}>Inscripto</Badge>}
+                {isStudent && isEnrolled && <Badge style={styles.enrolledBadge}>Inscripto</Badge>}
                 <Card.Content style={styles.cardContent}>
                     <Text variant="titleMedium" style={styles.title}>
                         {course.name}
@@ -66,6 +69,9 @@ export const CourseCard: React.FC<CourseCardProps> = ({ course }) => {
                         )}
                     </View>
                 </Card.Content>
+                <View style={styles.favoriteButtonContainer}>
+                    <ToggleFavoriteButton courseId={course.id}/>
+                </View>
             </Card>
         </TouchableOpacity>
     )
@@ -134,6 +140,11 @@ const styles = StyleSheet.create({
         right: 10,
         backgroundColor: "#4caf50",
         color: "white",
+    },
+    favoriteButtonContainer: {
+        position: "absolute",
+        bottom: 10,
+        right: 10,
     },
 })
 
