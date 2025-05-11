@@ -9,6 +9,8 @@ import { StatusBar } from "expo-status-bar"
 import { ModuleList } from "@/components/modules/ModuleList"
 import { ModuleForm } from "@/components/modules/ModuleForm"
 import AsyncStorage from "@react-native-async-storage/async-storage"
+import { TasksTab } from "@/components/tasks/TasksTab"
+import { GestureHandlerRootView } from "react-native-gesture-handler"
 import {userApi} from "@/api/userApi";
 import {moduleClient} from "@/api/modulesClient";
 import React from "react"
@@ -24,7 +26,7 @@ export default function CourseDetailScreen() {
   const [instructorName, setInstructorName] = useState<string>("No especificado")
   const [showModuleForm, setShowModuleForm] = useState(false)
   const [selectedModule, setSelectedModule] = useState<Module | null>(null)
-  const [activeTab, setActiveTab] = useState<"info" | "modules">("info")
+  const [activeTab, setActiveTab] = useState<"info" | "modules" | "tasks">("info")
 
   // Estados para los roles del usuario
   const [isEnrolled, setIsEnrolled] = useState(false)
@@ -37,7 +39,7 @@ export default function CourseDetailScreen() {
     const loadActiveTab = async () => {
       try {
         const savedTab = await AsyncStorage.getItem(`course_${id}_activeTab`)
-        if (savedTab === "modules" || savedTab === "info") {
+        if (savedTab === "modules" || savedTab === "info" || savedTab === "tasks") {
           setActiveTab(savedTab)
         }
       } catch (error) {
@@ -313,7 +315,7 @@ export default function CourseDetailScreen() {
   )
 
   const renderModulesTab = () => (
-      <View style={styles.modulesContainer}>
+      <GestureHandlerRootView style={styles.modulesContainer}>
         {isCreator && (
             <Button mode="contained" icon="plus" onPress={handleAddModule} style={styles.addModuleButton}>
               Agregar módulo
@@ -328,8 +330,10 @@ export default function CourseDetailScreen() {
             onEditModule={isCreator ? handleEditModule : undefined}
             onDeleteModule={isCreator ? handleDeleteModule : undefined}
         />
-      </View>
+      </GestureHandlerRootView>
   )
+
+  const renderTasksTab = () => <TasksTab courseId={id} />
 
   return (
       <View style={styles.container}>
@@ -371,11 +375,18 @@ export default function CourseDetailScreen() {
               >
                 Módulos
               </Button>
+              <Button
+                  mode={activeTab === "tasks" ? "contained" : "outlined"}
+                  onPress={() => setActiveTab("tasks")}
+                  style={styles.tabButton}
+              >
+                Tareas
+              </Button>
             </View>
 
             <Divider style={styles.divider} />
 
-            {activeTab === "info" ? renderInfoTab() : renderModulesTab()}
+            {activeTab === "info" ? renderInfoTab() : activeTab === "modules" ? renderModulesTab() : renderTasksTab()}
 
             <View style={styles.actionContainer}>
               {/* Mostrar botón de inscripción solo para estudiantes que no sean instructores y no estén inscritos */}
@@ -489,7 +500,7 @@ const styles = StyleSheet.create({
   },
   tabButton: {
     flex: 1,
-    marginHorizontal: 4,
+    marginHorizontal: 2, // Reduce horizontal margin to fit three tabs
   },
   section: {
     marginVertical: 8,

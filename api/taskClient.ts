@@ -39,17 +39,14 @@ export const taskClient = {
     },
 
     // Create a new task
-    createTask: async (courseId: string, task: Omit<Task, "id" | "course_id">): Promise<Task | null> => {
+    createTask: async (courseId: string, task: any): Promise<Task | null> => {
         try {
-            console.log("Creating task with data:", { courseId, task })
+            console.log("Creating task with data:", JSON.stringify(task, null, 2))
 
-            // Ensure the task has the course_id
-            const taskWithCourseId = {
-                ...task,
-                course_id: courseId,
-            }
+            // Ensure we're not sending an id field
+            const { id, ...taskWithoutId } = task
 
-            const response = await apiClient.post<{ data: Task }>(`/courses/${courseId}/tasks`, taskWithCourseId)
+            const response = await apiClient.post<{ data: Task }>(`/courses/${courseId}/tasks`, taskWithoutId)
             console.log("Create task response:", response)
             return response.data.data
         } catch (error) {
