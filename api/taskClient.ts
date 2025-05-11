@@ -13,135 +13,103 @@ const apiClient = axios.create({
 })
 
 export const taskClient = {
-    // Get all tasks for a course
+    // Obtener todas las tareas de un curso
     getTasksByCourseId: async (courseId: string): Promise<Task[]> => {
         try {
-            console.log("Fetching tasks for course:", courseId)
-            const response = await apiClient.get<{ data: Task[] }>(`/courses/${courseId}/tasks`)
-            console.log("Tasks response:", response)
-            return response.data.data || []
+            const response = await apiClient.get(`/courses/${courseId}/tasks`)
+            return response.data.data
         } catch (error) {
-            console.error(`Error fetching tasks for course ${courseId}:`, error)
+            console.error("Error al obtener tareas:", error)
             return []
         }
     },
 
-    // Get a specific task by ID
+    // Obtener una tarea específica
     getTaskById: async (courseId: string, taskId: string): Promise<Task | null> => {
         try {
-            console.log(`Fetching task ${taskId} for course ${courseId}`)
-            const response = await apiClient.get<{ data: Task }>(`/courses/${courseId}/tasks/${taskId}`)
+            const response = await apiClient.get(`/courses/${courseId}/tasks/${taskId}`)
             return response.data.data
         } catch (error) {
-            console.error(`Error fetching task ${taskId} for course ${courseId}:`, error)
+            console.error("Error al obtener tarea:", error)
             return null
         }
     },
 
-    // Create a new task
-    createTask: async (courseId: string, task: any): Promise<Task | null> => {
+    // Crear una nueva tarea
+    createTask: async (courseId: string, taskData: Partial<Task>): Promise<Task | null> => {
         try {
-            console.log("Creating task with data:", JSON.stringify(task, null, 2))
-
-            // Ensure we're not sending an id field
-            const { id, ...taskWithoutId } = task
-
-            const response = await apiClient.post<{ data: Task }>(`/courses/${courseId}/tasks`, taskWithoutId)
-            console.log("Create task response:", response)
+            console.log("Enviando datos de tarea:", taskData)
+            const response = await apiClient.post(`/courses/${courseId}/tasks`, taskData)
             return response.data.data
         } catch (error) {
-            console.error(`Error creating task for course ${courseId}:`, error)
+            console.error("Error al crear tarea:", error)
             throw error
         }
     },
 
-    // Update an existing task
-    updateTask: async (courseId: string, taskId: string, task: Partial<Task>): Promise<Task | null> => {
+    // Actualizar una tarea existente
+    updateTask: async (courseId: string, taskId: string, taskData: Partial<Task>): Promise<Task | null> => {
         try {
-            const response = await apiClient.patch<{ data: Task }>(`/courses/${courseId}/tasks/${taskId}`, task)
+            const response = await apiClient.patch(`/courses/${courseId}/tasks/${taskId}`, taskData)
             return response.data.data
         } catch (error) {
-            console.error(`Error updating task ${taskId} for course ${courseId}:`, error)
+            console.error("Error al actualizar tarea:", error)
             return null
         }
     },
 
-    // Delete a task
+    // Eliminar una tarea
     deleteTask: async (courseId: string, taskId: string): Promise<boolean> => {
         try {
             await apiClient.delete(`/courses/${courseId}/tasks/${taskId}`)
             return true
         } catch (error) {
-            console.error(`Error deleting task ${taskId} from course ${courseId}:`, error)
+            console.error("Error al eliminar tarea:", error)
             return false
         }
     },
 
-    // Submit a task
+    // Enviar una respuesta a una tarea
     submitTask: async (
         courseId: string,
         taskId: string,
         studentId: string,
         answers: string[],
-        fileUrl?: string,
-    ): Promise<TaskSubmission | null> => {
+        fileUrl: string,
+    ): Promise<any> => {
         try {
-            const response = await apiClient.post<{ data: TaskSubmission }>(
-                `/courses/${courseId}/tasks/${taskId}/submissions`,
-                {
-                    student_id: studentId,
-                    answers,
-                    fileUrl: fileUrl || "",
-                },
-            )
+            console.log("Enviando respuesta de tarea:", { student_id: studentId, answers, fileUrl })
+            const response = await apiClient.post(`/courses/${courseId}/tasks/${taskId}/submissions`, {
+                student_id: studentId,
+                answers,
+                fileUrl,
+            })
             return response.data.data
         } catch (error) {
-            console.error(`Error submitting task ${taskId} for course ${courseId}:`, error)
-            return null
+            console.error("Error al enviar respuesta:", error)
+            throw error
         }
     },
 
-    // Get tasks by instructor ID (with pagination)
-    getTasksByInstructorId: async (
-        instructorId: string,
-        page = 1,
-        pageSize = 10,
-    ): Promise<{
-        total: number
-        page: number
-        pageSize: number
-        totalPages: number
-        data: TaskWithSubmissionCount[]
-    }> => {
-        try {
-            const response = await apiClient.get<{
-                total: number
-                page: number
-                pageSize: number
-                totalPages: number
-                data: TaskWithSubmissionCount[]
-            }>(`/instructors/${instructorId}/tasks?page=${page}&pageSize=${pageSize}`)
-            return response.data
-        } catch (error) {
-            console.error(`Error fetching tasks for instructor ${instructorId}:`, error)
-            return {
-                total: 0,
-                page: 1,
-                pageSize: 10,
-                totalPages: 0,
-                data: [],
-            }
-        }
-    },
-
-    // Get tasks by student ID
+    // Obtener todas las tareas asignadas a un estudiante
     getTasksByStudentId: async (studentId: string): Promise<Task[]> => {
         try {
-            const response = await apiClient.get<{ data: Task[] }>(`/students/${studentId}/tasks`)
-            return response.data.data || []
+            const response = await apiClient.get(`/tasks/students/${studentId}`)
+            return response.data.data
         } catch (error) {
-            console.error(`Error fetching tasks for student ${studentId}:`, error)
+            console.error("Error al obtener tareas del estudiante:", error)
             return []
+        }
+    },
+
+    // Obtener la entrega de una tarea específica
+    getTaskSubmission: async (taskId: string, studentId: string): Promise<any> => {
+        try {
+            const response = await apiClient.get(`/tasks/${taskId}/submissions/${studentId}`)
+            return response.data.data
+        } catch (error) {
+            console.error("Error al obtener entrega de tarea:", error)
+            return null
         }
     },
 }

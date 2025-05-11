@@ -2,6 +2,7 @@ import React from "react";
 import { Tabs } from "expo-router";
 import {PaperProvider, useTheme} from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
+import { MaterialCommunityIcons } from "@expo/vector-icons"
 
 export default function AppLayout() {
     const theme = useTheme()
@@ -54,6 +55,14 @@ export default function AppLayout() {
                     tabBarIcon: ({ color, size, focused }) => (
                         <Ionicons name={focused ? "laptop" : "laptop-outline"} size={size} color={color} />
                     ),
+                }}
+            />
+
+            <Tabs.Screen
+                name="my-tasks"
+                options={{
+                    title: "Mis Tareas",
+                    tabBarIcon: ({ color }) => <MaterialCommunityIcons name="clipboard-text" size={24} color={color} />,
                 }}
             />
 

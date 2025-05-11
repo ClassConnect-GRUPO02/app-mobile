@@ -11,6 +11,7 @@ import { ModuleForm } from "@/components/modules/ModuleForm"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import { TasksTab } from "@/components/tasks/TasksTab"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
+import { IconButton } from "react-native-paper"
 import {userApi} from "@/api/userApi";
 import {moduleClient} from "@/api/modulesClient";
 import React from "react"
@@ -234,6 +235,10 @@ export default function CourseDetailScreen() {
     }
   }
 
+  const handleBack = () => {
+    router.back()
+  }
+
   if (loading) {
     return (
         <View style={styles.loadingContainer}>
@@ -311,6 +316,31 @@ export default function CourseDetailScreen() {
               </View>
             </>
         )}
+
+        {/* Mostrar botón de inscripción solo en la pestaña de información */}
+        {isStudent && !isInstructor && (
+            <View style={styles.actionContainer}>
+              {isEnrolled ? (
+                  <Button mode="contained" style={[styles.button, styles.enrolledButton]} disabled>
+                    Ya estás inscrito
+                  </Button>
+              ) : isFullyBooked ? (
+                  <Button mode="contained" style={[styles.button, styles.fullyBookedButton]} disabled>
+                    Sin cupos disponibles
+                  </Button>
+              ) : (
+                  <Button
+                      mode="contained"
+                      style={styles.button}
+                      onPress={handleEnroll}
+                      loading={enrolling}
+                      disabled={enrolling}
+                  >
+                    Inscribirse
+                  </Button>
+              )}
+            </View>
+        )}
       </>
   )
 
@@ -335,11 +365,18 @@ export default function CourseDetailScreen() {
 
   const renderTasksTab = () => <TasksTab courseId={id} />
 
+  // Determinar si el usuario puede ver las pestañas de módulos y tareas
+  const canViewModulesAndTasks = isEnrolled || isInstructor || isCreator
+
   return (
       <View style={styles.container}>
-        <ScrollView>
-          <StatusBar style="light" />
+        <StatusBar style="light" />
 
+        <View style={styles.header}>
+          <IconButton icon="arrow-left" size={24} onPress={handleBack} style={styles.backButton} />
+        </View>
+
+        <ScrollView>
           <Image
               source={{
                 uri:
@@ -368,54 +405,44 @@ export default function CourseDetailScreen() {
               >
                 Información
               </Button>
-              <Button
-                  mode={activeTab === "modules" ? "contained" : "outlined"}
-                  onPress={() => setActiveTab("modules")}
-                  style={styles.tabButton}
-              >
-                Módulos
-              </Button>
-              <Button
-                  mode={activeTab === "tasks" ? "contained" : "outlined"}
-                  onPress={() => setActiveTab("tasks")}
-                  style={styles.tabButton}
-              >
-                Tareas
-              </Button>
+
+              {canViewModulesAndTasks && (
+                  <>
+                    <Button
+                        mode={activeTab === "modules" ? "contained" : "outlined"}
+                        onPress={() => setActiveTab("modules")}
+                        style={styles.tabButton}
+                    >
+                      Módulos
+                    </Button>
+                    <Button
+                        mode={activeTab === "tasks" ? "contained" : "outlined"}
+                        onPress={() => setActiveTab("tasks")}
+                        style={styles.tabButton}
+                    >
+                      Tareas
+                    </Button>
+                  </>
+              )}
             </View>
 
             <Divider style={styles.divider} />
 
-            {activeTab === "info" ? renderInfoTab() : activeTab === "modules" ? renderModulesTab() : renderTasksTab()}
-
-            <View style={styles.actionContainer}>
-              {/* Mostrar botón de inscripción solo para estudiantes que no sean instructores y no estén inscritos */}
-              {isStudent &&
-                  !isInstructor &&
-                  (isEnrolled ? (
-                      <Button mode="contained" style={[styles.button, styles.enrolledButton]} disabled>
-                        Ya estás inscrito
-                      </Button>
-                  ) : isFullyBooked ? (
-                      <Button mode="contained" style={[styles.button, styles.fullyBookedButton]} disabled>
-                        Sin cupos disponibles
-                      </Button>
-                  ) : (
-                      <Button
-                          mode="contained"
-                          style={styles.button}
-                          onPress={handleEnroll}
-                          loading={enrolling}
-                          disabled={enrolling}
-                      >
-                        Inscribirse
-                      </Button>
-                  ))}
-
-              <Button mode="outlined" style={styles.button} onPress={() => router.back()}>
-                Volver
-              </Button>
-            </View>
+            {activeTab === "info" ? (
+                renderInfoTab()
+            ) : canViewModulesAndTasks ? (
+                activeTab === "modules" ? (
+                    renderModulesTab()
+                ) : (
+                    renderTasksTab()
+                )
+            ) : (
+                <View style={styles.notEnrolledMessage}>
+                  <Text style={styles.notEnrolledText}>
+                    Debes inscribirte en este curso para acceder a sus módulos y tareas.
+                  </Text>
+                </View>
+            )}
           </View>
         </ScrollView>
 
@@ -456,6 +483,13 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: "#fff",
+  },
+  header: {
+    position: "absolute",
+    top: 0,
+    left: 0,
+    zIndex: 10,
+    padding: 8,
   },
   loadingContainer: {
     flex: 1,
@@ -530,6 +564,7 @@ const styles = StyleSheet.create({
     backgroundColor: "#9e9e9e",
   },
   backButton: {
+    backgroundColor: "#fff",
     marginTop: 16,
   },
   fabContainer: {
@@ -560,5 +595,15 @@ const styles = StyleSheet.create({
   addModuleButton: {
     marginBottom: 16,
     backgroundColor: "#6200ee",
+  },
+  notEnrolledMessage: {
+    padding: 16,
+    backgroundColor: "#f5f5f5",
+    borderRadius: 8,
+    marginTop: 16,
+  },
+  notEnrolledText: {
+    textAlign: "center",
+    color: "#666",
   },
 })

@@ -82,7 +82,7 @@ export const courseClient = {
     isInstructorInCourse: async (courseId: string, userId: string) => {
         try {
             const response = await api.get(`/courses/${courseId}/instructors/${userId}`)
-            return response.data
+            return response.data.isInstructor
         } catch (error) {
             console.error(`Error checking instructor status for user ${userId} in course ${courseId}:`, error)
             throw error

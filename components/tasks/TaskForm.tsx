@@ -1,6 +1,6 @@
 import React from "react"
 import { useState } from "react"
-import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform } from "react-native"
+import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from "react-native"
 import {
     Text,
     TextInput,
@@ -14,9 +14,7 @@ import {
 } from "react-native-paper"
 import DateTimePicker from "@react-native-community/datetimepicker"
 import type { Task, TaskType, LatePolicy, AnswerFormat } from "@/types/Task"
-
-// Import the RichTextEditor component
-import { RichTextEditor } from "@/components/tasks/RichTextEditor"
+import {userApi} from "@/api/userApi";
 
 interface TaskFormProps {
     courseId: string
@@ -38,17 +36,15 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
     const [hasTimer, setHasTimer] = useState(initialData?.has_timer ?? false)
     const [timeLimit, setTimeLimit] = useState(initialData?.time_limit_minutes?.toString() || "60")
     const [published, setPublished] = useState(initialData?.published ?? false)
-    const [allowFileUpload, setAllowFileUpload] = useState(initialData?.allow_file_upload ?? false)
-    const [answerFormat, setAnswerFormat] = useState<AnswerFormat>(initialData?.answer_format || "texto")
+    const [allowFileUpload, setAllowFileUpload] = useState(true) // Siempre permitir subida de archivos
+    const [answerFormat, setAnswerFormat] = useState<AnswerFormat>("archivo") // Siempre formato archivo
 
     // Validation states
     const [titleError, setTitleError] = useState("")
     const [descriptionError, setDescriptionError] = useState("")
     const [instructionsError, setInstructionsError] = useState("")
     const [timeLimitError, setTimeLimitError] = useState("")
-
-    // Add a state for rich text instructions
-    const [richInstructions, setRichInstructions] = useState(initialData?.instructions || "")
+    const [loading, setLoading] = useState(false)
 
     const validateForm = () => {
         let isValid = true
@@ -91,18 +87,27 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
         return isValid
     }
 
-    // Update the handleSave function to default to file upload for tasks
     const handleSave = async () => {
         if (!validateForm()) {
             return
         }
 
         try {
+            setLoading(true)
+
+            // Obtener el ID del usuario actual (docente)
+            const userId = await userApi.getUserId()
+            if (!userId) {
+                Alert.alert("Error", "No se pudo obtener el ID del usuario")
+                setLoading(false)
+                return
+            }
+
             const taskData = {
                 // Only include id if we're editing an existing task
                 ...(isCreating ? {} : { id: initialData?.id }),
                 course_id: courseId,
-                created_by: initialData?.created_by || "",
+                created_by: userId, // Usar el ID del usuario actual como creador
                 type,
                 title,
                 description,
@@ -113,15 +118,19 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
                 has_timer: hasTimer,
                 time_limit_minutes: hasTimer ? Number.parseInt(timeLimit, 10) : null,
                 published,
-                visible_from: null, // Not implemented in the form yet
-                visible_until: null, // Not implemented in the form yet
-                allow_file_upload: true, // Always allow file uploads
-                answer_format: "archivo", // Default to file upload format
+                visible_from: null,
+                visible_until: null,
+                allow_file_upload: true, // Siempre permitir subida de archivos
+                answer_format: "archivo", // Siempre formato archivo
             }
 
+            console.log("Guardando tarea:", taskData)
             onSave(taskData)
         } catch (error) {
-            console.error("Error preparing task data:", error)
+            console.error("Error preparando datos de tarea:", error)
+            Alert.alert("Error", "No se pudo guardar la tarea. Inténtalo de nuevo.")
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -180,18 +189,16 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
                     />
                     {!!descriptionError && <HelperText type="error">{descriptionError}</HelperText>}
 
-                    {/* Replace the instructions TextInput with RichTextEditor */}
-                    <Text variant="titleMedium" style={styles.sectionTitle}>
-                        Instrucciones
-                    </Text>
-                    <RichTextEditor
-                        initialValue={initialData?.instructions || ""}
-                        onValueChange={(value) => {
-                            setRichInstructions(value)
-                            setInstructions(value) // Keep the original state updated for validation
-                        }}
-                        placeholder="Escribe las instrucciones detalladas aquí..."
-                        height={200}
+                    <TextInput
+                        label="Instrucciones"
+                        value={instructions}
+                        onChangeText={setInstructions}
+                        mode="outlined"
+                        multiline
+                        numberOfLines={6}
+                        style={styles.input}
+                        error={!!instructionsError}
+                        placeholder="Escribe las instrucciones detalladas para completar esta tarea..."
                     />
                     {!!instructionsError && <HelperText type="error">{instructionsError}</HelperText>}
                 </View>
@@ -239,25 +246,15 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
 
                 <Divider style={styles.divider} />
 
-                {/* Update the form section for answer format to default to "archivo" and disable other options */}
                 <View style={styles.formSection}>
                     <Text variant="titleMedium" style={styles.sectionTitle}>
                         Configuración de respuestas
                     </Text>
 
-                    <View style={styles.radioGroup}>
-                        <Text>Formato de respuesta:</Text>
-                        <RadioButton.Group onValueChange={(value) => setAnswerFormat(value as AnswerFormat)} value="archivo">
-                            <View style={styles.radioOption}>
-                                <RadioButton value="archivo" />
-                                <Text>Archivo</Text>
-                            </View>
-                        </RadioButton.Group>
-                    </View>
-
-                    <View style={styles.switchContainer}>
-                        <Text>Permitir subida de archivos</Text>
-                        <Switch value={true} disabled={true} />
+                    <View style={styles.infoBox}>
+                        <Text style={styles.infoText}>
+                            Esta tarea requiere que los estudiantes suban un archivo como respuesta.
+                        </Text>
                     </View>
                 </View>
 
@@ -310,10 +307,10 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
                 </View>
 
                 <View style={styles.buttonContainer}>
-                    <Button mode="outlined" onPress={onCancel} style={styles.button}>
+                    <Button mode="outlined" onPress={onCancel} style={styles.button} disabled={loading}>
                         Cancelar
                     </Button>
-                    <Button mode="contained" onPress={handleSave} style={styles.button}>
+                    <Button mode="contained" onPress={handleSave} style={styles.button} loading={loading} disabled={loading}>
                         {isCreating ? "Crear" : "Guardar"}
                     </Button>
                 </View>
@@ -386,5 +383,14 @@ const styles = StyleSheet.create({
     },
     segmentedButtons: {
         marginBottom: 16,
+    },
+    infoBox: {
+        backgroundColor: "#e3f2fd",
+        padding: 12,
+        borderRadius: 8,
+        marginVertical: 8,
+    },
+    infoText: {
+        color: "#0d47a1",
     },
 })
