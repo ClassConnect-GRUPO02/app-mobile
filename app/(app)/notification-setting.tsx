@@ -9,36 +9,24 @@ import { getItemAsync } from "expo-secure-store"
 import { setAuthToken } from "../../api/client"
 import { userApi } from "../../api/userApi"
 import React from "react"
+import NotificationSettings from "../../types/NotificationSettings"
 
-interface NotificationSettings {
-  pushEnabled: boolean
-  emailEnabled: boolean
-  // Configuraciones específicas para estudiantes (1=solo push, 2=solo email, 3=ambas)
-  newAssignment: number
-  deadlineReminder: number
-  courseEnrollment: number
-  favoriteCourseUpdate: number
-  teacherFeedback: number
-  // Configuraciones específicas para docentes (1=solo push, 2=solo email, 3=ambas)
-  assignmentSubmission: number
-  studentFeedback: number
-}
 
 export default function NotificationSettingsScreen() {
   const [loading, setLoading] = useState(true)
   const [userType, setUserType] = useState<string>("")
   const [settings, setSettings] = useState<NotificationSettings>({
-    pushEnabled: true,
-    emailEnabled: true,
+    push_enabled: true,
+    email_enabled: true,
     // Estudiantes
-    newAssignment: 3, // Ambas
-    deadlineReminder: 3, // Ambas
-    courseEnrollment: 3, // Ambas
-    favoriteCourseUpdate: 3, // Solo push
-    teacherFeedback: 3, // Ambas
+    new_assignment: 3, // Ambas
+    deadline_reminder: 3, // Ambas
+    course_enrollment: 3, // Ambas
+    favorite_course_update: 3, // Solo push
+    teacher_feedback: 3, // Ambas
     // Docentes
-    assignmentSubmission: 3, // Ambas
-    studentFeedback: 3, // Solo push
+    assignment_submission: 3, // Ambas
+    student_feedback: 3, // Solo push
   })
   const theme = useTheme()
 
@@ -62,6 +50,10 @@ export default function NotificationSettingsScreen() {
         setUserType(response.user.userType)
 
         // Aquí se cargarían las configuraciones de notificaciones desde la API
+        const notificationSettings = await userApi.getNotificationSettings(userId)
+        if (notificationSettings) {
+          setSettings(notificationSettings.settings)
+        }
         // Por ahora usamos valores predeterminados
 
         setLoading(false)
@@ -92,8 +84,9 @@ export default function NotificationSettingsScreen() {
   const handleSaveSettings = async () => {
     try {
       setLoading(true)
+      const userId = await getItemAsync("userId")?.toString()
       // Aquí se enviarían las configuraciones a la API
-      // await userApi.updateNotificationSettings(settings);
+      await userApi.setNotificationsSettings(userId, settings);
 
       Alert.alert("Éxito", "Configuraciones de notificaciones guardadas correctamente", [
         { text: "OK", onPress: () => router.back() },
@@ -156,7 +149,7 @@ export default function NotificationSettingsScreen() {
                 description="Recibir notificaciones en tu dispositivo"
                 left={(props) => <List.Icon {...props} icon="bell" />}
                 right={() => (
-                  <Switch value={settings.pushEnabled} onValueChange={() => handleToggleChange("pushEnabled")} />
+                  <Switch value={settings.push_enabled} onValueChange={() => handleToggleChange("push_enabled")} />
                 )}
               />
               <Divider />
@@ -165,7 +158,7 @@ export default function NotificationSettingsScreen() {
                 description="Recibir notificaciones en tu correo electrónico"
                 left={(props) => <List.Icon {...props} icon="email" />}
                 right={() => (
-                  <Switch value={settings.emailEnabled} onValueChange={() => handleToggleChange("emailEnabled")} />
+                  <Switch value={settings.email_enabled} onValueChange={() => handleToggleChange("email_enabled")} />
                 )}
               />
             </List.Section>
@@ -182,9 +175,9 @@ export default function NotificationSettingsScreen() {
                 <List.Item
                   title="Nuevas tareas o exámenes"
                   description={
-                    settings.newAssignment === 1
+                    settings.new_assignment === 1
                       ? "Solo notificaciones push"
-                      : settings.newAssignment === 2
+                      : settings.new_assignment === 2
                         ? "Solo notificaciones por email"
                         : "Notificaciones push y email"
                   }
@@ -192,26 +185,26 @@ export default function NotificationSettingsScreen() {
                   right={() => (
                     <View style={styles.optionContainer}>
                       <Button
-                        mode={settings.newAssignment === 1 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("newAssignment", 1)}
+                        mode={settings.new_assignment === 1 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("new_assignment", 1)}
                         style={styles.optionButton}
-                        disabled={!settings.pushEnabled && settings.newAssignment !== 1}
+                        disabled={!settings.push_enabled && settings.new_assignment !== 1}
                       >
                         1
                       </Button>
                       <Button
-                        mode={settings.newAssignment === 2 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("newAssignment", 2)}
+                        mode={settings.new_assignment === 2 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("new_assignment", 2)}
                         style={styles.optionButton}
-                        disabled={!settings.emailEnabled && settings.newAssignment !== 2}
+                        disabled={!settings.email_enabled && settings.new_assignment !== 2}
                       >
                         2
                       </Button>
                       <Button
-                        mode={settings.newAssignment === 3 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("newAssignment", 3)}
+                        mode={settings.new_assignment === 3 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("new_assignment", 3)}
                         style={styles.optionButton}
-                        disabled={(!settings.pushEnabled || !settings.emailEnabled) && settings.newAssignment !== 3}
+                        disabled={(!settings.push_enabled || !settings.email_enabled) && settings.new_assignment !== 3}
                       >
                         3
                       </Button>
@@ -224,9 +217,9 @@ export default function NotificationSettingsScreen() {
                 <List.Item
                   title="Fechas límite de tareas"
                   description={
-                    settings.deadlineReminder === 1
+                    settings.deadline_reminder === 1
                       ? "Solo notificaciones push"
-                      : settings.deadlineReminder === 2
+                      : settings.deadline_reminder === 2
                         ? "Solo notificaciones por email"
                         : "Notificaciones push y email"
                   }
@@ -234,26 +227,26 @@ export default function NotificationSettingsScreen() {
                   right={() => (
                     <View style={styles.optionContainer}>
                       <Button
-                        mode={settings.deadlineReminder === 1 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("deadlineReminder", 1)}
+                        mode={settings.deadline_reminder === 1 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("deadline_reminder", 1)}
                         style={styles.optionButton}
-                        disabled={!settings.pushEnabled && settings.deadlineReminder !== 1}
+                        disabled={!settings.push_enabled && settings.deadline_reminder !== 1}
                       >
                         1
                       </Button>
                       <Button
-                        mode={settings.deadlineReminder === 2 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("deadlineReminder", 2)}
+                        mode={settings.deadline_reminder === 2 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("deadline_reminder", 2)}
                         style={styles.optionButton}
-                        disabled={!settings.emailEnabled && settings.deadlineReminder !== 2}
+                        disabled={!settings.email_enabled && settings.deadline_reminder !== 2}
                       >
                         2
                       </Button>
                       <Button
-                        mode={settings.deadlineReminder === 3 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("deadlineReminder", 3)}
+                        mode={settings.deadline_reminder === 3 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("deadline_reminder", 3)}
                         style={styles.optionButton}
-                        disabled={(!settings.pushEnabled || !settings.emailEnabled) && settings.deadlineReminder !== 3}
+                        disabled={(!settings.push_enabled || !settings.email_enabled) && settings.deadline_reminder !== 3}
                       >
                         3
                       </Button>
@@ -266,9 +259,9 @@ export default function NotificationSettingsScreen() {
                 <List.Item
                   title="Inscripción a nuevos cursos"
                   description={
-                    settings.courseEnrollment === 1
+                    settings.course_enrollment === 1
                       ? "Solo notificaciones push"
-                      : settings.courseEnrollment === 2
+                      : settings.course_enrollment === 2
                         ? "Solo notificaciones por email"
                         : "Notificaciones push y email"
                   }
@@ -276,26 +269,26 @@ export default function NotificationSettingsScreen() {
                   right={() => (
                     <View style={styles.optionContainer}>
                       <Button
-                        mode={settings.courseEnrollment === 1 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("courseEnrollment", 1)}
+                        mode={settings.course_enrollment === 1 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("course_enrollment", 1)}
                         style={styles.optionButton}
-                        disabled={!settings.pushEnabled && settings.courseEnrollment !== 1}
+                        disabled={!settings.push_enabled && settings.course_enrollment !== 1}
                       >
                         1
                       </Button>
                       <Button
-                        mode={settings.courseEnrollment === 2 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("courseEnrollment", 2)}
+                        mode={settings.course_enrollment === 2 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("course_enrollment", 2)}
                         style={styles.optionButton}
-                        disabled={!settings.emailEnabled && settings.courseEnrollment !== 2}
+                        disabled={!settings.email_enabled && settings.course_enrollment !== 2}
                       >
                         2
                       </Button>
                       <Button
-                        mode={settings.courseEnrollment === 3 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("courseEnrollment", 3)}
+                        mode={settings.course_enrollment === 3 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("course_enrollment", 3)}
                         style={styles.optionButton}
-                        disabled={(!settings.pushEnabled || !settings.emailEnabled) && settings.courseEnrollment !== 3}
+                        disabled={(!settings.push_enabled || !settings.email_enabled) && settings.course_enrollment !== 3}
                       >
                         3
                       </Button>
@@ -305,9 +298,9 @@ export default function NotificationSettingsScreen() {
                 <List.Item
                   title="Actualizaciones de cursos favoritos"
                   description={
-                    settings.favoriteCourseUpdate === 1
+                    settings.favorite_course_update === 1
                       ? "Solo notificaciones push"
-                      : settings.favoriteCourseUpdate === 2
+                      : settings.favorite_course_update === 2
                         ? "Solo notificaciones por email"
                         : "Notificaciones push y email"
                   }
@@ -315,27 +308,27 @@ export default function NotificationSettingsScreen() {
                   right={() => (
                     <View style={styles.optionContainer}>
                       <Button
-                        mode={settings.favoriteCourseUpdate === 1 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("favoriteCourseUpdate", 1)}
+                        mode={settings.favorite_course_update === 1 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("favorite_course_update", 1)}
                         style={styles.optionButton}
-                        disabled={!settings.pushEnabled && settings.favoriteCourseUpdate !== 1}
+                        disabled={!settings.push_enabled && settings.favorite_course_update !== 1}
                       >
                         1
                       </Button>
                       <Button
-                        mode={settings.favoriteCourseUpdate === 2 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("favoriteCourseUpdate", 2)}
+                        mode={settings.favorite_course_update === 2 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("favorite_course_update", 2)}
                         style={styles.optionButton}
-                        disabled={!settings.emailEnabled && settings.favoriteCourseUpdate !== 2}
+                        disabled={!settings.email_enabled && settings.favorite_course_update !== 2}
                       >
                         2
                       </Button>
                       <Button
-                        mode={settings.favoriteCourseUpdate === 3 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("favoriteCourseUpdate", 3)}
+                        mode={settings.favorite_course_update === 3 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("favorite_course_update", 3)}
                         style={styles.optionButton}
                         disabled={
-                          (!settings.pushEnabled || !settings.emailEnabled) && settings.favoriteCourseUpdate !== 3
+                          (!settings.push_enabled || !settings.email_enabled) && settings.favorite_course_update !== 3
                         }
                       >
                         3
@@ -349,9 +342,9 @@ export default function NotificationSettingsScreen() {
                 <List.Item
                   title="Feedback de docentes"
                   description={
-                    settings.teacherFeedback === 1
+                    settings.teacher_feedback === 1
                       ? "Solo notificaciones push"
-                      : settings.teacherFeedback === 2
+                      : settings.teacher_feedback === 2
                         ? "Solo notificaciones por email"
                         : "Notificaciones push y email"
                   }
@@ -359,28 +352,28 @@ export default function NotificationSettingsScreen() {
                   right={() => (
                     <View style={styles.optionContainer}>
                       <Button
-                        mode={settings.teacherFeedback === 1 ? "contained" : "outlined"}
+                        mode={settings.teacher_feedback === 1 ? "contained" : "outlined"}
                         onPress={() =>
-                          handleNotificationTypeChange("teacherFeedback", 1)
+                          handleNotificationTypeChange("teacher_feedback", 1)
                         }
                         style={styles.optionButton}
-                        disabled={!settings.pushEnabled && settings.teacherFeedback !== 1}
+                        disabled={!settings.push_enabled && settings.teacher_feedback !== 1}
                       >
                         1
                       </Button>
                       <Button
-                        mode={settings.teacherFeedback === 2 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("teacherFeedback", 2)}
+                        mode={settings.teacher_feedback === 2 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("teacher_feedback", 2)}
                         style={styles.optionButton}
-                        disabled={!settings.emailEnabled && settings.teacherFeedback !== 2}
+                        disabled={!settings.email_enabled && settings.teacher_feedback !== 2}
                       >
                         2
                       </Button>
                       <Button
-                        mode={settings.teacherFeedback === 3 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("teacherFeedback", 3)}
+                        mode={settings.teacher_feedback === 3 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("teacher_feedback", 3)}
                         style={styles.optionButton}
-                        disabled={(!settings.pushEnabled || !settings.emailEnabled) && settings.teacherFeedback !== 3}
+                        disabled={(!settings.push_enabled || !settings.email_enabled) && settings.teacher_feedback !== 3}
                       >
                         3
                       </Button>
@@ -400,9 +393,9 @@ export default function NotificationSettingsScreen() {
                 <List.Item
                   title="Entregas de tareas o exámenes"
                   description={
-                    settings.assignmentSubmission === 1
+                    settings.assignment_submission === 1
                       ? "Solo notificaciones push"
-                      : settings.assignmentSubmission === 2
+                      : settings.assignment_submission === 2
                         ? "Solo notificaciones por email"
                         : "Notificaciones push y email"
                   }
@@ -410,27 +403,27 @@ export default function NotificationSettingsScreen() {
                   right={() => (
                     <View style={styles.optionContainer}>
                       <Button
-                        mode={settings.assignmentSubmission === 1 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("assignmentSubmission", 1)}
+                        mode={settings.assignment_submission === 1 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("assignment_submission", 1)}
                         style={styles.optionButton}
-                        disabled={!settings.pushEnabled && settings.assignmentSubmission !== 1}
+                        disabled={!settings.push_enabled && settings.assignment_submission !== 1}
                       >
                         1
                       </Button>
                       <Button
-                        mode={settings.assignmentSubmission === 2 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("assignmentSubmission", 2)}
+                        mode={settings.assignment_submission === 2 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("assignment_submission", 2)}
                         style={styles.optionButton}
-                        disabled={!settings.emailEnabled && settings.assignmentSubmission !== 2}
+                        disabled={!settings.email_enabled && settings.assignment_submission !== 2}
                       >
                         2
                       </Button>
                       <Button
-                        mode={settings.assignmentSubmission === 3 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("assignmentSubmission", 3)}
+                        mode={settings.assignment_submission === 3 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("assignment_submission", 3)}
                         style={styles.optionButton}
                         disabled={
-                          (!settings.pushEnabled || !settings.emailEnabled) && settings.assignmentSubmission !== 3
+                          (!settings.push_enabled || !settings.email_enabled) && settings.assignment_submission !== 3
                         }
                       >
                         3
@@ -444,9 +437,9 @@ export default function NotificationSettingsScreen() {
                 <List.Item
                   title="Feedback de estudiantes"
                   description={
-                    settings.studentFeedback === 1
+                    settings.student_feedback === 1
                       ? "Solo notificaciones push"
-                      : settings.studentFeedback === 2
+                      : settings.student_feedback === 2
                         ? "Solo notificaciones por email"
                         : "Notificaciones push y email"
                   }
@@ -454,26 +447,26 @@ export default function NotificationSettingsScreen() {
                   right={() => (
                     <View style={styles.optionContainer}>
                       <Button
-                        mode={settings.studentFeedback === 1 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("studentFeedback", 1)}
+                        mode={settings.student_feedback === 1 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("student_feedback", 1)}
                         style={styles.optionButton}
-                        disabled={!settings.pushEnabled && settings.studentFeedback !== 1}
+                        disabled={!settings.push_enabled && settings.student_feedback !== 1}
                       >
                         1
                       </Button>
                       <Button
-                        mode={settings.studentFeedback === 2 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("studentFeedback", 2)}
+                        mode={settings.student_feedback === 2 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("student_feedback", 2)}
                         style={styles.optionButton}
-                        disabled={!settings.emailEnabled && settings.studentFeedback !== 2}
+                        disabled={!settings.email_enabled && settings.student_feedback !== 2}
                       >
                         2
                       </Button>
                       <Button
-                        mode={settings.studentFeedback === 3 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("studentFeedback", 3)}
+                        mode={settings.student_feedback === 3 ? "contained" : "outlined"}
+                        onPress={() => handleNotificationTypeChange("student_feedback", 3)}
                         style={styles.optionButton}
-                        disabled={(!settings.pushEnabled || !settings.emailEnabled) && settings.studentFeedback !== 3}
+                        disabled={(!settings.push_enabled || !settings.email_enabled) && settings.student_feedback !== 3}
                       >
                         3
                       </Button>

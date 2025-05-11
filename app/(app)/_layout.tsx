@@ -2,40 +2,11 @@ import React, { useEffect } from "react";
 import { Tabs } from "expo-router";
 import { useTheme } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
-import * as Notifications from 'expo-notifications';
-
-import { registerPushToken } from '@/lib/pushNotifications';
-import Toast from 'react-native-toast-message';
-import { getItemAsync } from "expo-secure-store";
 
 export default function AppLayout() {
     const theme = useTheme()
 
       // Registro de token y listener de notificaciones
-useEffect(() => {
-    const fetchData = async () => {
-        const jwt = await getItemAsync('userToken');
-        if (jwt) {
-            registerPushToken(jwt);
-    
-            const subscription = Notifications.addNotificationReceivedListener(notification => {
-                const { title, body } = notification.request.content;
-    
-                Toast.show({
-                    type: 'info',
-                    text1: title ?? 'Notificación',
-                    text2: body ?? '',
-                    visibilityTime: 4000,
-                    autoHide: true,
-                });
-            });
-    
-            return () => subscription.remove();
-        }
-    };
-
-    fetchData();
-}, []);
 
     return (
         <Tabs
@@ -108,6 +79,12 @@ useEffect(() => {
 
             <Tabs.Screen
                 name="profile/[id]"
+                options={{
+                    href: null, // Esto evita que se muestre en la barra de pestañas
+                }}
+            />
+            <Tabs.Screen
+                name="notification-setting"
                 options={{
                     href: null, // Esto evita que se muestre en la barra de pestañas
                 }}

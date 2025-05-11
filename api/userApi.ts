@@ -1,7 +1,8 @@
-import { registerPushToken } from '@/lib/pushNotifications';
 import { apiClient, setAuthToken } from './client';
 import { getItemAsync, setItemAsync } from 'expo-secure-store';
-
+import NotificationSettings from '@/types/NotificationSettings';
+import * as Notifications from 'expo-notifications';
+import * as Device from 'expo-device';
 export interface UserRegisterData {
   name: string;
   email: string;
@@ -89,5 +90,51 @@ export const userApi = {
 
   async updateUser(id: string, userData: Partial<UserInfo>): Promise<{description: string }> {
     return apiClient.put<{ description: string }>(`/user/${id}`, userData);
-  }
-};
+  },
+
+  async setNotificationsSettings(
+    id: string,
+    settings: NotificationSettings
+  ): Promise<{ description: string }> {
+    return apiClient.put<{ description: string }>(`/users/${id}/notification-settings`, settings);
+  },
+
+  async getNotificationSettings(id: string): Promise<{ settings: NotificationSettings }> {
+    return apiClient.get<{ settings: NotificationSettings }>(`/users/${id}/notification-settings`);
+  },
+
+   async  registerPushToken() {
+    if (!Device.isDevice) return;
+
+    const userId = await getItemAsync('userId');
+  
+    const { status: existingStatus } = await Notifications.getPermissionsAsync();
+    let finalStatus = existingStatus;
+  
+    if (existingStatus !== 'granted') {
+      const { status } = await Notifications.requestPermissionsAsync();
+      finalStatus = status;
+    }
+  
+    if (finalStatus !== 'granted') return;
+  
+    const token = (await Notifications.getExpoPushTokenAsync()).data;
+    console.log('Push token:', token);
+  
+    // Enviá el token al backend de usuarios
+   return apiClient.post<{ description: string }>(`/users/${userId}/push-token`, {
+      pushToken: token,
+    });
+},
+
+async notifyUser(
+  userId: string,
+  title: string,
+  body: string
+): Promise<{ description: string }> {
+  return apiClient.post<{ description: string }>(`/users/${userId}/notifications`, {
+    title,
+    body,
+  });
+}
+}

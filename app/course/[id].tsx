@@ -137,7 +137,7 @@ export default function CourseDetailScreen() {
                 })
             }
 
-            Alert.alert("Éxito", "Te has inscrito correctamente en el curso")
+            await userApi.notifyUser(userId, "Inscripción exitosa", `Te has inscrito en el curso ${course?.name}`)
         } catch (error) {
             console.error("Error al inscribirse en el curso:", error)
             Alert.alert("Error", "No se pudo completar la inscripción. Inténtalo de nuevo.")
