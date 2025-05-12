@@ -14,26 +14,41 @@ export default function VerifyPinScreen() {
 
 const handleVerifyPin = async () => {
   try {
-    console.log("Email:", email);
-    console.log("PIN:", pin);
-    const response = await userApi.verifyPin(pin, email);
-    console.log("Response from verifyPin:", response);
-    console.log("PIN:", pin);
-    if (response.success) {
-      // El PIN es válido, redirigir al usuario o mostrar mensaje de éxito
-    } else {
-      // Mostrar mensaje de error
-      setError(response.message || "El PIN es incorrecto o ha expirado.");
+    setLoading(true);
+
+    const parsedPin = parseInt(pin, 10);
+    if (isNaN(parsedPin)) {
+      setError("El PIN debe ser un número válido.");
+      return;
     }
-  } catch (error) {
-    setError("Hubo un problema al verificar el PIN.");
+
+    const response = await userApi.verifyPin(parsedPin, email);
+    console.log("Responseeee:", response);
+
+    if (response.success) {
+      Alert.alert("Éxito", "Tu email fue verificado correctamente.");
+      router.push("/(auth)/login");
+    } else {
+      setError("El PIN es incorrecto o ha expirado.");
+    }
+  } catch (error: any) {
+    const errorMessage =
+      error?.response?.data?.message ||
+      error?.response?.data?.description ||
+      "Hubo un problema al verificar el PIN.";
+    setError(errorMessage);
+  } finally {
+    setLoading(false);
   }
 };
+
+
 
 const handleRequestNewPin = async () => {
   try {
     console.log("Email:", email);
     const response = await userApi.requestNewPin(email);
+    console.log("Response:", response);
     if (response.success) {
       // El nuevo PIN ha sido enviado, mostrar mensaje de éxito
       Alert.alert("Nuevo PIN enviado", "Te hemos enviado un nuevo PIN a tu correo.");

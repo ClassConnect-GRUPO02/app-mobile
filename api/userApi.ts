@@ -89,9 +89,9 @@ export const userApi = {
   async updateUser(id: string, userData: Partial<UserInfo>): Promise<{description: string }> {
     return apiClient.put<{ description: string }>(`/user/${id}`, userData);
   },
-   async verifyPin(pin: string, email: string): Promise<{ success: boolean; message?: string }> {
+   async verifyPin(pin: number, email: string): Promise<{ success: boolean; message?: string }> {
     try {
-      const response = await apiClient.post<{ success: boolean; message?: string }>('/users/verify', {
+      const response = await apiClient.postSinHeaders<{ success: boolean; message?: string }>('/users/verify', {
         email,
         pin,
       });
@@ -105,7 +105,7 @@ export const userApi = {
   // Solicitar un nuevo PIN
   async requestNewPin(email: string): Promise<{ success: boolean; message?: string }> {
     try {
-      const response = await apiClient.post<{ success: boolean; message?: string }>('/users/request-new-pin', {
+      const response = await apiClient.postSinHeaders<{ success: boolean; message?: string }>('/users/request-new-pin', {
         email,
       });
       return response;

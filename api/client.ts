@@ -67,6 +67,34 @@ export const apiClient = {
     }
   },
 
+  async postSinHeaders<T>(endpoint: string, data: any): Promise<T> {
+    const url = `${BASE_URL}${endpoint}`;
+    console.log("endpoint", endpoint);
+    console.log("data", data);
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(data),
+      });
+
+      const responseData = await response.json();
+      console.log('Response Data:', responseData); // Verificar la respuesta
+      console.log('Response Status:', response.status); // Verificar el estado de la respuesta
+
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Ocurrió un error en la petición');
+      }
+
+      return responseData;
+    } catch (error) {
+      console.error(`Error en petición POST a ${endpoint}:`, error);
+      throw error instanceof Error ? error : new Error('Error desconocido');
+    }
+  },
+
   // Método para peticiones GET con token
   async get<T>(endpoint: string): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
