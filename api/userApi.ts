@@ -27,6 +27,7 @@ export interface LoginResponse {
   id: string;
   token: string;
   message?: string;
+  refreshToken?: string;
 }
 
 export interface UserInfo {
@@ -48,17 +49,16 @@ export const userApi = {
   // Login de un usuario
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     try {
-      const response = await apiClient.post<LoginResponse>(
-        "/login",
-        credentials
-      );
-
+      const response = await apiClient.post<LoginResponse>('/login', credentials);
+      console.log('Respuesta del login:', response);
       // Si login es exitoso, almacenamos el token y el userId
-      if (response.token && response.id) {
-        console.log("Token recibido:", response.token);
-        console.log("ID de usuario recibido:", response.id);
-        await userApi.storeToken(response.token); // Guardamos el token
-        await userApi.storeUserId(response.id); // Guardamos el id del usuario
+      if (response.token && response.id && response.refreshToken) {
+        console.log('Token recibido:', response.token);
+        console.log('ID de usuario recibido:', response.id);
+        await userApi.storeToken(response.token);  // Guardamos el token
+        await userApi.storeUserId(response.id);    // Guardamos el id del usuario
+          await userApi.storeRefreshToken(response.refreshToken);
+        
       }
 
       return response;
@@ -76,6 +76,10 @@ export const userApi = {
   // Guardar el ID del usuario en el almacenamiento seguro
   storeUserId: async (id: string): Promise<void> => {
     await setItemAsync("userId", id); // Guardamos el userId en secure-store
+  },
+
+  storeRefreshToken: async (refreshToken: string): Promise<void> => {
+    await setItemAsync('refreshToken', refreshToken);  // Guardamos el refreshToken en secure-store
   },
 
   // Obtener el ID del usuario desde secure-store
@@ -108,6 +112,24 @@ export const userApi = {
     userData: Partial<UserInfo>
   ): Promise<{ description: string }> {
     return apiClient.put<{ description: string }>(`/user/${id}`, userData);
+  },
+
+  async refreshToken(refreshToken: string): Promise<LoginResponse> {
+    try {
+      const response = await apiClient.post<LoginResponse>('/biometric-login', { refreshToken });
+      
+      // Si el refresh es exitoso, almacenamos el nuevo token
+      if (response.token) {
+        console.log('Nuevo token recibido:', response.token);
+        await userApi.storeToken(response.token);  // Guardamos el nuevo token
+        await userApi.storeUserId(response.id);    // Guardamos el id del usuario
+      }
+
+      return response;
+    } catch (error) {
+      console.error('Error al refrescar el token:', error);
+      throw error;
+    }
   },
   
   async setNotificationsSettings(

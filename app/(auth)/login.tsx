@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from "react";
+import React, { useEffect, useState } from "react";
 import {
   View,
   StyleSheet,
@@ -18,6 +18,9 @@ import {
 } from "react-native-paper";
 import { Link, useRouter } from "expo-router";
 import { userApi } from "../../api/userApi";
+import * as LocalAuthentication from "expo-local-authentication";
+import * as SecureStore from "expo-secure-store";
+//import type { LoginRequest, ApiError } from "../../api/client";
 import {
   GoogleSignin,
   isSuccessResponse,
@@ -37,10 +40,27 @@ interface GoogleUserData {
 const LoginScreen = (): React.JSX.Element => {
   const router = useRouter();
 
+  useEffect(() => {
+    const checkBiometricAvailability = async () => {
+      const savedRefreshToken = await SecureStore.getItemAsync("refreshToken");
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
+
+      if (savedRefreshToken && hasHardware && isEnrolled) {
+        setCanUseBiometric(true);
+      } else {
+        setCanUseBiometric(false);
+      }
+    };
+
+    checkBiometricAvailability();
+  }, []);
+
   const [email, setEmail] = useState<string>("");
   const [password, setPassword] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
+  const [canUseBiometric, setCanUseBiometric] = useState(false);
   const [googleUserData, setGoogleUserData] = useState<GoogleUserData | null>(null);
 
   useEffect(() => {
@@ -67,12 +87,15 @@ const LoginScreen = (): React.JSX.Element => {
     return true;
   };
 
-  const fetchWithTimeout = (promise: Promise<any>, timeout = 5000): Promise<any> => {
+  const fetchWithTimeout = (
+    promise: Promise<any>,
+    timeout = 5000
+  ): Promise<any> => {
     return new Promise((resolve, reject) => {
       const timer = setTimeout(() => {
         reject(new Error("Tiempo de espera agotado. Verifica tu conexión."));
       }, timeout);
-  
+
       promise
         .then((res) => {
           clearTimeout(timer);
@@ -84,7 +107,6 @@ const LoginScreen = (): React.JSX.Element => {
         });
     });
   };
-  
 
   const handleLogin = async (): Promise<void> => {
     if (!validateForm()) return;
@@ -93,8 +115,8 @@ const LoginScreen = (): React.JSX.Element => {
     try {
       const credentials = { email, password };
       const response = await fetchWithTimeout(userApi.login(credentials));
-  
-      if (response?.token && response?.id) {
+
+      if (response?.token && response?.id && response?.refreshToken) {
         router.replace("/(app)/home");
       } else {
         throw new Error("Token no recibido del servidor.");
@@ -182,6 +204,46 @@ const LoginScreen = (): React.JSX.Element => {
   
   
 
+  const handleBiometricLogin = async () => {
+    const savedRefreshToken = await SecureStore.getItemAsync("refreshToken");
+
+    if (!savedRefreshToken) {
+      Alert.alert(
+        "Sin sesión previa",
+        "Por favor inicia sesión manualmente primero."
+      );
+      return;
+    }
+
+    const biometricAuth = await LocalAuthentication.authenticateAsync({
+      promptMessage: "Iniciar sesión con biometría",
+      fallbackLabel: "Usar contraseña",
+    });
+
+    if (!biometricAuth.success) {
+      Alert.alert(
+        "Autenticación fallida",
+        "No se pudo verificar tu identidad."
+      );
+      return;
+    }
+
+    try {
+      setLoading(true);
+
+      await userApi.refreshToken(savedRefreshToken);
+
+      router.replace("/(app)/home");
+    } catch (err) {
+      Alert.alert(
+        "Sesión expirada",
+        "Por favor inicia sesión con email y contraseña."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
     <KeyboardAvoidingView
       behavior={Platform.OS === "ios" ? "padding" : "height"}
@@ -224,6 +286,17 @@ const LoginScreen = (): React.JSX.Element => {
           >
             {loading ? <ActivityIndicator color="#fff" /> : "Iniciar Sesión"}
           </Button>
+          {canUseBiometric && (
+            <Button
+              mode="outlined"
+              icon="fingerprint"
+              onPress={handleBiometricLogin}
+              style={{ marginTop: 10 }}
+              disabled={loading}
+            >
+              Iniciar con biometría
+            </Button>
+          )}
 
           <Button
             mode="outlined"
