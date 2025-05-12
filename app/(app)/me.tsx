@@ -16,7 +16,15 @@ import { getItemAsync, deleteItemAsync } from "expo-secure-store";
 import { router, useLocalSearchParams } from "expo-router";
 import { setAuthToken } from "../../api/client";
 import { userApi } from "../../api/userApi";
+import {
+  GoogleSignin,
+  isSuccessResponse,
+  SignInSuccessResponse,
+  statusCodes,
+  type User
+} from '@react-native-google-signin/google-signin';
 import EditProfileScreen from "@/components/EditProfileScreen";
+
 
 interface UserProfile {
   id: string;
@@ -100,7 +108,10 @@ export default function ProfileScreen() {
         text: "Sí, salir",
         onPress: async () => {
           try {
+            
             await deleteItemAsync("userToken");
+            await deleteItemAsync("userId");
+            GoogleSignin.signOut();
             router.replace("/(auth)/login");
           } catch (error) {
             console.error("Error al cerrar sesión:", error);
@@ -131,8 +142,8 @@ export default function ProfileScreen() {
   };
 
   const navigateToMyCourses = () => {
-    router.push("/(app)/my-courses")
-  }
+    router.push("/(app)/my-courses");
+  };
 
   if (loading) {
     return (
@@ -143,52 +154,52 @@ export default function ProfileScreen() {
   }
 
   return (
-      <View style={styles.container}>
-        <StatusBar style="auto" />
-        <ScrollView contentContainerStyle={styles.scrollContainer}>
-          <View style={styles.headerContainer}>
-            <Title style={styles.title}>{"Mi Perfil"}</Title>
-          </View>
+    <View style={styles.container}>
+      <StatusBar style="auto" />
+      <ScrollView contentContainerStyle={styles.scrollContainer}>
+        <View style={styles.headerContainer}>
+          <Title style={styles.title}>{"Mi Perfil"}</Title>
+        </View>
 
-          {error ? <Text style={styles.errorText}>{error}</Text> : null}
-          <Modal
-              visible={showEditModal}
-              animationType="slide"
-              presentationStyle="pageSheet"
-              onRequestClose={() => {
-                console.log("Modal closed via onRequestClose")
-                setShowEditModal(false)
+        {error ? <Text style={styles.errorText}>{error}</Text> : null}
+        <Modal
+          visible={showEditModal}
+          animationType="slide"
+          presentationStyle="pageSheet"
+          onRequestClose={() => {
+            console.log("Modal closed via onRequestClose");
+            setShowEditModal(false);
+          }}
+        >
+          {profile && (
+            <EditProfileScreen
+              profile={profile}
+              onProfileUpdated={handleProfileUpdated}
+              onCancel={() => {
+                console.log("Cancel button pressed");
+                setShowEditModal(false);
               }}
-          >
-            {profile && (
-                <EditProfileScreen
-                    profile={profile}
-                    onProfileUpdated={handleProfileUpdated}
-                    onCancel={() => {
-                      console.log("Cancel button pressed")
-                      setShowEditModal(false)
-                    }}
-                />
-            )}
-          </Modal>
-          <Card style={styles.profileCard}>
-            <View style={styles.avatarContainer}>
-              <Avatar.Text
-                  size={80}
-                  label={profile?.name.substring(0, 2).toUpperCase() || "U"}
-                  style={{ backgroundColor: theme.colors.primary }}
-              />
+            />
+          )}
+        </Modal>
+        <Card style={styles.profileCard}>
+          <View style={styles.avatarContainer}>
+            <Avatar.Text
+              size={80}
+              label={profile?.name.substring(0, 2).toUpperCase() || "U"}
+              style={{ backgroundColor: theme.colors.primary }}
+            />
+          </View>
+          <Card.Content style={styles.profileInfo}>
+            <Title style={styles.profileName}>{profile?.name}</Title>
+            <Text style={styles.profileEmail}>{profile?.email}</Text>
+            <View style={styles.profileTypeContainer}>
+              <Text style={styles.profileTypeLabel}>
+                {profile?.userType === "alumno" ? "👨‍🎓 Alumno" : "👨‍🏫 Docente"}
+              </Text>
             </View>
-            <Card.Content style={styles.profileInfo}>
-              <Title style={styles.profileName}>{profile?.name}</Title>
-              <Text style={styles.profileEmail}>{profile?.email}</Text>
-              <View style={styles.profileTypeContainer}>
-                <Text style={styles.profileTypeLabel}>
-                  {profile?.userType === "alumno" ? "👨‍🎓 Alumno" : "👨‍🏫 Docente"}
-                </Text>
-              </View>
-            </Card.Content>
-          </Card>
+          </Card.Content>
+        </Card>
 
           <Card style={styles.infoCard}>
             <Card.Content>
@@ -223,33 +234,37 @@ export default function ProfileScreen() {
                 <List.Item
                     title="Mis Cursos"
                     description={
-                      profile?.userType === "alumno" ? "Cursos en los que estás inscrito" : "Cursos que has creado"
+                      profile?.userType === "alumno" ? "Cursos en los que estás inscripto" : "Cursos que has creado"
                     }
                     left={(props) => <List.Icon {...props} icon="book-open-variant" />}
                     right={(props) => <List.Icon {...props} icon="chevron-right" />}
                     onPress={navigateToMyCourses}
                 />
                 <Divider />
+              <List.Item
+                title="Mis Feedbacks"
+                description="Revisa los comentarios y sugerencias de tus docentes"
+                left={(props) => <List.Icon {...props} icon="comment" />}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={() => router.push("/(app)/my-feedbacks")} // Aquí agregamos la navegación
+              />
+                <Divider />
                 <List.Item
                     title="Editar perfil"
+                    description="Actualiza tu información personal"
                     left={(props) => <List.Icon {...props} icon="account-edit" />}
                     right={(props) => <List.Icon {...props} icon="chevron-right" />}
                     onPress={handleEditProfile}
                 />
                 <Divider />
-                <List.Item
-                    title="Cambiar contraseña"
-                    left={(props) => <List.Icon {...props} icon="lock-reset" />}
-                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                    onPress={() => Alert.alert("Información", "Funcionalidad en desarrollo")}
-                />
-                <Divider />
-                <List.Item
-                    title="Ajustes"
-                    left={(props) => <List.Icon {...props} icon="cog" />}
-                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                    onPress={() => Alert.alert("Información", "Funcionalidad en desarrollo")}
-                />
+                
+              <List.Item
+                title="Configurar notificaciones"
+                description="Personaliza tus preferencias de notificaciones"
+                left={(props) => <List.Icon {...props} icon="bell-outline" />}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={() => router.push("/(app)/notification-setting")}
+              />
               </List.Section>
             </Card.Content>
           </Card>
