@@ -287,41 +287,57 @@ export default function CourseDetailScreen() {
   );
 
   const renderStudentsTab = () => (
-    <ScrollView contentContainerStyle={{ padding: 16 }}>
-      {students.map((student) => (
-        <View
-          key={student.id}
-          style={{
-            flexDirection: "row",
-            alignItems: "center",
-            marginBottom: 12,
+  <ScrollView contentContainerStyle={{ padding: 16 }}>
+    {students.map((student) => (
+      <View
+        key={student.id}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginBottom: 12,
+        }}
+      >
+        <Image
+          source={{
+            uri: student.avatarUrl || "https://via.placeholder.com/40",
           }}
+          style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12 }}
+        />
+        <Text style={{ flex: 1 }}>{student.name}</Text>
+        <Button
+          mode="outlined"
+          onPress={() => setSelectedStudent(student)}
+          compact
         >
-          <Image
-            source={{
-              uri: student.avatarUrl || "https://via.placeholder.com/40",
-            }}
-            style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12 }}
-          />
-          <Text style={{ flex: 1 }}>{student.name}</Text>
-          <Button
-            mode="outlined"
-            onPress={() => setSelectedStudent(student)}
-            compact
-          >
-            Dar feedback
-          </Button>
-        </View>
-      ))}
-      {selectedStudent && (
+          Dar feedback
+        </Button>
+      </View>
+    ))}
+
+    {/* Aquí mostramos el formulario de feedback si hay un estudiante seleccionado */}
+    {selectedStudent && (
+      <View style={styles.feedbackFormContainer}>
+        {/* Botón de cierre fuera del formulario */}
+        <Button
+          mode="text"
+          onPress={() => setSelectedStudent(null)} // Cierra el formulario
+          style={styles.closeButton}
+        >
+          <Text style={styles.closeButtonText}>X</Text>
+        </Button>
+        
+        {/* Formulario de feedback */}
         <FeedbackForm
           studentId={selectedStudent.id}
           courseId={course.id}
           onFeedbackSubmitted={handleFeedbackSubmitted}
         />
-      )}
-    </ScrollView>
-  );
+      </View>
+    )}
+  </ScrollView>
+);
+
+
 
   return (
     <View style={styles.container}>
@@ -370,8 +386,10 @@ export default function CourseDetailScreen() {
   );
 }
 
+// Mantén el código que ya tienes, pero con ajustes visuales en la interfaz.
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: "#fff" },
+  // Ajustes visuales para una mejor apariencia
+  container: { flex: 1, backgroundColor: "#fff", paddingTop: 16 },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
@@ -385,7 +403,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
   },
-  courseImage: { width: "100%", height: 250 },
+  courseImage: { width: "100%", height: 250, marginBottom: 16 },
   contentContainer: { padding: 16, paddingBottom: 80 },
   title: { fontWeight: "bold", marginBottom: 12 },
   chipContainer: { flexDirection: "row", flexWrap: "wrap", marginBottom: 16 },
@@ -399,15 +417,6 @@ const styles = StyleSheet.create({
   enrolledButton: { backgroundColor: "#4caf50" },
   fullyBookedButton: { backgroundColor: "#9e9e9e" },
   backButton: { marginTop: 16 },
-  fabContainer: {
-    position: "absolute",
-    right: 16,
-    bottom: 16,
-    alignItems: "center",
-  },
-  fab: { marginBottom: 8, elevation: 4 },
-  fabEdit: { backgroundColor: "#6200ee" },
-  fabDelete: { backgroundColor: "#f44336" },
   tabHeader: {
     flexDirection: "row",
     justifyContent: "center",
@@ -417,9 +426,32 @@ const styles = StyleSheet.create({
   tabButton: {
     marginHorizontal: 8,
   },
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#fff",
-    paddingTop: Platform.OS === "android" ? StatusBar.currentHeight : undefined,
+  fabContainer: {
+    position: "absolute",
+    right: 16,
+    bottom: 16,
+    alignItems: "center",
+  },
+  fab: { marginBottom: 8, elevation: 4 },
+  fabEdit: { backgroundColor: "#6200ee" },
+  fabDelete: { backgroundColor: "#f44336" },
+ feedbackFormContainer: {
+    position: "relative",  // Permite la posición flotante del botón de cierre
+    marginTop: 16,
+    paddingBottom: 80,  // Espacio para que no se sobreponga el formulario
+  },
+  
+  // Aquí definimos la "X" fuera del formulario, pero flotante sobre la vista
+  closeButton: {
+    position: "absolute",
+    top: 16,  // Ajustamos para que esté un poco alejada de la parte superior
+    right: 16,  // Colocamos la "X" en la esquina superior derecha
+    backgroundColor: "transparent",
+    zIndex: 10,  // Asegura que el botón esté encima del formulario
+  },
+  closeButtonText: {
+    fontSize: 24,
+    color: "#6200ee",  // Puedes cambiar el color si lo prefieres
+    fontWeight: "bold",
   },
 });
