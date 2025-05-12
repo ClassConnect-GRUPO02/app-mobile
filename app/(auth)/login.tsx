@@ -26,12 +26,12 @@ export default function LoginScreen(): React.JSX.Element {
   useEffect(() => {
     const checkBiometricAvailability = async () => {
       const savedRefreshToken = await SecureStore.getItemAsync("refreshToken");
+      const hasHardware = await LocalAuthentication.hasHardwareAsync();
+      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
-      if (savedRefreshToken) {
+      if (savedRefreshToken && hasHardware && isEnrolled) {
         setCanUseBiometric(true);
       } else {
-        console.log(
-          "No hay un token de actualización guardado. La autenticación biométrica no está disponible.");
         setCanUseBiometric(false);
       }
     };
