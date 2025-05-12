@@ -1,6 +1,8 @@
-import { getItemAsync } from "expo-secure-store";
-import axios from "axios";
-import { Course } from "@/types/Course";
+import { getItemAsync } from "expo-secure-store"
+import axios from "axios"
+import {Course} from "@/types/Course";
+import { apiClient } from "./client";
+import { userApi } from "./userApi";
 
 import { getBaseUrlCourses } from './client';
 
@@ -311,5 +313,76 @@ export const courseClient = {
             console.error(`Error fetching favorite courses for student ${userId}:`, error);
             throw error;
         }
+    },
+
+    getStudentsInCourse: async (courseId: string) => {
+        try {
+          // Obtener las inscripciones para el curso (con los userIds)
+          const enrollmentResponse = await api.get(`/courses/${courseId}/enrollments`);
+          const enrollments = enrollmentResponse.data.data; // Esta es la lista de enrollments
+    
+          // Obtener los detalles de los estudiantes usando los userIds
+          const studentIds = enrollments.map((enrollment: { userId: string }) => enrollment.userId);
+    
+          // Si no hay estudiantes inscritos, retornar un array vacío
+          if (studentIds.length === 0) return [];
+    
+          // Obtener la información completa de los estudiantes
+          const students = []
+          for (const userId of studentIds) {
+            const userResponse = await userApi.getUserById(userId); // Utilizando el método getUserById
+            students.push(userResponse.user); // Agregamos al array de estudiantes
+          }
+    
+          return students; // Retornar la lista de estudiantes con los detalles completos
+        } catch (error) {
+          console.error("Error al obtener los estudiantes:", error);
+          throw new Error("No se pudieron obtener los estudiantes del curso");
+        }
+      },
+
+      addFeedbackToStudent: async (courseId: string, studentId: string, instructor_id: string, comment: string, punctuation: number) => {
+        console.log("Adding feedback to student:", {
+            courseId,
+            studentId,
+            instructor_id,
+            comment,
+            punctuation
+        });
+        return await api.post(`/courses/${courseId}/students/${studentId}/feedback`, {
+            instructor_id,
+            comment,
+            punctuation
+        })
+      },
+
+// En el archivo courseClient.ts
+
+getFeedbacksByStudentId: async (studentId: string) => {
+    try {
+
+
+        const response = await api.get(`/students/${studentId}/feedback`);
+        return response; // Retorna los feedbacks
+    } catch (error) {
+        console.error("Error fetching feedbacks:", error);
+        throw error;
     }
-}
+},
+
+
+    // Obtener el resumen de los feedbacks de un estudiante
+    getFeedbackSummaryByStudentId: async (studentId: string, token: string) => {
+        try {
+            const response = await api.get(`/students/${studentId}/feedback-summary`, {
+                headers: {
+                    Authorization: `Bearer ${token}`,
+                },
+            });
+            return response.data.summary; // Retorna el resumen
+        } catch (error) {
+            console.error("Error fetching feedback summary:", error);
+            throw error;
+        }
+    },
+    }

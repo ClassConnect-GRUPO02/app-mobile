@@ -37,6 +37,7 @@ export interface UserInfo {
   userType: string;
   latitude?: number;
   longitude?: number;
+  avatarUrl?: string;
 }
 
 export const userApi = {

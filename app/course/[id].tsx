@@ -1,4 +1,11 @@
-import { StyleSheet, View, ScrollView, Image, Alert } from "react-native";
+import {
+  StyleSheet,
+  View,
+  ScrollView,
+  Image,
+  Alert,
+  Dimensions,
+} from "react-native";
 import {
   Text,
   Button,
@@ -13,15 +20,16 @@ import { useLocalSearchParams, router } from "expo-router";
 import { courseClient } from "@/api/coursesClient";
 import { useState, useEffect } from "react";
 import type { Course } from "@/types/Course";
-import { StatusBar } from "expo-status-bar";
 import React from "react";
 import { userApi } from "@/api/userApi";
+import FeedbackForm from "../(courses)/feedback-form";
+import { Platform, SafeAreaView, StatusBar } from "react-native";
 import type { Module } from "@/types/Module"
 import { ModuleList } from "@/components/modules/ModuleList"
 import { ModuleForm } from "@/components/modules/ModuleForm"
 import AsyncStorage from "@react-native-async-storage/async-storage"
 import {moduleClient} from "@/api/modulesClient";
-
+  const [students, setStudents] = useState<any[]>([]);
 
 export default function CourseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -30,180 +38,125 @@ export default function CourseDetailScreen() {
   const [error, setError] = useState<string | null>(null);
   const [deleting, setDeleting] = useState(false);
   const [enrolling, setEnrolling] = useState(false);
-  const [instructorName, setInstructorName] =
-    useState<string>("No especificado");
-
+  const [instructorName, setInstructorName] = useState("No especificado");
   const [isEnrolled, setIsEnrolled] = useState(false);
   const [isInstructor, setIsInstructor] = useState(false);
   const [isCreator, setIsCreator] = useState(false);
   const [userType, setUserType] = useState<string | null>(null);
-
+  const [students, setStudents] = useState<any[]>([]);
+ const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+  const [isModalVisible, setIsModalVisible] = useState(false); // Estado para controlar el modal
+  const [activeTab, setActiveTab] = useState<"info" | "students" | "modules">("info");
   const [modules, setModules] = useState<Module[]>([])
   const [showModuleForm, setShowModuleForm] = useState(false)
   const [selectedModule, setSelectedModule] = useState<Module | null>(null)
-  const [activeTab, setActiveTab] = useState<"info" | "modules">("info")
-
-    // Load the active tab from AsyncStorage when the component mounts
   useEffect(() => {
-    const loadActiveTab = async () => {
-      try {
-        const savedTab = await AsyncStorage.getItem(`course_${id}_activeTab`)
-        if (savedTab === "modules" || savedTab === "info") {
-          setActiveTab(savedTab)
-        }
-      } catch (error) {
-        console.error("Error loading active tab:", error)
-      }
-    }
-
-    loadActiveTab()
-  }, [id])
-
-
-  // Save the active tab to AsyncStorage when it changes
-  useEffect(() => {
-    const saveActiveTab = async () => {
-      try {
-        await AsyncStorage.setItem(`course_${id}_activeTab`, activeTab)
-      } catch (error) {
-        console.error("Error saving active tab:", error)
-      }
-    }
-
-    saveActiveTab()
-  }, [activeTab, id])
-
-
-  useEffect(() => {
-    const fetchCourseAndUserStatus = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
-
-        // Obtener el ID del usuario actual
         const userId = await userApi.getUserId();
-        if (!userId) {
-          throw new Error("No se pudo obtener el ID del usuario");
-        }
-        console.log("el usuario es id", userId);
+        if (!userId) throw new Error("No se pudo obtener el ID del usuario");
 
-        // Obtener información del usuario
         const userInfo = await userApi.getUserById(userId);
         setUserType(userInfo?.user?.userType);
 
         const courseData = await courseClient.getCourseById(id);
-        if (!courseData) {
-          throw new Error("No se pudo cargar el curso");
+        if (!courseData) throw new Error("No se pudo cargar el curso");
+        setCourse(courseData);
 
-        }
-
-        // Obtener el nombre del creador desde la API de usuarios
         if (courseData.creatorId) {
           try {
-
-            const creatorInfo = await userApi.getUserById(courseData.creatorId)
+            const creatorInfo = await userApi.getUserById(courseData.creatorId);
             if (creatorInfo?.user?.name) {
-              setInstructorName(creatorInfo.user.name)
+              setInstructorName(creatorInfo.user.name);
             }
           } catch (error) {
-            console.error("Error al obtener información del creador:", error)
+            console.error("Error al obtener información del creador:", error);
           }
         }
 
-        setCourse(courseData)
+        setIsCreator(courseData.creatorId === userId);
 
-        // Verificar si el usuario es el creador del curso
-        setIsCreator(courseData.creatorId === userId)
+        const instructorStatus = await courseClient.isInstructorInCourse(
+          id,
+          userId
+        );
+        setIsInstructor(instructorStatus.isInstructor);
 
-        // Verificar si el usuario es instructor en el curso
-        const instructorStatus = await courseClient.isInstructorInCourse(id, userId)
-        setIsInstructor(instructorStatus)
+        const enrollmentStatus = await courseClient.isEnrolledInCourse(
+          id,
+          userId
+        );
+        setIsEnrolled(enrollmentStatus);
 
-        // Verificar si el usuario está inscrito en el curso
-        const enrollmentStatus = await courseClient.isEnrolledInCourse(id, userId)
-        setIsEnrolled(enrollmentStatus)
-
-        // Cargar los módulos del curso
-        const moduleData = await moduleClient.getModulesByCourseId(id)
-        setModules(moduleData)
+        if (instructorStatus.isInstructor) {
+          const studentList = await courseClient.getStudentsInCourse(id);
+          setStudents(studentList);
+        }
       } catch (err) {
-        console.error("Error al cargar el curso:", err)
-        setError("No se pudo cargar la información del curso")
+        console.error("Error al cargar el curso:", err);
+        setError("No se pudo cargar la información del curso");
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
+    };
 
-    if (id) {
-      fetchCourseAndUserStatus()
-    }
-  }, [id])
+    if (id) fetchData();
+  }, [id]);
 
   const handleDelete = () => {
     Alert.alert(
-        "Eliminar curso",
-        "¿Estás seguro de que deseas eliminar este curso? Esta acción no se puede deshacer.",
-        [
-          { text: "Cancelar", style: "cancel" },
-          {
-            text: "Eliminar",
-            style: "destructive",
-            onPress: async () => {
-              try {
-                setDeleting(true)
-                await courseClient.deleteCourse(id)
-                Alert.alert("Éxito", "El curso ha sido eliminado correctamente", [
-                  { text: "OK", onPress: () => router.replace("/(courses)") },
-                ])
-              } catch (error) {
-                console.error("Error al eliminar el curso:", error)
-                Alert.alert("Error", "No se pudo eliminar el curso. Inténtalo de nuevo.")
-                setDeleting(false)
-              }
-            },
+      "Eliminar curso",
+      "¿Estás seguro de que deseas eliminar este curso?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setDeleting(true);
+              await courseClient.deleteCourse(id);
+              Alert.alert("Éxito", "Curso eliminado", [
+                { text: "OK", onPress: () => router.replace("/(courses)") },
+              ]);
+            } catch (error) {
+              console.error("Error al eliminar el curso:", error);
+              Alert.alert("Error", "No se pudo eliminar el curso.");
+              setDeleting(false);
+            }
           },
-        ],
-    )
-  }
-
-  const handleEdit = () => {
-    router.push({
-      pathname: "/(courses)/edit",
-      params: { id: id },
-    });
+        },
+      ]
+    );
   };
+
+  const handleFeedbackSubmitted = () => setSelectedStudent(null);
+
+  const handleEdit = () =>
+    router.push({ pathname: "/(courses)/edit", params: { id } });
 
   const handleEnroll = async () => {
     try {
       setEnrolling(true);
       const userId = await userApi.getUserId();
-
       if (!userId) {
-        Alert.alert(
-          "Error",
-          "Debes iniciar sesión para inscribirte en un curso"
-        );
+        Alert.alert("Error", "Debes iniciar sesión para inscribirte");
         return;
       }
-
       await courseClient.enrollStudentInCourse(id, userId);
       setIsEnrolled(true);
-
-      // Actualizar el contador de inscritos en el curso
       if (course) {
-        setCourse({
-          ...course,
-          enrolled: course.enrolled + 1,
-        })
+        setCourse({ ...course, enrolled: course.enrolled + 1 });
       }
-
-      await userApi.notifyUser(userId, "Inscripción exitosa", `Te has inscrito en el curso ${course?.name}`)
+      Alert.alert("Éxito", "Inscripción exitosa");
     } catch (error) {
-      console.error("Error al inscribirse en el curso:", error)
-      Alert.alert("Error", "No se pudo completar la inscripción. Inténtalo de nuevo.")
+      console.error("Error al inscribirse:", error);
+      Alert.alert("Error", "No se pudo completar la inscripción.");
     } finally {
-      setEnrolling(false)
+      setEnrolling(false);
     }
-  }
+  };
 
   const handleAddModule = () => {
     setSelectedModule(null)
@@ -250,109 +203,40 @@ export default function CourseDetailScreen() {
     }
   }
 
+
   if (loading) {
     return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6200ee" />
-          <Text style={styles.loadingText}>Cargando curso...</Text>
-        </View>
-    )
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#6200ee" />
+        <Text style={styles.loadingText}>Cargando curso...</Text>
+      </View>
+    );
   }
 
   if (error || !course) {
     return (
-        <View style={styles.notFoundContainer}>
-          <Text variant="headlineMedium">Curso no encontrado</Text>
-          <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
-            Volver
-          </Button>
-        </View>
-    )
+      <View style={styles.notFoundContainer}>
+        <Text variant="headlineMedium">Curso no encontrado</Text>
+        <Button
+          mode="contained"
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          Volver
+        </Button>
+      </View>
+    );
   }
 
-  const availableSpots = course.capacity - course.enrolled
-  const isFullyBooked = availableSpots === 0
-  const isStudent = userType === "alumno"
+  const availableSpots = course.capacity - course.enrolled;
+  const isFullyBooked = availableSpots === 0;
+  const isStudent = userType === "alumno";
   const isTeacher = userType === "docente"
 
   const renderInfoTab = () => (
-      <>
-        <View style={styles.section}>
-          <Text variant="bodyLarge" style={styles.description}>
-            {course.description}
-          </Text>
-        </View>
-
-        <Divider style={styles.divider} />
-
-        <View style={styles.section}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Detalles del curso
-          </Text>
-
-          <List.Item
-              title="Fechas"
-              description={`${new Date(course.startDate).toLocaleDateString()} - ${new Date(course.endDate).toLocaleDateString()}`}
-              left={(props) => <List.Icon {...props} icon="calendar" />}
-          />
-
-          <List.Item
-              title="Instructor"
-              description={instructorName}
-              left={(props) => <List.Icon {...props} icon="account" />}
-          />
-
-          <List.Item
-              title="Capacidad"
-              description={`${course.enrolled} / ${course.capacity} estudiantes`}
-              left={(props) => <List.Icon {...props} icon="account-group" />}
-          />
-        </View>
-
-        {course.prerequisites.length > 0 && (
-            <>
-              <Divider style={styles.divider} />
-
-              <View style={styles.section}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                  Requisitos previos
-                </Text>
-                {course.prerequisites.map((prerequisite, index) => (
-                    <List.Item
-                        key={index}
-                        title={prerequisite}
-                        left={(props) => <List.Icon {...props} icon="check-circle" />}
-                    />
-                ))}
-              </View>
-            </>
-        )}
-      </>
-  )
-
-  const renderModulesTab = () => (
-      <View style={styles.modulesContainer}>
-        {isCreator && (
-            <Button mode="contained" icon="plus" onPress={handleAddModule} style={styles.addModuleButton}>
-              Agregar módulo
-            </Button>
-        )}
-
-        <ModuleList
-            courseId={id}
-            modules={modules}
-            isCreator={isCreator}
-            onModulePress={handleModulePress}
-            onEditModule={isCreator ? handleEditModule : undefined}
-            onDeleteModule={isCreator ? handleDeleteModule : undefined}
-        />
-      </View>
-  )
-
-  return (
       <View style={styles.container}>
         <ScrollView>
-          <StatusBar style="light" />
+          <StatusBar barStyle="light-content" />
 
           <Image
               source={{
@@ -493,7 +377,124 @@ export default function CourseDetailScreen() {
           />
         </Modal>
       </View>
-  )
+  );
+
+  const renderModulesTab = () => (
+      <View style={styles.modulesContainer}>
+        {isCreator && (
+            <Button mode="contained" icon="plus" onPress={handleAddModule} style={styles.addModuleButton}>
+              Agregar módulo
+            </Button>
+        )}
+
+        <ModuleList
+            courseId={id}
+            modules={modules}
+            isCreator={isCreator}
+            onModulePress={handleModulePress}
+            onEditModule={isCreator ? handleEditModule : undefined}
+            onDeleteModule={isCreator ? handleDeleteModule : undefined}
+        />
+      </View>
+  );
+
+
+  const renderStudentsTab = () => (
+  <ScrollView contentContainerStyle={{ padding: 16 }}>
+    {students.map((student) => (
+      <View
+        key={student.id}
+        style={{
+          flexDirection: "row",
+          alignItems: "center",
+          marginBottom: 12,
+        }}
+      >
+        <Image
+          source={{
+            uri: student.avatarUrl || "https://via.placeholder.com/40",
+          }}
+          style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12 }}
+        />
+        <Text style={{ flex: 1 }}>{student.name}</Text>
+        <Button
+          mode="outlined"
+          onPress={() => setSelectedStudent(student)}
+          compact
+        >
+          Dar feedback
+        </Button>
+      </View>
+    ))}
+
+    {/* Aquí mostramos el formulario de feedback si hay un estudiante seleccionado */}
+    {selectedStudent && (
+      <View style={styles.feedbackFormContainer}>
+        {/* Botón de cierre fuera del formulario */}
+        <Button
+          mode="text"
+          onPress={() => setSelectedStudent(null)} // Cierra el formulario
+          style={styles.closeButton}
+        >
+          <Text style={styles.closeButtonText}>X</Text>
+        </Button>
+        
+        {/* Formulario de feedback */}
+        <FeedbackForm
+          studentId={selectedStudent.id}
+          courseId={course.id}
+          onFeedbackSubmitted={handleFeedbackSubmitted}
+        />
+      </View>
+    )}
+  </ScrollView>
+  );
+
+  return (
+    <View style={styles.container}>
+      <View style={styles.tabHeader}>
+        <Button
+          mode={activeTab === "info" ? "contained" : "outlined"}
+          onPress={() => setActiveTab("info")}
+          style={styles.tabButton}
+        >
+          Información
+        </Button>
+        {isInstructor && (
+          <Button
+            mode={activeTab === "students" ? "contained" : "outlined"}
+            onPress={() => setActiveTab("students")}
+            style={styles.tabButton}
+          >
+            Alumnos
+          </Button>
+        )}
+      </View>
+
+      {activeTab === "info" ? renderInfoTab() : renderStudentsTab()}
+
+      {isCreator && activeTab === "info" && (
+        <View style={styles.fabContainer}>
+          <FAB
+            icon="delete"
+            style={[styles.fab, styles.fabDelete]}
+            onPress={handleDelete}
+            color="#fff"
+            small
+            loading={deleting}
+            disabled={deleting}
+          />
+          <FAB
+            icon="pencil"
+            style={[styles.fab, styles.fabEdit]}
+            onPress={handleEdit}
+            color="#fff"
+            small
+          />
+        </View>
+      )}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -606,4 +607,33 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: "#6200ee",
   },
+   feedbackFormContainer: {
+    position: "relative",  // Permite la posición flotante del botón de cierre
+    marginTop: 16,
+    paddingBottom: 80,  // Espacio para que no se sobreponga el formulario
+  },
+  
+  // Aquí definimos la "X" fuera del formulario, pero flotante sobre la vista
+  closeButton: {
+    position: "absolute",
+    top: 16,  // Ajustamos para que esté un poco alejada de la parte superior
+    right: 16,  // Colocamos la "X" en la esquina superior derecha
+    backgroundColor: "transparent",
+    zIndex: 10,  // Asegura que el botón esté encima del formulario
+  },
+  closeButtonText: {
+    fontSize: 24,
+    color: "#6200ee",  // Puedes cambiar el color si lo prefieres
+    fontWeight: "bold",
+  },
+  tabHeader: {
+    flexDirection: "row",
+    justifyContent: "center",
+    backgroundColor: "#f5f5f5",
+    paddingVertical: 8,
+  },
 });
+
+function setSelectedStudent(student: any): void {
+  throw new Error("Function not implemented.");
+}
