@@ -2,15 +2,9 @@ import { getItemAsync } from "expo-secure-store";
 import axios from "axios";
 import { Course } from "@/types/Course";
 
-// Configura la URL base de la API
-// En desarrollo con Expo, puedes usar la IP de tu máquina en lugar de localhost
-const getBaseUrl = (): string => {
-  //const LOCAL_IP = "localhost";
-  const LOCAL_IP = "35.223.247.76";
-  return `http://${LOCAL_IP}:3000`;
-};
+import { getBaseUrlCourses } from './client';
 
-const API_URL = getBaseUrl();
+const API_URL = getBaseUrlCourses()
 
 // Crea una instancia de axios con la configuración base
 const api = axios.create({
@@ -94,21 +88,16 @@ export const courseClient = {
     }
   },
 
-  // Verificar si un usuario es instructor en un curso
-  isInstructorInCourse: async (courseId: string, userId: string) => {
-    try {
-      const response = await api.get(
-        `/courses/${courseId}/instructors/${userId}`
-      );
-      return response.data;
-    } catch (error) {
-      console.error(
-        `Error checking instructor status for user ${userId} in course ${courseId}:`,
-        error
-      );
-      throw error;
-    }
-  },
+    // Verificar si un usuario es instructor en un curso
+    isInstructorInCourse: async (courseId: string, userId: string) => {
+        try {
+            const response = await api.get(`/courses/${courseId}/instructors/${userId}`)
+            return response.data.isInstructor
+        } catch (error) {
+            console.error(`Error checking instructor status for user ${userId} in course ${courseId}:`, error)
+            throw error
+        }
+    },
 
   // Inscribir a un estudiante en un curso
   enrollStudentInCourse: async (courseId: string, userId: string) => {
@@ -274,4 +263,53 @@ export const courseClient = {
       throw error;
     }
   },
-};
+
+    // Agregar curso a favoritos del usuario (UserId es el id del estudiante)
+    addFavorite: async (userId: string, courseId: string) => {
+        try {
+            const response = await api.post(`/students/${userId}/favorite-courses/${courseId}`);
+            return response.data;
+        } catch (error) {
+            //console.error(`Error adding favorite course ${courseId} for student ${userId}:`, error);
+            //throw error;
+        }
+    },
+
+    // Eliminar curso de favoritos del usuario (UserId es el id del estudiante)
+    removeFavorite: async (userId: string, courseId: string) => {
+        try {
+            const response = await api.delete(`/students/${userId}/favorite-courses/${courseId}`);
+            return response.data;
+        } catch (error) {
+            console.error(`Error removing favorite course ${courseId} for student ${userId}:`, error);
+            throw error;
+        }
+    },
+
+    // Verificar si un curso es favorito del usuario (UserId es el id del estudiante)
+    checkIfFavorite: async (userId: string, courseId: string) => {
+        try {
+            const response = await api.get(`/students/${userId}/favorite-courses/${courseId}`);
+            return !!response.data.data;
+        } catch (error) {
+            console.error(`Error checking favorite status for course ${courseId} for student ${userId}:`, error);
+            return false;
+        }
+    },
+
+    // Obtener ids de los cursos favoritos del usuario (UserId es el id del estudiante)
+    getFavoriteCourses: async (userId: string) => {
+        try {
+            const response = await api.get(`/students/${userId}/favorite-courses`);
+            const favorites_courses_ids: string[] = [];
+            for (const favoriteCourse of response.data.data) {
+                favorites_courses_ids.push(favoriteCourse.course_id);
+            }
+            console.log("Favoritos del estudiante:", favorites_courses_ids);
+            return favorites_courses_ids;
+        } catch (error) {
+            console.error(`Error fetching favorite courses for student ${userId}:`, error);
+            throw error;
+        }
+    }
+}
