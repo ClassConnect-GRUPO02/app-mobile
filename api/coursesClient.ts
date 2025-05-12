@@ -238,7 +238,7 @@ export const courseClient = {
       },
 
       addFeedbackToStudent: async (courseId: string, studentId: string, instructorId: string, comment: string, punctuation: number) => {
-        await api.post(`/courses/${courseId}/feedback`, {
+        return await api.post(`/courses/${courseId}/feedback`, {
             studentId,
             instructorId,
             comment,

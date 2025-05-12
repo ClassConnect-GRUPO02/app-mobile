@@ -29,27 +29,49 @@ const FeedbackForm = ({
     }
 
     try {
-      setLoading(true);
-      const instructorId = await userApi.getUserId();
-      if (!instructorId) {
-        Alert.alert("Error", "No se pudo obtener el ID del docente");
-        return;
-      }
+  setLoading(true);
+  const instructorId = await userApi.getUserId();
+  if (!instructorId) {
+    Alert.alert("Error", "No se pudo obtener el ID del docente");
+    return;
+  }
 
-      await courseClient.addFeedbackToStudent(
-        courseId,
-        studentId,
-        instructorId,
-        comment,
-        score
-      );
-      setSuccessMessage("Feedback enviado exitosamente.");
-      onFeedbackSubmitted(); // Callback para actualizar la UI
-    } catch (error) {
-      setErrorMessage("Ocurrió un error al enviar el feedback.");
-    } finally {
-      setLoading(false);
+  await courseClient.addFeedbackToStudent(
+    courseId,
+    studentId,
+    instructorId,
+    comment,
+    score
+  );
+
+  setSuccessMessage("Feedback enviado exitosamente.");
+  onFeedbackSubmitted(); // Callback para actualizar la UI
+} catch (err: any) {
+  console.log("Error completo:", err);
+
+  if (err.response) {
+    console.log("Status:", err.response.status);
+    console.log("Data:", err.response.data);
+
+    const detail = err.response.data?.detail;
+
+    if (err.response.status === 400 && detail?.includes("Feedback already exists")) {
+      setErrorMessage("Ya has enviado un feedback para este curso.");
+    } else if (detail) {
+      setErrorMessage(detail);
+    } else {
+      setErrorMessage("Error inesperado en la respuesta del servidor.");
     }
+  } else {
+    console.log("No hay response en el error.");
+    setErrorMessage("Ocurrió un error al comunicarse con el servidor.");
+  }
+}
+
+ finally {
+  setLoading(false);
+}
+
   };
 
   return (
