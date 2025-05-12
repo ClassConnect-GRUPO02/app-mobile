@@ -18,7 +18,7 @@ interface Feedback {
   courseName: string;
   feedbackText: string;
   feedbackType: string;
-  date: string;
+  punctuation: number;
 }
 
 export default function MyFeedbacksScreen() {
@@ -46,16 +46,36 @@ export default function MyFeedbacksScreen() {
       }
 
       try {
-        // Llamar al API para obtener los feedbacks
-        const feedbackData = await courseClient.getFeedbacksByStudentId(
-          studentId,
-          token
-        );
-        setFeedbacks(feedbackData);
+  const feedbackData = await courseClient.getFeedbacksByStudentId(studentId);
+  const rawFeedbacks = feedbackData?.data?.data ?? [];
 
-        // Filtrar los feedbacks por los filtros seleccionados
-        filterFeedbacks(feedbackData);
-      } catch (error) {
+  console.log("Feedbacks obtenidos:", rawFeedbacks);
+
+  // Obtener los nombres de cursos en paralelo
+  const transformed = await Promise.all(
+    rawFeedbacks.map(async (f: any) => {
+      let courseName = f.course_id; // Fallback por si falla la petición
+      try {
+        const courseRes = await courseClient.getCourseById(f.course_id);
+        console.log("Curso obtenido:", courseRes);
+        courseName = courseRes?.name ?? f.course_id;
+      } catch (err) {
+        console.warn("No se pudo obtener el nombre del curso:", f.course_id);
+      }
+
+      return {
+        id: f.id,
+        courseName,
+        feedbackText: f.comment,
+        feedbackType: String(f.punctuation),
+        punctuation: f.punctuation,
+      };
+    })
+  );
+
+  setFeedbacks(transformed);
+  filterFeedbacks(transformed);
+} catch (error) {
         console.error("Error al cargar feedbacks:", error);
         setError("No pudimos cargar tus feedbacks. Verifica tu conexión.");
       } finally {
@@ -153,7 +173,7 @@ export default function MyFeedbacksScreen() {
                 <Title style={styles.feedbackTitle}>
                   {feedback.courseName}
                 </Title>
-                <Text style={styles.feedbackDate}>{feedback.date}</Text>
+                <Text style={styles.feedbackDate}>{feedback.punctuation}</Text>
                 <Text style={styles.feedbackText}>{feedback.feedbackText}</Text>
               </Card.Content>
             </Card>

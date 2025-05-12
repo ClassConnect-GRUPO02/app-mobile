@@ -30,8 +30,8 @@ const FeedbackForm = ({
 
     try {
       setLoading(true);
-      const instructorId = await userApi.getUserId();
-      if (!instructorId) {
+      const instructor_id = await userApi.getUserId();
+      if (!instructor_id) {
         Alert.alert("Error", "No se pudo obtener el ID del docente");
         return;
       }
@@ -39,7 +39,7 @@ const FeedbackForm = ({
       await courseClient.addFeedbackToStudent(
         courseId,
         studentId,
-        instructorId,
+        instructor_id,
         comment,
         score
       );

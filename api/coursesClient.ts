@@ -237,10 +237,16 @@ export const courseClient = {
         }
       },
 
-      addFeedbackToStudent: async (courseId: string, studentId: string, instructorId: string, comment: string, punctuation: number) => {
-        return await api.post(`/courses/${courseId}/feedback`, {
+      addFeedbackToStudent: async (courseId: string, studentId: string, instructor_id: string, comment: string, punctuation: number) => {
+        console.log("Adding feedback to student:", {
+            courseId,
             studentId,
-            instructorId,
+            instructor_id,
+            comment,
+            punctuation
+        });
+        return await api.post(`/courses/${courseId}/students/${studentId}/feedback`, {
+            instructor_id,
             comment,
             punctuation
         })
@@ -248,20 +254,12 @@ export const courseClient = {
 
 // En el archivo courseClient.ts
 
-getFeedbacksByStudentId: async (studentId: string, token: string, filterCourse?: string, filterType?: string) => {
+getFeedbacksByStudentId: async (studentId: string) => {
     try {
-        // Crear un objeto de parámetros
-        const params: any = {};
-        if (filterCourse) params.course = filterCourse;
-        if (filterType) params.type = filterType;
 
-        const response = await api.get(`/students/${studentId}/feedback`, {
-            headers: {
-                Authorization: `Bearer ${token}`,
-            },
-            params,  // Pasamos los filtros como parámetros de la consulta
-        });
-        return response.data.data; // Retorna los feedbacks
+
+        const response = await api.get(`/students/${studentId}/feedback`);
+        return response; // Retorna los feedbacks
     } catch (error) {
         console.error("Error fetching feedbacks:", error);
         throw error;
