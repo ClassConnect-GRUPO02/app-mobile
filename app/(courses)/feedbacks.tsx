@@ -1,7 +1,15 @@
 import { View, FlatList, StyleSheet } from "react-native";
 import { useLocalSearchParams } from "expo-router";
 import { useState, useEffect } from "react";
-import { Text, ActivityIndicator, Button, Chip, Divider, Card, Title } from "react-native-paper";
+import {
+  Text,
+  ActivityIndicator,
+  Button,
+  Chip,
+  Divider,
+  Card,
+  Title,
+} from "react-native-paper";
 import { courseClient } from "@/api/coursesClient"; // API actualizada
 import React from "react";
 import { useTheme } from "react-native-paper";
@@ -13,6 +21,8 @@ export default function CourseFeedbackScreen() {
   const [filter, setFilter] = useState<string | null>(null);
   const [page, setPage] = useState(1);
   const [summary, setSummary] = useState<string | null>(null);
+  const [showSummary, setShowSummary] = useState(true);
+
   const theme = useTheme();
 
   useEffect(() => {
@@ -46,7 +56,8 @@ export default function CourseFeedbackScreen() {
   const handleSummarize = async () => {
     try {
       const res = await courseClient.getCourseFeedbackSummary(id); // API ajustada
-      setSummary(res.summary);
+      console.log("Resumen generado:", res);
+      setSummary(res);
     } catch (err) {
       console.error("Error generando resumen:", err);
     }
@@ -64,9 +75,21 @@ export default function CourseFeedbackScreen() {
 
           {/* Filtros */}
           <View style={styles.filterContainer}>
-            <Chip onPress={() => setFilter(null)} selected={!filter}>Todos</Chip>
-            <Chip onPress={() => setFilter("positivo")} selected={filter === "positivo"}>Positivos</Chip>
-            <Chip onPress={() => setFilter("negativo")} selected={filter === "negativo"}>Negativos</Chip>
+            <Chip onPress={() => setFilter(null)} selected={!filter}>
+              Todos
+            </Chip>
+            <Chip
+              onPress={() => setFilter("positivo")}
+              selected={filter === "positivo"}
+            >
+              Positivos
+            </Chip>
+            <Chip
+              onPress={() => setFilter("negativo")}
+              selected={filter === "negativo"}
+            >
+              Negativos
+            </Chip>
           </View>
 
           <FlatList
@@ -77,7 +100,9 @@ export default function CourseFeedbackScreen() {
               <Card style={styles.feedbackCard}>
                 <Card.Content>
                   <Text style={styles.comment}>{item.comment}</Text>
-                  <Text style={styles.rating}>Puntuación: {item.punctuation}/5</Text>
+                  <Text style={styles.rating}>
+                    Puntuación: {item.punctuation}/5
+                  </Text>
                 </Card.Content>
               </Card>
             )}
@@ -85,20 +110,37 @@ export default function CourseFeedbackScreen() {
 
           {/* Paginación simple */}
           <View style={styles.paginationContainer}>
-            <Button disabled={page <= 1} onPress={() => setPage(page - 1)}>Anterior</Button>
+            <Button disabled={page <= 1} onPress={() => setPage(page - 1)}>
+              Anterior
+            </Button>
             <Button onPress={() => setPage(page + 1)}>Siguiente</Button>
           </View>
 
           {/* Botón para generar resumen */}
-          <Button mode="contained" style={styles.summarizeButton} onPress={handleSummarize}>
+          <Button
+            mode="contained"
+            style={styles.summarizeButton}
+            onPress={handleSummarize}
+          >
             Generar resumen por IA
           </Button>
 
           {/* Resumen generado */}
           {summary && (
             <View style={styles.summaryContainer}>
-              <Text variant="titleMedium">Resumen generado:</Text>
-              <Text>{summary}</Text>
+              <Button
+                onPress={() => setShowSummary(!showSummary)}
+                icon={showSummary ? "chevron-down" : "chevron-up"}
+                mode="text"
+              >
+                {showSummary ? "Ocultar resumen" : "Mostrar resumen"}
+              </Button>
+              {showSummary && (
+                <>
+                  <Text variant="titleMedium">Resumen generado:</Text>
+                  <Text>{summary}</Text>
+                </>
+              )}
             </View>
           )}
         </View>
