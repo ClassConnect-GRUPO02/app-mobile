@@ -62,9 +62,9 @@ export default function NotificationSettingsScreen() {
 
         // Cargar configuraciones desde la API
         const notificationSettings = await userApi.getNotificationSettings(userId)
-        if (notificationSettings && notificationSettings.settings) {
+        if (notificationSettings) {
           console.log("Configuraciones de notificaciones:", notificationSettings.settings)
-          setSettings(notificationSettings.settings)
+          setSettings(notificationSettings)
         } else {
           // Usar configuraciones predeterminadas si no hay datos
           const defaultSettings = response.user.userType === "alumno" 
