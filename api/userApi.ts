@@ -43,7 +43,7 @@ export interface UserInfo {
 export const userApi = {
   // Registro de un nuevo usuario
   async register(userData: UserRegisterData): Promise<RegisterResponse> {
-    return apiClient.postSinHeaders<RegisterResponse>('/users', userData);
+    return apiClient.postWithoutAuth<RegisterResponse>('/users', userData);
 
   },
 
@@ -116,7 +116,7 @@ export const userApi = {
   },
    async verifyPin(pin: number, email: string): Promise<{ success: boolean; description: string }> {
     try {
-      const response = await apiClient.postSinHeaders<{ success: boolean; description: string }>('/users/verify', {
+      const response = await apiClient.postWithoutAuth<{ success: boolean; description: string }>('/users/verify', {
         email,
         pin,
       });
@@ -130,7 +130,7 @@ export const userApi = {
   // Solicitar un nuevo PIN
   async requestNewPin(email: string): Promise<{ success: boolean; message?: string }> {
     try {
-      const response = await apiClient.postSinHeaders<{ success: boolean; message?: string }>('/users/request-new-pin', {
+      const response = await apiClient.postWithoutAuth<{ success: boolean; message?: string }>('/users/request-new-pin', {
         email,
       });
       return response;
