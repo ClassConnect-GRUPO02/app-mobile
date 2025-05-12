@@ -115,6 +115,34 @@ export const userApi = {
     return apiClient.put<{ description: string }>(`/user/${id}`, userData);
   },
 
+   async verifyPin(pin: number, email: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await apiClient.postSinHeaders<{ success: boolean; message?: string }>('/users/verify', {
+        email,
+        pin,
+      });
+      return response;
+    } catch (error) {
+      console.error('Error al verificar el PIN:', error);
+      throw error;
+    }
+  },
+
+  // Solicitar un nuevo PIN
+  async requestNewPin(email: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await apiClient.postSinHeaders<{ success: boolean; message?: string }>('/users/request-new-pin', {
+        email,
+      });
+      return response;
+    } catch (error) {
+      console.error('Error al solicitar un nuevo PIN:', error);
+      throw error;
+    }
+  },
+};
+
+
   async refreshToken(refreshToken: string): Promise<LoginResponse> {
     try {
       const response = await apiClient.post<LoginResponse>('/biometric-login', { refreshToken });
@@ -180,4 +208,3 @@ async notifyUser(
   });
 }
 }
-

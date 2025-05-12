@@ -32,6 +32,7 @@ import {moduleClient} from "@/api/modulesClient";
   const [students, setStudents] = useState<any[]>([]);
 
 export default function CourseDetailScreen() {
+
   const { id } = useLocalSearchParams<{ id: string }>();
   const [course, setCourse] = useState<Course | null>(null);
   const [loading, setLoading] = useState(true);
