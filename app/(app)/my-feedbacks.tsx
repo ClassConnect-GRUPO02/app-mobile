@@ -30,6 +30,8 @@ export default function MyFeedbacksScreen() {
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCourse, setSelectedCourse] = useState<string | null>(null);
   const [selectedScore, setSelectedScore] = useState<number | null>(null);
+  const [summary, setSummary] = useState<string | null>(null);
+  const [showSummary, setShowSummary] = useState(true);
 
   const theme = useTheme();
 
@@ -46,36 +48,41 @@ export default function MyFeedbacksScreen() {
       }
 
       try {
-  const feedbackData = await courseClient.getFeedbacksByStudentId(studentId);
-  const rawFeedbacks = feedbackData?.data?.data ?? [];
+        const feedbackData = await courseClient.getFeedbacksByStudentId(
+          studentId
+        );
+        const rawFeedbacks = feedbackData?.data?.data ?? [];
 
-  console.log("Feedbacks obtenidos:", rawFeedbacks);
+        console.log("Feedbacks obtenidos:", rawFeedbacks);
 
-  // Obtener los nombres de cursos en paralelo
-  const transformed = await Promise.all(
-    rawFeedbacks.map(async (f: any) => {
-      let courseName = f.course_id; // Fallback por si falla la petición
-      try {
-        const courseRes = await courseClient.getCourseById(f.course_id);
-        console.log("Curso obtenido:", courseRes);
-        courseName = courseRes?.name ?? f.course_id;
-      } catch (err) {
-        console.warn("No se pudo obtener el nombre del curso:", f.course_id);
-      }
+        // Obtener los nombres de cursos en paralelo
+        const transformed = await Promise.all(
+          rawFeedbacks.map(async (f: any) => {
+            let courseName = f.course_id; // Fallback por si falla la petición
+            try {
+              const courseRes = await courseClient.getCourseById(f.course_id);
+              console.log("Curso obtenido:", courseRes);
+              courseName = courseRes?.name ?? f.course_id;
+            } catch (err) {
+              console.warn(
+                "No se pudo obtener el nombre del curso:",
+                f.course_id
+              );
+            }
 
-      return {
-        id: f.id,
-        courseName,
-        feedbackText: f.comment,
-        feedbackType: String(f.punctuation),
-        punctuation: f.punctuation,
-      };
-    })
-  );
+            return {
+              id: f.id,
+              courseName,
+              feedbackText: f.comment,
+              feedbackType: String(f.punctuation),
+              punctuation: f.punctuation,
+            };
+          })
+        );
 
-  setFeedbacks(transformed);
-  filterFeedbacks(transformed);
-} catch (error) {
+        setFeedbacks(transformed);
+        filterFeedbacks(transformed);
+      } catch (error) {
         console.error("Error al cargar feedbacks:", error);
         setError("No pudimos cargar tus feedbacks. Verifica tu conexión.");
       } finally {
@@ -124,6 +131,20 @@ export default function MyFeedbacksScreen() {
   const handlePrevPage = () => {
     if (page > 1) {
       setPage(page - 1);
+    }
+  };
+
+  const handleSummarize = async () => {
+    try {
+      const studentId = await getItemAsync("userId");
+      if (!studentId) {
+        throw new Error("Student ID is null or undefined.");
+      }
+      const res = await courseClient.getFeedbackSummaryByStudentId(studentId); // <-- Ajusta esto a tu API real
+      console.log("Resumen generado:", res);
+      setSummary(res);
+    } catch (err) {
+      console.error("Error generando resumen:", err);
     }
   };
 
@@ -197,6 +218,34 @@ export default function MyFeedbacksScreen() {
             Siguiente
           </Button>
         </View>
+
+        <View style={styles.summaryContainer}>
+          <Button
+            mode="contained"
+            onPress={handleSummarize}
+            style={styles.summaryButton}
+          >
+            Generar resumen por IA
+          </Button>
+
+          {summary && (
+            <View style={{ marginTop: 10 }}>
+              <Button
+                onPress={() => setShowSummary(!showSummary)}
+                icon={showSummary ? "chevron-down" : "chevron-up"}
+                mode="text"
+              >
+                {showSummary ? "Ocultar resumen" : "Mostrar resumen"}
+              </Button>
+              {showSummary && (
+                <>
+                  <Text variant="titleMedium">Resumen generado:</Text>
+                  <Text>{summary}</Text>
+                </>
+              )}
+            </View>
+          )}
+        </View>
       </ScrollView>
     </View>
   );
@@ -267,4 +316,15 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
+  summaryContainer: {
+  marginHorizontal: 15,
+  marginBottom: 30,
+  marginTop: 20,
+  flex: 1,
+  justifyContent: "flex-end",
+},
+summaryButton: {
+  width: "100%",
+},
+
 });

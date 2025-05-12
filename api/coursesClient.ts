@@ -372,13 +372,9 @@ getFeedbacksByStudentId: async (studentId: string) => {
 
 
     // Obtener el resumen de los feedbacks de un estudiante
-    getFeedbackSummaryByStudentId: async (studentId: string, token: string) => {
+    getFeedbackSummaryByStudentId: async (studentId: string) => {
         try {
-            const response = await api.get(`/students/${studentId}/feedback-summary`, {
-                headers: {
-                    Authorization: `Bearer ${token}`,
-                },
-            });
+            const response = await api.get(`/students/${studentId}/feedback-summary`);
             return response.data.summary; // Retorna el resumen
         } catch (error) {
             console.error("Error fetching feedback summary:", error);

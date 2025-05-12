@@ -277,8 +277,6 @@ export default function CourseDetailScreen() {
 
             <Divider style={styles.divider} />
 
-            {activeTab === "info" ? renderInfoTab() : renderModulesTab()}
-
             <View style={styles.actionContainer}>
               {/* Mostrar botón de inscripción solo para estudiantes que no sean instructores y no estén inscritos */}
                           {isStudent &&
@@ -450,51 +448,61 @@ export default function CourseDetailScreen() {
   </ScrollView>
   );
 
-  return (
-    <View style={styles.container}>
-      <View style={styles.tabHeader}>
+return (
+  <View style={styles.container}>
+    <View style={styles.tabHeader}>
+      <Button
+        mode={activeTab === "info" ? "contained" : "outlined"}
+        onPress={() => setActiveTab("info")}
+        style={styles.tabButton}
+      >
+        Información
+      </Button>
+      <Button
+        mode={activeTab === "modules" ? "contained" : "outlined"}
+        onPress={() => setActiveTab("modules")}
+        style={styles.tabButton}
+      >
+        Módulos
+      </Button>
+      {isInstructor && (
         <Button
-          mode={activeTab === "info" ? "contained" : "outlined"}
-          onPress={() => setActiveTab("info")}
+          mode={activeTab === "students" ? "contained" : "outlined"}
+          onPress={() => setActiveTab("students")}
           style={styles.tabButton}
         >
-          Información
+          Alumnos
         </Button>
-        {isInstructor && (
-          <Button
-            mode={activeTab === "students" ? "contained" : "outlined"}
-            onPress={() => setActiveTab("students")}
-            style={styles.tabButton}
-          >
-            Alumnos
-          </Button>
-        )}
-      </View>
-
-      {activeTab === "info" ? renderInfoTab() : renderStudentsTab()}
-
-      {isCreator && activeTab === "info" && (
-        <View style={styles.fabContainer}>
-          <FAB
-            icon="delete"
-            style={[styles.fab, styles.fabDelete]}
-            onPress={handleDelete}
-            color="#fff"
-            small
-            loading={deleting}
-            disabled={deleting}
-          />
-          <FAB
-            icon="pencil"
-            style={[styles.fab, styles.fabEdit]}
-            onPress={handleEdit}
-            color="#fff"
-            small
-          />
-        </View>
       )}
     </View>
-  );
+
+    {activeTab === "info" && renderInfoTab()}
+    {activeTab === "modules" && renderModulesTab()}
+    {activeTab === "students" && renderStudentsTab()}
+
+    {isCreator && activeTab === "info" && (
+      <View style={styles.fabContainer}>
+        <FAB
+          icon="delete"
+          style={[styles.fab, styles.fabDelete]}
+          onPress={handleDelete}
+          color="#fff"
+          small
+          loading={deleting}
+          disabled={deleting}
+        />
+        <FAB
+          icon="pencil"
+          style={[styles.fab, styles.fabEdit]}
+          onPress={handleEdit}
+          color="#fff"
+          small
+        />
+      </View>
+    )}
+  </View>
+);
+
 }
 
 const styles = StyleSheet.create({
