@@ -142,7 +142,7 @@ export default function ProfileScreen() {
   };
 
   const navigateToMyCourses = () => {
-    router.push("/(app)/my-courses")
+    router.push("./(app)/my-courses")
   }
 
   if (loading) {
@@ -234,7 +234,7 @@ export default function ProfileScreen() {
                 <List.Item
                     title="Mis Cursos"
                     description={
-                      profile?.userType === "alumno" ? "Cursos en los que estás inscrito" : "Cursos que has creado"
+                      profile?.userType === "alumno" ? "Cursos en los que estás inscripto" : "Cursos que has creado"
                     }
                     left={(props) => <List.Icon {...props} icon="book-open-variant" />}
                     right={(props) => <List.Icon {...props} icon="chevron-right" />}
@@ -243,24 +243,20 @@ export default function ProfileScreen() {
                 <Divider />
                 <List.Item
                     title="Editar perfil"
+                    description="Actualiza tu información personal"
                     left={(props) => <List.Icon {...props} icon="account-edit" />}
                     right={(props) => <List.Icon {...props} icon="chevron-right" />}
                     onPress={handleEditProfile}
                 />
                 <Divider />
-                <List.Item
-                    title="Cambiar contraseña"
-                    left={(props) => <List.Icon {...props} icon="lock-reset" />}
-                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                    onPress={() => Alert.alert("Información", "Funcionalidad en desarrollo")}
-                />
-                <Divider />
-                <List.Item
-                    title="Ajustes"
-                    left={(props) => <List.Icon {...props} icon="cog" />}
-                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                    onPress={() => Alert.alert("Información", "Funcionalidad en desarrollo")}
-                />
+                
+              <List.Item
+                title="Configurar notificaciones"
+                description="Personaliza tus preferencias de notificaciones"
+                left={(props) => <List.Icon {...props} icon="bell-outline" />}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={() => router.push("/(app)/notification-setting")}
+              />
               </List.Section>
             </Card.Content>
           </Card>

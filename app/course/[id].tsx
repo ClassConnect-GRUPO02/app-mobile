@@ -76,10 +76,12 @@ export default function CourseDetailScreen() {
         const userInfo = await userApi.getUserById(userId)
         setUserType(userInfo?.user?.userType || null)
 
+
         // Obtener el curso
         const courseData = await courseClient.getCourseById(id)
         if (!courseData) {
           throw new Error("No se pudo cargar el curso")
+
         }
 
         // Obtener el nombre del creador desde la API de usuarios
@@ -178,7 +180,7 @@ export default function CourseDetailScreen() {
         })
       }
 
-      Alert.alert("Éxito", "Te has inscrito correctamente en el curso")
+      await userApi.notifyUser(userId, "Inscripción exitosa", `Te has inscrito en el curso ${course?.name}`)
     } catch (error) {
       console.error("Error al inscribirse en el curso:", error)
       Alert.alert("Error", "No se pudo completar la inscripción. Inténtalo de nuevo.")
