@@ -170,11 +170,13 @@ export const userApi = {
 async notifyUser(
   userId: string,
   title: string,
-  body: string
+  body: string,
+  notificationType: string
 ): Promise<{ description: string }> {
   return apiClient.post<{ description: string }>(`/users/${userId}/notifications`, {
     title,
     body,
+    notificationType,
   });
 }
 }

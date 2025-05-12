@@ -149,7 +149,7 @@ export default function CourseDetailScreen() {
       if (course) {
         setCourse({ ...course, enrolled: course.enrolled + 1 });
       }
-      Alert.alert("Éxito", "Inscripción exitosa");
+      await userApi.notifyUser(userId, "Inscripción exitosa", `Te has inscrito en el curso ${course?.name}`, "courseEnrollment");
     } catch (error) {
       console.error("Error al inscribirse:", error);
       Alert.alert("Error", "No se pudo completar la inscripción.");
@@ -296,7 +296,7 @@ export default function CourseDetailScreen() {
                     onPress={() =>
                       router.push({
                         pathname: "/(courses)/feedback",
-                        params: { id: id },
+                        params: { id: id},
                       })
                     }
                   >

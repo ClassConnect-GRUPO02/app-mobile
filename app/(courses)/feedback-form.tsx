@@ -45,6 +45,7 @@ const FeedbackForm = ({
       );
 
       setSuccessMessage("Feedback enviado exitosamente.");
+      await userApi.notifyUser(studentId, "Nuevo feedback", `Has recibido un nuevo feedback en el curso ${courseId}.`, "studentFeedback");	
       setTimeout(() => {
         setModalVisible(true);
         onFeedbackSubmitted(); 
