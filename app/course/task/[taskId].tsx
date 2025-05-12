@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react"
-import { View, StyleSheet, ScrollView, Alert } from "react-native"
+import { View, StyleSheet, ScrollView, Alert, Linking } from "react-native"
 import { Text, Button, ActivityIndicator, Divider, Chip, IconButton } from "react-native-paper"
 import { useLocalSearchParams, router } from "expo-router"
 import { taskClient } from "@/api/taskClient"
+import { courseClient } from "@/api/coursesClient"
 import type { Task } from "@/types/Task"
 import { StatusBar } from "expo-status-bar"
+import { WebView } from "react-native-webview"
 import {userApi} from "@/api/userApi";
 import React from "react"
 import {TaskSubmissionForm} from "@/components/tasks/TaskSubmissionList";
@@ -15,8 +17,10 @@ export default function TaskDetailScreen() {
     const [loading, setLoading] = useState(true)
     const [error, setError] = useState<string | null>(null)
     const [isInstructor, setIsInstructor] = useState(false)
+    const [isEnrolled, setIsEnrolled] = useState(false)
     const [hasSubmitted, setHasSubmitted] = useState(false)
     const [submission, setSubmission] = useState<any>(null)
+    const [userId, setUserId] = useState<string | null>(null)
 
     useEffect(() => {
         const fetchTaskAndUserStatus = async () => {
@@ -24,10 +28,12 @@ export default function TaskDetailScreen() {
                 setLoading(true)
 
                 // Obtener el ID del usuario actual
-                const userId = await userApi.getUserId()
-                if (!userId) {
+                const currentUserId = await userApi.getUserId()
+                if (!currentUserId) {
                     throw new Error("No se pudo obtener el ID del usuario")
                 }
+
+                setUserId(currentUserId)
 
                 // Obtener la tarea
                 const taskData = await taskClient.getTaskById(courseId, taskId)
@@ -37,22 +43,44 @@ export default function TaskDetailScreen() {
 
                 setTask(taskData)
 
-                // Verificar si el usuario es el creador de la tarea
-                setIsInstructor(taskData.created_by === userId)
-
-                // Verificar si el usuario ya ha enviado una respuesta
+                // Verificar si el usuario es docente o creador de la tarea
                 try {
-                    const submissionData = await taskClient.getTaskSubmission(taskId, userId)
-                    if (submissionData) {
-                        setHasSubmitted(true)
-                        setSubmission(submissionData)
+                    const isTeacher = await userApi.isTeacher()
+                    const isCreator = taskData.created_by === currentUserId
+                    setIsInstructor(isTeacher || isCreator)
+                } catch (error) {
+                    console.error("Error al verificar si es docente:", error)
+                    // Si falla la verificación de docente, verificamos si es el creador
+                    setIsInstructor(taskData.created_by === currentUserId)
+                }
+
+                // Si no es instructor, verificar si está inscrito en el curso
+                if (!isInstructor) {
+                    try {
+                        const enrollmentStatus = await courseClient.isEnrolledInCourse(courseId, currentUserId)
+                        setIsEnrolled(enrollmentStatus)
+                    } catch (error) {
+                        console.error("Error al verificar inscripción:", error)
+                        // Por defecto, asumimos que está inscrito para evitar bloqueos incorrectos
+                        setIsEnrolled(true)
                     }
-                } catch (submissionError) {
-                    console.log("No hay envíos previos para esta tarea")
+
+                    // Verificar si el usuario ya ha enviado una respuesta
+                    try {
+                        const submissionData = await taskClient.getTaskSubmission(taskId, currentUserId)
+                        if (submissionData) {
+                            setHasSubmitted(true)
+                            setSubmission(submissionData)
+                        }
+                    } catch (submissionError) {
+                        console.log("No hay envíos previos para esta tarea")
+                    }
                 }
             } catch (err) {
                 console.error("Error al cargar la tarea:", err)
-                setError("No se pudo cargar la información de la tarea")
+                setError(
+                    typeof err === "object" && err !== null && "message" in err ? String(err.message) : "Error desconocido",
+                )
             } finally {
                 setLoading(false)
             }
@@ -75,6 +103,13 @@ export default function TaskDetailScreen() {
     const handleEditTask = () => {
         router.push({
             pathname: "/course/task/edit",
+            params: { courseId, taskId },
+        })
+    }
+
+    const handleViewSubmissions = () => {
+        router.push({
+            pathname: "/course/task/submissions/[taskId]",
             params: { courseId, taskId },
         })
     }
@@ -110,6 +145,15 @@ export default function TaskDetailScreen() {
         )
     }
 
+    const handleOpenFile = (fileUrl: string) => {
+        if (fileUrl) {
+            Linking.openURL(fileUrl).catch((err) => {
+                console.error("Error al abrir el archivo:", err)
+                Alert.alert("Error", "No se pudo abrir el archivo. Verifica la URL.")
+            })
+        }
+    }
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -122,8 +166,8 @@ export default function TaskDetailScreen() {
     if (error || !task) {
         return (
             <View style={styles.errorContainer}>
-                <Text variant="headlineMedium">Tarea no encontrada</Text>
-                <Text style={styles.errorText}>{error}</Text>
+                <Text variant="headlineMedium">Error</Text>
+                <Text style={styles.errorText}>{error || "No se pudo cargar la tarea"}</Text>
                 <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
                     Volver
                 </Button>
@@ -132,7 +176,7 @@ export default function TaskDetailScreen() {
     }
 
     const renderSubmissionStatus = () => {
-        if (!hasSubmitted) return null
+        if (!hasSubmitted || !submission) return null
 
         return (
             <View style={styles.submissionStatus}>
@@ -153,10 +197,7 @@ export default function TaskDetailScreen() {
                         <Button
                             mode="outlined"
                             icon="file-document"
-                            onPress={() => {
-                                // Abrir el archivo en el navegador
-                                window.open(submission.file_url, "_blank")
-                            }}
+                            onPress={() => handleOpenFile(submission.file_url)}
                             style={styles.fileButton}
                         >
                             Ver archivo
@@ -169,8 +210,11 @@ export default function TaskDetailScreen() {
                         <Text variant="titleMedium" style={styles.gradeTitle}>
                             Calificación:
                         </Text>
-                        <Text variant="headlineMedium" style={styles.grade}>
-                            {submission.grade}
+                        <Text
+                            variant="headlineMedium"
+                            style={[styles.grade, { color: submission.grade >= 6 ? "#2e7d32" : "#c62828" }]}
+                        >
+                            {submission.grade.toFixed(1)}
                         </Text>
                         {submission?.feedback && (
                             <>
@@ -197,11 +241,12 @@ export default function TaskDetailScreen() {
                     <View style={styles.actionButtons}>
                         <IconButton icon="pencil" size={24} onPress={handleEditTask} />
                         <IconButton icon="delete" size={24} onPress={handleDeleteTask} />
+                        <IconButton icon="eye" size={24} onPress={handleViewSubmissions} />
                     </View>
                 )}
             </View>
 
-            {hasSubmitted ? (
+            {isInstructor || hasSubmitted ? (
                 <ScrollView>
                     <View style={styles.taskInfo}>
                         <Text variant="headlineSmall" style={styles.taskTitle}>
@@ -230,7 +275,45 @@ export default function TaskDetailScreen() {
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Instrucciones
                         </Text>
-                        <Text style={styles.instructions}>{task.instructions}</Text>
+
+                        {task.instructions.includes("<") && task.instructions.includes(">") ? (
+                            <View style={styles.webViewContainer}>
+                                <WebView
+                                    originWhitelist={["*"]}
+                                    source={{
+                                        html: `
+                    <html>
+                      <head>
+                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+                        <style>
+                          body {
+                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+                            padding: 0;
+                            margin: 0;
+                            font-size: 16px;
+                            line-height: 1.5;
+                            color: #333;
+                          }
+                          img { max-width: 100%; height: auto; }
+                          ul, ol { padding-left: 20px; }
+                        </style>
+                      </head>
+                      <body>${task.instructions}</body>
+                    </html>
+                  `,
+                                    }}
+                                    style={styles.webView}
+                                />
+                            </View>
+                        ) : (
+                            <Text style={styles.instructions}>{task.instructions}</Text>
+                        )}
+
+                        {isInstructor && (
+                            <Button mode="contained" icon="eye" onPress={handleViewSubmissions} style={styles.viewSubmissionsButton}>
+                                Ver entregas de estudiantes
+                            </Button>
+                        )}
 
                         {renderSubmissionStatus()}
                     </View>
@@ -254,6 +337,9 @@ const styles = StyleSheet.create({
         paddingTop: 8,
         paddingHorizontal: 8,
     },
+    backButton: {
+        margin: 0,
+    },
     actionButtons: {
         flexDirection: "row",
     },
@@ -274,6 +360,7 @@ const styles = StyleSheet.create({
     errorText: {
         color: "#d32f2f",
         marginVertical: 16,
+        textAlign: "center",
     },
     taskInfo: {
         padding: 16,
@@ -304,8 +391,19 @@ const styles = StyleSheet.create({
     instructions: {
         lineHeight: 22,
     },
-    backButton: {
-        marginTop: 16,
+    webViewContainer: {
+        height: 300,
+        marginBottom: 16,
+        borderWidth: 1,
+        borderColor: "#e0e0e0",
+        borderRadius: 8,
+        overflow: "hidden",
+    },
+    webView: {
+        flex: 1,
+    },
+    viewSubmissionsButton: {
+        marginTop: 24,
     },
     submissionStatus: {
         marginTop: 16,
@@ -334,7 +432,6 @@ const styles = StyleSheet.create({
         fontWeight: "bold",
     },
     grade: {
-        color: "#2e7d32",
         fontWeight: "bold",
         marginVertical: 8,
     },
