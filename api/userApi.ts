@@ -88,5 +88,30 @@ export const userApi = {
 
   async updateUser(id: string, userData: Partial<UserInfo>): Promise<{description: string }> {
     return apiClient.put<{ description: string }>(`/user/${id}`, userData);
-  }
+  },
+   async verifyPin(pin: string, email: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await apiClient.post<{ success: boolean; message?: string }>('/users/verify', {
+        email,
+        pin,
+      });
+      return response;
+    } catch (error) {
+      console.error('Error al verificar el PIN:', error);
+      throw error;
+    }
+  },
+
+  // Solicitar un nuevo PIN
+  async requestNewPin(email: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await apiClient.post<{ success: boolean; message?: string }>('/users/request-new-pin', {
+        email,
+      });
+      return response;
+    } catch (error) {
+      console.error('Error al solicitar un nuevo PIN:', error);
+      throw error;
+    }
+  },
 };

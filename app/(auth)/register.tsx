@@ -81,7 +81,7 @@ export default function RegisterScreen(): React.JSX.Element {
       await fetchWithTimeout(userApi.register(userData));
   
       // Redirigir a la pantalla de verificación de PIN
-      router.push("./verify-pin");  // Redirigir a la pantalla de verificación de PIN
+      router.push(`/(auth)/verify-pin?email=${email}`);
 
       Alert.alert("Registro exitoso", "Verifica tu cuenta ingresando el PIN enviado al correo electrónico.", [{ text: "OK" }]);
     } catch (error) {
