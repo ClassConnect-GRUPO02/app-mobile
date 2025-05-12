@@ -25,7 +25,7 @@ const handleVerifyPin = async () => {
     const response = await userApi.verifyPin(parsedPin, email);
     console.log("Responseeee:", response);
 
-    if (response.success) {
+    if (response.description.includes("Email verified successfully") ) {
       Alert.alert("Éxito", "Tu email fue verificado correctamente.");
       router.push("/(auth)/login");
     } else {
