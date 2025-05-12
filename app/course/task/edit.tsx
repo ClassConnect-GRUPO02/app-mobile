@@ -1,15 +1,15 @@
 import { useState, useEffect } from "react"
-import { View, StyleSheet, ScrollView, Alert } from "react-native"
+import { View, StyleSheet, Alert } from "react-native"
 import { useLocalSearchParams, router } from "expo-router"
 import { TaskForm } from "@/components/tasks/TaskForm"
 import { taskClient } from "@/api/taskClient"
-import { ActivityIndicator, Text } from "react-native-paper"
-import { GestureHandlerRootView } from "react-native-gesture-handler"
+import { StatusBar } from "expo-status-bar"
+import { ActivityIndicator, IconButton, Text } from "react-native-paper"
 import type { Task } from "@/types/Task"
 import React from "react"
 
 export default function EditTaskScreen() {
-    const { taskId, courseId } = useLocalSearchParams<{ taskId: string; courseId: string }>()
+    const { courseId, taskId } = useLocalSearchParams<{ courseId: string; taskId: string }>()
     const [task, setTask] = useState<Task | null>(null)
     const [loading, setLoading] = useState(true)
     const [saving, setSaving] = useState(false)
@@ -19,59 +19,43 @@ export default function EditTaskScreen() {
         const fetchTask = async () => {
             try {
                 setLoading(true)
-                console.log(`Fetching task ${taskId} for course ${courseId}`)
-
-                if (!taskId || !courseId) {
-                    throw new Error("ID de tarea o curso no proporcionado")
-                }
-
                 const taskData = await taskClient.getTaskById(courseId, taskId)
-
                 if (!taskData) {
                     throw new Error("No se pudo cargar la tarea")
                 }
-
                 setTask(taskData)
             } catch (err) {
                 console.error("Error al cargar la tarea:", err)
-                setError("No se pudo cargar la tarea")
+                setError("No se pudo cargar la información de la tarea")
             } finally {
                 setLoading(false)
             }
         }
 
-        fetchTask()
-    }, [taskId, courseId])
+        if (courseId && taskId) {
+            fetchTask()
+        }
+    }, [courseId, taskId])
 
-    const handleSave = async (updatedTask: Task) => {
+    const handleSaveTask = async (taskData: any) => {
         try {
             setSaving(true)
+            console.log("Actualizando tarea con datos:", taskData)
 
-            if (!taskId || !courseId) {
-                throw new Error("ID de tarea o curso no proporcionado")
-            }
+            const updatedTask = await taskClient.updateTask(courseId, taskId, taskData)
 
-            console.log("Updating task with data:", JSON.stringify(updatedTask, null, 2))
-
-            const result = await taskClient.updateTask(courseId, taskId, updatedTask)
-
-            if (result) {
-                Alert.alert("Éxito", "La actividad ha sido actualizada correctamente", [
+            if (updatedTask) {
+                Alert.alert("Éxito", "La tarea ha sido actualizada correctamente", [
                     {
                         text: "OK",
-                        onPress: () => {
-                            router.push({
-                                pathname: "/course/[id]",
-                                params: { id: courseId },
-                            })
-                        },
+                        onPress: () => router.back(),
                     },
                 ])
             } else {
                 throw new Error("No se pudo actualizar la tarea")
             }
         } catch (error) {
-            console.error("Error al actualizar la tarea:", error)
+            console.error("Error al actualizar tarea:", error)
             Alert.alert("Error", "No se pudo actualizar la tarea. Inténtalo de nuevo.")
         } finally {
             setSaving(false)
@@ -90,26 +74,29 @@ export default function EditTaskScreen() {
     if (error || !task) {
         return (
             <View style={styles.errorContainer}>
-                <Text variant="titleMedium" style={styles.errorText}>
-                    {error || "No se pudo cargar la tarea"}
-                </Text>
+                <Text variant="headlineMedium">Tarea no encontrada</Text>
+                <Text style={styles.errorText}>{error}</Text>
+                <IconButton icon="arrow-left" size={24} onPress={() => router.back()} />
             </View>
         )
     }
 
     return (
-        <GestureHandlerRootView style={styles.container}>
-            <ScrollView contentContainerStyle={styles.content}>
-                {saving ? (
-                    <View style={styles.loadingContainer}>
-                        <ActivityIndicator size="large" color="#6200ee" />
-                        <Text style={styles.loadingText}>Guardando cambios...</Text>
-                    </View>
-                ) : (
-                    <TaskForm courseId={courseId} initialData={task} onSave={handleSave} onCancel={() => router.back()} />
-                )}
-            </ScrollView>
-        </GestureHandlerRootView>
+        <View style={styles.container}>
+            <StatusBar style="dark" />
+
+            <View style={styles.header}>
+                <IconButton icon="arrow-left" size={24} onPress={() => router.back()} style={styles.backButton} />
+            </View>
+
+            <TaskForm
+                courseId={courseId}
+                initialData={task}
+                onSave={handleSaveTask}
+                onCancel={() => router.back()}
+                isCreating={false}
+            />
+        </View>
     )
 }
 
@@ -118,30 +105,29 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#fff",
     },
-    content: {
-        padding: 16,
-        flexGrow: 1,
+    header: {
+        paddingTop: 8,
+        paddingHorizontal: 8,
+    },
+    backButton: {
+        margin: 0,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
-        padding: 16,
-        minHeight: 300,
     },
     loadingText: {
         marginTop: 16,
-        fontSize: 16,
     },
     errorContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
         padding: 16,
-        minHeight: 300,
     },
     errorText: {
         color: "#d32f2f",
-        textAlign: "center",
+        marginVertical: 16,
     },
 })

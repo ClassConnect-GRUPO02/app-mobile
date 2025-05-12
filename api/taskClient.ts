@@ -78,7 +78,7 @@ export const taskClient = {
         fileUrl: string,
     ): Promise<any> => {
         try {
-            console.log("Enviando respuesta de tarea:", { student_id: studentId, answers, fileUrl })
+            console.log("Enviando respuesta de tarea:", {student_id: studentId, answers, fileUrl})
             const response = await apiClient.post(`/courses/${courseId}/tasks/${taskId}/submissions`, {
                 student_id: studentId,
                 answers,
@@ -109,6 +109,42 @@ export const taskClient = {
             return response.data.data
         } catch (error) {
             console.error("Error al obtener entrega de tarea:", error)
+            return null
+        }
+    },
+    // Obtener todas las tareas creadas por un instructor
+    getTasksByInstructorId: async (instructorId: string): Promise<any> => {
+        try {
+            const response = await apiClient.get(`/instructors/${instructorId}/tasks`)
+            return response.data
+        } catch (error) {
+            console.error("Error al obtener tareas del instructor:", error)
+            return {data: []}
+        }
+    },
+    // Obtener todas las entregas de una tarea
+    getTaskSubmissions: async (courseId: string, instructorId: string, taskId: string): Promise<any[]> => {
+        try {
+            const response = await apiClient.get(
+                `/courses/${courseId}/instructors/${instructorId}/tasks/${taskId}/submissions`,
+            )
+            return response.data.data
+        } catch (error) {
+            console.error("Error al obtener entregas de tarea:", error)
+            return []
+        }
+    },
+
+    // Añadir retroalimentación a una entrega
+    addFeedbackToTask: async (taskId: string, studentId: string, grade: number, feedback: string): Promise<any> => {
+        try {
+            const response = await apiClient.patch(`/tasks/${taskId}/submissions/${studentId}/feedback`, {
+                grade,
+                feedback,
+            })
+            return response.data.data
+        } catch (error) {
+            console.error("Error al añadir retroalimentación:", error)
             return null
         }
     },
