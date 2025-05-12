@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Tabs } from "expo-router";
-import { useTheme } from "react-native-paper";
+import {PaperProvider, useTheme} from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import Toast from "react-native-toast-message";
@@ -31,6 +31,7 @@ export default function AppLayout() {
                 lightColor: "#FF231F7C",
             });
         }
+
 
         // Configurar listener de notificaciones global
         const setupNotifications = async () => {
@@ -176,4 +177,5 @@ export default function AppLayout() {
             <Toast />
         </>
     );
+
 }
