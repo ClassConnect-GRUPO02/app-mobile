@@ -26,12 +26,12 @@ export default function LoginScreen(): React.JSX.Element {
   useEffect(() => {
     const checkBiometricAvailability = async () => {
       const savedRefreshToken = await SecureStore.getItemAsync("refreshToken");
-      const hasHardware = await LocalAuthentication.hasHardwareAsync();
-      const isEnrolled = await LocalAuthentication.isEnrolledAsync();
 
-      if (savedRefreshToken && hasHardware && isEnrolled) {
+      if (savedRefreshToken) {
         setCanUseBiometric(true);
       } else {
+        console.log(
+          "No hay un token de actualización guardado. La autenticación biométrica no está disponible.");
         setCanUseBiometric(false);
       }
     };
@@ -135,19 +135,8 @@ export default function LoginScreen(): React.JSX.Element {
     try {
       setLoading(true);
 
-      const response = await fetch("https://TU_BACKEND_URL/auth/refresh", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ refreshToken: savedRefreshToken }),
-      });
+      await userApi.refreshToken(savedRefreshToken);
 
-      if (!response.ok) throw new Error("Sesión expirada");
-
-      const data = await response.json();
-
-      await SecureStore.setItemAsync("userToken", data.access_token);
-
-      Alert.alert("¡Bienvenido!", "Sesión iniciada con Face ID / Huella.");
       router.replace("/(app)/home");
     } catch (err) {
       Alert.alert(

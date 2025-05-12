@@ -102,7 +102,6 @@ export default function ProfileScreen() {
           try {
             await deleteItemAsync("userToken");
             await deleteItemAsync("userId");
-            await deleteItemAsync("refreshToken");
             router.replace("/(auth)/login");
           } catch (error) {
             console.error("Error al cerrar sesión:", error);
