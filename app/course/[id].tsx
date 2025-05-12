@@ -14,6 +14,7 @@ import {
   List,
   ActivityIndicator,
   FAB,
+  Modal,
 } from "react-native-paper";
 import { useLocalSearchParams, router } from "expo-router";
 import { courseClient } from "@/api/coursesClient";
@@ -23,6 +24,12 @@ import React from "react";
 import { userApi } from "@/api/userApi";
 import FeedbackForm from "../(courses)/feedback-form";
 import { Platform, SafeAreaView, StatusBar } from "react-native";
+import type { Module } from "@/types/Module"
+import { ModuleList } from "@/components/modules/ModuleList"
+import { ModuleForm } from "@/components/modules/ModuleForm"
+import AsyncStorage from "@react-native-async-storage/async-storage"
+import {moduleClient} from "@/api/modulesClient";
+  const [students, setStudents] = useState<any[]>([]);
 
 export default function CourseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -37,10 +44,12 @@ export default function CourseDetailScreen() {
   const [isCreator, setIsCreator] = useState(false);
   const [userType, setUserType] = useState<string | null>(null);
   const [students, setStudents] = useState<any[]>([]);
-  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+ const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
   const [isModalVisible, setIsModalVisible] = useState(false); // Estado para controlar el modal
-  const [activeTab, setActiveTab] = useState<"info" | "students">("info");
-
+  const [activeTab, setActiveTab] = useState<"info" | "students" | "modules">("info");
+  const [modules, setModules] = useState<Module[]>([])
+  const [showModuleForm, setShowModuleForm] = useState(false)
+  const [selectedModule, setSelectedModule] = useState<Module | null>(null)
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -149,6 +158,52 @@ export default function CourseDetailScreen() {
     }
   };
 
+  const handleAddModule = () => {
+    setSelectedModule(null)
+    setShowModuleForm(true)
+  }
+
+  const handleEditModule = (module: Module) => {
+    setSelectedModule(module)
+    setShowModuleForm(true)
+  }
+
+  const handleDeleteModule = async (moduleId: string) => {
+    try {
+      const success = await moduleClient.deleteModule(id, moduleId)
+      if (success) {
+        // Actualizar la lista de módulos
+        setModules(modules.filter((module) => module.id !== moduleId))
+        Alert.alert("Éxito", "El módulo ha sido eliminado correctamente")
+      } else {
+        Alert.alert("Error", "No se pudo eliminar el módulo")
+      }
+    } catch (error) {
+      console.error("Error al eliminar el módulo:", error)
+      Alert.alert("Error", "Ocurrió un error al eliminar el módulo")
+    }
+  }
+
+  const handleModulePress = (moduleId: string) => {
+    router.push({
+      pathname: "/course/module/[moduleId]",
+      params: { moduleId, courseId: id },
+    })
+  }
+
+  const handleSaveModule = async (module: Module) => {
+    setShowModuleForm(false)
+
+    // Recargar los módulos para mostrar los cambios
+    try {
+      const updatedModules = await moduleClient.getModulesByCourseId(id)
+      setModules(updatedModules)
+    } catch (error) {
+      console.error("Error al recargar módulos:", error)
+    }
+  }
+
+
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
@@ -176,115 +231,173 @@ export default function CourseDetailScreen() {
   const availableSpots = course.capacity - course.enrolled;
   const isFullyBooked = availableSpots === 0;
   const isStudent = userType === "alumno";
+  const isTeacher = userType === "docente"
 
   const renderInfoTab = () => (
-    <ScrollView>
-      <StatusBar />
-      <Image
-        source={{
-          uri:
-            course.imageUrl ||
-            "https://www.svgrepo.com/show/441689/page-not-found.svg",
-        }}
-        style={styles.courseImage}
-      />
-      <View style={styles.contentContainer}>
-        <Text variant="headlineSmall" style={styles.title}>
-          {course.name}
-        </Text>
-        <View style={styles.chipContainer}>
-          <Chip style={styles.chip}>{course.category}</Chip>
-          <Chip style={styles.chip}>{course.level}</Chip>
-          <Chip style={styles.chip}>{course.modality}</Chip>
-        </View>
-        <View style={styles.section}>
-          <Text variant="bodyLarge" style={styles.description}>
-            {course.description}
-          </Text>
-        </View>
-        <Divider style={styles.divider} />
-        <View style={styles.section}>
-          <Text variant="titleMedium" style={styles.sectionTitle}>
-            Detalles del curso
-          </Text>
-          <List.Item
-            title="Fechas"
-            description={`${new Date(
-              course.startDate
-            ).toLocaleDateString()} - ${new Date(
-              course.endDate
-            ).toLocaleDateString()}`}
-            left={(props) => <List.Icon {...props} icon="calendar" />}
+      <View style={styles.container}>
+        <ScrollView>
+          <StatusBar barStyle="light-content" />
+
+          <Image
+              source={{
+                uri:
+                    course.imageUrl ||
+                    "https://images.unsplash.com/photo-1587620962725-abab7fe55159?q=80&w=2062&auto=format&fit=crop",
+              }}
+              style={styles.courseImage}
           />
-          <List.Item
-            title="Docente"
-            description={instructorName}
-            left={(props) => <List.Icon {...props} icon="account" />}
-          />
-          <List.Item
-            title="Capacidad"
-            description={`${course.enrolled} / ${course.capacity} estudiantes`}
-            left={(props) => <List.Icon {...props} icon="account-group" />}
-          />
-        </View>
-        {course.prerequisites.length > 0 && (
-          <>
-            <Divider style={styles.divider} />
-            <View style={styles.section}>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                Requisitos previos
-              </Text>
-              {course.prerequisites.map((req, idx) => (
-                <List.Item
-                  key={idx}
-                  title={req}
-                  left={(props) => <List.Icon {...props} icon="check-circle" />}
-                />
-              ))}
+
+          <View style={styles.contentContainer}>
+            <Text variant="headlineSmall" style={styles.title}>
+              {course.name}
+            </Text>
+
+            <View style={styles.chipContainer}>
+              <Chip style={styles.chip}>{course.category}</Chip>
+              <Chip style={styles.chip}>{course.level}</Chip>
+              <Chip style={styles.chip}>{course.modality}</Chip>
             </View>
-          </>
-        )}
-        <View style={styles.actionContainer}>
-          {isStudent &&
-            !isInstructor &&
-            (isEnrolled ? (
+
+            <View style={styles.tabsContainer}>
               <Button
-                mode="contained"
-                style={[styles.button, styles.enrolledButton]}
-                disabled
+                  mode={activeTab === "info" ? "contained" : "outlined"}
+                  onPress={() => setActiveTab("info")}
+                  style={styles.tabButton}
               >
-                Ya estás inscrito
+                Información
               </Button>
-            ) : isFullyBooked ? (
               <Button
-                mode="contained"
-                style={[styles.button, styles.fullyBookedButton]}
-                disabled
+                  mode={activeTab === "modules" ? "contained" : "outlined"}
+                  onPress={() => setActiveTab("modules")}
+                  style={styles.tabButton}
               >
-                Sin cupos
+                Módulos
               </Button>
-            ) : (
+            </View>
+
+            <Divider style={styles.divider} />
+
+            {activeTab === "info" ? renderInfoTab() : renderModulesTab()}
+
+            <View style={styles.actionContainer}>
+              {/* Mostrar botón de inscripción solo para estudiantes que no sean instructores y no estén inscritos */}
+                          {isStudent &&
+              !isInstructor &&
+              (isEnrolled ? (
+                <>
+                  <Button
+                    mode="contained"
+                    style={[styles.button, styles.enrolledButton]}
+                    disabled
+                  >
+                    Ya estás inscrito
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    style={styles.button}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(courses)/feedback",
+                        params: { id: id },
+                      })
+                    }
+                  >
+                    Dejar Feedback
+                  </Button>
+                </>
+              ) : isFullyBooked ? (
+                <Button
+                  mode="contained"
+                  style={[styles.button, styles.fullyBookedButton]}
+                  disabled
+                >
+                  Sin cupos disponibles
+                </Button>
+              ) : (
+                <Button
+                  mode="contained"
+                  style={styles.button}
+                  onPress={handleEnroll}
+                  loading={enrolling}
+                  disabled={enrolling}
+                >
+                  Inscribirse
+                </Button>
+              ))}
+
+            {isTeacher && (
               <Button
-                mode="contained"
+                mode="outlined"
                 style={styles.button}
-                onPress={handleEnroll}
-                loading={enrolling}
-                disabled={enrolling}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(courses)/feedbacks",
+                    params: { id: id },
+                  })
+                }
               >
-                Inscribirse
+                Ver Feedbacks del Curso
               </Button>
-            ))}
-          <Button
-            mode="outlined"
-            style={styles.button}
-            onPress={() => router.back()}
-          >
-            Volver
-          </Button>
-        </View>
+            )}
+
+              <Button mode="outlined" style={styles.button} onPress={() => router.back()}>
+                Volver
+              </Button>
+            </View>
+          </View>
+        </ScrollView>
+
+        {/* Mostrar FABs de edición y eliminación solo para el creador del curso */}
+        {isCreator && (
+            <View style={styles.fabContainer}>
+              <FAB
+                  icon="delete"
+                  style={[styles.fab, styles.fabDelete]}
+                  onPress={handleDelete}
+                  color="#fff"
+                  small
+                  loading={deleting}
+                  disabled={deleting}
+              />
+              <FAB icon="pencil" style={[styles.fab, styles.fabEdit]} onPress={handleEdit} color="#fff" small />
+            </View>
+        )}
+
+        {/* Modal para crear/editar módulo */}
+        <Modal
+            visible={showModuleForm}
+            onDismiss={() => setShowModuleForm(false)}
+            contentContainerStyle={styles.modalContainer}
+        >
+          <ModuleForm
+              courseId={id}
+              initialData={selectedModule || undefined}
+              onSave={handleSaveModule}
+              onCancel={() => setShowModuleForm(false)}
+          />
+        </Modal>
       </View>
-    </ScrollView>
   );
+
+  const renderModulesTab = () => (
+      <View style={styles.modulesContainer}>
+        {isCreator && (
+            <Button mode="contained" icon="plus" onPress={handleAddModule} style={styles.addModuleButton}>
+              Agregar módulo
+            </Button>
+        )}
+
+        <ModuleList
+            courseId={id}
+            modules={modules}
+            isCreator={isCreator}
+            onModulePress={handleModulePress}
+            onEditModule={isCreator ? handleEditModule : undefined}
+            onDeleteModule={isCreator ? handleDeleteModule : undefined}
+        />
+      </View>
+  );
+
 
   const renderStudentsTab = () => (
   <ScrollView contentContainerStyle={{ padding: 16 }}>
@@ -335,9 +448,7 @@ export default function CourseDetailScreen() {
       </View>
     )}
   </ScrollView>
-);
-
-
+  );
 
   return (
     <View style={styles.container}>
@@ -386,45 +497,85 @@ export default function CourseDetailScreen() {
   );
 }
 
-// Mantén el código que ya tienes, pero con ajustes visuales en la interfaz.
 const styles = StyleSheet.create({
-  // Ajustes visuales para una mejor apariencia
-  container: { flex: 1, backgroundColor: "#fff", paddingTop: 16 },
+  container: {
+    flex: 1,
+    backgroundColor: "#fff",
+  },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 16,
   },
-  loadingText: { marginTop: 16, fontSize: 16 },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+  },
   notFoundContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 16,
   },
-  courseImage: { width: "100%", height: 250, marginBottom: 16 },
-  contentContainer: { padding: 16, paddingBottom: 80 },
-  title: { fontWeight: "bold", marginBottom: 12 },
-  chipContainer: { flexDirection: "row", flexWrap: "wrap", marginBottom: 16 },
-  chip: { marginRight: 8, marginBottom: 8 },
-  section: { marginVertical: 8 },
-  sectionTitle: { fontWeight: "bold", marginBottom: 8 },
-  description: { lineHeight: 24 },
-  divider: { marginVertical: 16 },
-  actionContainer: { marginTop: 24, marginBottom: 16 },
-  button: { marginBottom: 12, paddingVertical: 6 },
-  enrolledButton: { backgroundColor: "#4caf50" },
-  fullyBookedButton: { backgroundColor: "#9e9e9e" },
-  backButton: { marginTop: 16 },
-  tabHeader: {
+  courseImage: {
+    width: "100%",
+    height: 250,
+  },
+  contentContainer: {
+    padding: 16,
+    paddingBottom: 80,
+  },
+  title: {
+    fontWeight: "bold",
+    marginBottom: 12,
+  },
+  chipContainer: {
     flexDirection: "row",
-    justifyContent: "center",
-    backgroundColor: "#f5f5f5",
-    paddingVertical: 8,
+    flexWrap: "wrap",
+    marginBottom: 16,
+  },
+  chip: {
+    marginRight: 8,
+    marginBottom: 8,
+  },
+  tabsContainer: {
+    flexDirection: "row",
+    marginBottom: 16,
   },
   tabButton: {
-    marginHorizontal: 8,
+    flex: 1,
+    marginHorizontal: 4,
+  },
+  section: {
+    marginVertical: 8,
+  },
+  sectionTitle: {
+    fontWeight: "bold",
+    marginBottom: 8,
+  },
+  description: {
+    lineHeight: 24,
+  },
+  divider: {
+    marginVertical: 16,
+  },
+  actionContainer: {
+    marginTop: 24,
+    marginBottom: 16,
+  },
+  button: {
+    marginBottom: 12,
+    paddingVertical: 6,
+  },
+  enrolledButton: {
+    backgroundColor: "#4caf50",
+  },
+  fullyBookedButton: {
+    backgroundColor: "#9e9e9e",
+  },
+  backButton: {
+    marginTop: 16,
   },
   fabContainer: {
     position: "absolute",
@@ -432,10 +583,31 @@ const styles = StyleSheet.create({
     bottom: 16,
     alignItems: "center",
   },
-  fab: { marginBottom: 8, elevation: 4 },
-  fabEdit: { backgroundColor: "#6200ee" },
-  fabDelete: { backgroundColor: "#f44336" },
- feedbackFormContainer: {
+  fab: {
+    marginBottom: 8,
+    elevation: 4,
+  },
+  fabEdit: {
+    backgroundColor: "#6200ee",
+  },
+  fabDelete: {
+    backgroundColor: "#f44336",
+  },
+
+  modalContainer: {
+    backgroundColor: "white",
+    margin: 0,
+    padding: 0,
+    flex: 1,
+  },
+  modulesContainer: {
+    flex: 1,
+  },
+  addModuleButton: {
+    marginBottom: 16,
+    backgroundColor: "#6200ee",
+  },
+   feedbackFormContainer: {
     position: "relative",  // Permite la posición flotante del botón de cierre
     marginTop: 16,
     paddingBottom: 80,  // Espacio para que no se sobreponga el formulario
@@ -454,4 +626,14 @@ const styles = StyleSheet.create({
     color: "#6200ee",  // Puedes cambiar el color si lo prefieres
     fontWeight: "bold",
   },
+  tabHeader: {
+    flexDirection: "row",
+    justifyContent: "center",
+    backgroundColor: "#f5f5f5",
+    paddingVertical: 8,
+  },
 });
+
+function setSelectedStudent(student: any): void {
+  throw new Error("Function not implemented.");
+}

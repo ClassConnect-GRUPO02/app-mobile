@@ -16,7 +16,15 @@ import { getItemAsync, deleteItemAsync } from "expo-secure-store";
 import { router, useLocalSearchParams } from "expo-router";
 import { setAuthToken } from "../../api/client";
 import { userApi } from "../../api/userApi";
+import {
+  GoogleSignin,
+  isSuccessResponse,
+  SignInSuccessResponse,
+  statusCodes,
+  type User
+} from '@react-native-google-signin/google-signin';
 import EditProfileScreen from "@/components/EditProfileScreen";
+
 
 interface UserProfile {
   id: string;
@@ -100,7 +108,10 @@ export default function ProfileScreen() {
         text: "Sí, salir",
         onPress: async () => {
           try {
+            
             await deleteItemAsync("userToken");
+            await deleteItemAsync("userId");
+            GoogleSignin.signOut();
             router.replace("/(auth)/login");
           } catch (error) {
             console.error("Error al cerrar sesión:", error);
@@ -190,52 +201,46 @@ export default function ProfileScreen() {
           </Card.Content>
         </Card>
 
-        <Card style={styles.infoCard}>
-          <Card.Content>
-            <List.Section>
-              <List.Subheader>Información personal</List.Subheader>
-              <List.Item
-                title="Correo electrónico"
-                description={profile?.email}
-                left={(props) => <List.Icon {...props} icon="email" />}
-              />
-              <List.Item
-                title="Tipo de cuenta"
-                description={
-                  profile?.userType === "alumno" ? "Alumno" : "Docente"
-                }
-                left={(props) => <List.Icon {...props} icon="account" />}
-              />
-            </List.Section>
-          </Card.Content>
-        </Card>
-        <List.Item
-          title="Ubicación actual"
-          description={
-            profile && profile.lat !== undefined && profile.lng !== undefined
-              ? `Lat: ${profile.lat.toFixed(5)}, Lng: ${profile.lng.toFixed(5)}`
-              : "Ubicación no disponible"
-          }
-          left={(props) => <List.Icon {...props} icon="map-marker" />}
-        />
-        <Card style={styles.actionsCard}>
-          <Card.Content>
-            <List.Section>
-              <List.Subheader>Acciones</List.Subheader>
-              <List.Item
-                title="Mis Cursos"
-                description={
-                  profile?.userType === "alumno"
-                    ? "Cursos en los que estás inscrito"
-                    : "Cursos que has creado"
-                }
-                left={(props) => (
-                  <List.Icon {...props} icon="book-open-variant" />
-                )}
-                right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                onPress={navigateToMyCourses}
-              />
-              <Divider />
+          <Card style={styles.infoCard}>
+            <Card.Content>
+              <List.Section>
+                <List.Subheader>Información personal</List.Subheader>
+                <List.Item
+                    title="Correo electrónico"
+                    description={profile?.email}
+                    left={(props) => <List.Icon {...props} icon="email" />}
+                />
+                <List.Item
+                    title="Tipo de cuenta"
+                    description={profile?.userType === "alumno" ? "Alumno" : "Docente"}
+                    left={(props) => <List.Icon {...props} icon="account" />}
+                />
+              </List.Section>
+            </Card.Content>
+          </Card>
+          <List.Item
+              title="Ubicación actual"
+              description={
+                profile && profile.lat !== undefined && profile.lng !== undefined
+                    ? `Lat: ${profile.lat.toFixed(5)}, Lng: ${profile.lng.toFixed(5)}`
+                    : "Ubicación no disponible"
+              }
+              left={(props) => <List.Icon {...props} icon="map-marker" />}
+          />
+          <Card style={styles.actionsCard}>
+            <Card.Content>
+              <List.Section>
+                <List.Subheader>Acciones</List.Subheader>
+                <List.Item
+                    title="Mis Cursos"
+                    description={
+                      profile?.userType === "alumno" ? "Cursos en los que estás inscripto" : "Cursos que has creado"
+                    }
+                    left={(props) => <List.Icon {...props} icon="book-open-variant" />}
+                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                    onPress={navigateToMyCourses}
+                />
+                <Divider />
               <List.Item
                 title="Mis Feedbacks"
                 description="Revisa los comentarios y sugerencias de tus docentes"
@@ -243,45 +248,32 @@ export default function ProfileScreen() {
                 right={(props) => <List.Icon {...props} icon="chevron-right" />}
                 onPress={() => router.push("/(app)/my-feedbacks")} // Aquí agregamos la navegación
               />
-              <Divider />
+                <Divider />
+                <List.Item
+                    title="Editar perfil"
+                    description="Actualiza tu información personal"
+                    left={(props) => <List.Icon {...props} icon="account-edit" />}
+                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                    onPress={handleEditProfile}
+                />
+                <Divider />
+                
               <List.Item
-                title="Editar perfil"
-                left={(props) => <List.Icon {...props} icon="account-edit" />}
+                title="Configurar notificaciones"
+                description="Personaliza tus preferencias de notificaciones"
+                left={(props) => <List.Icon {...props} icon="bell-outline" />}
                 right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                onPress={handleEditProfile}
+                onPress={() => router.push("/(app)/notification-setting")}
               />
-              <Divider />
-              <List.Item
-                title="Cambiar contraseña"
-                left={(props) => <List.Icon {...props} icon="lock-reset" />}
-                right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                onPress={() =>
-                  Alert.alert("Información", "Funcionalidad en desarrollo")
-                }
-              />
-              <Divider />
-              <List.Item
-                title="Ajustes"
-                left={(props) => <List.Icon {...props} icon="cog" />}
-                right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                onPress={() =>
-                  Alert.alert("Información", "Funcionalidad en desarrollo")
-                }
-              />
-            </List.Section>
-          </Card.Content>
-        </Card>
-        <Button
-          mode="contained"
-          icon="logout"
-          style={styles.logoutButton}
-          onPress={handleLogout}
-        >
-          Cerrar sesión
-        </Button>
-      </ScrollView>
-    </View>
-  );
+              </List.Section>
+            </Card.Content>
+          </Card>
+          <Button mode="contained" icon="logout" style={styles.logoutButton} onPress={handleLogout}>
+            Cerrar sesión
+          </Button>
+        </ScrollView>
+      </View>
+  )
 }
 
 const styles = StyleSheet.create({

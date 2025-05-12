@@ -6,6 +6,14 @@ const getBaseUrl = (): string => {
   return `http://${IP}:8080`;
 };
 
+// Configura la URL base de la API
+// En desarrollo con Expo, puedes usar la IP de tu máquina en lugar de localhost
+export const getBaseUrlCourses = (): string => {
+  //const LOCAL_IP = "192.168.100.25";
+  const LOCAL_IP = "35.223.247.76";
+  return `http://${LOCAL_IP}:3000`;
+}
+
 const BASE_URL = getBaseUrl();
 
 let authToken: string | null = null;
@@ -66,6 +74,35 @@ export const apiClient = {
       throw error instanceof Error ? error : new Error('Error desconocido');
     }
   },
+
+  async postWithoutAuth<T>(endpoint: string, data: any): Promise<T> {
+
+    const url = `${BASE_URL}${endpoint}`;
+    const headers = {
+      'Content-Type': 'application/json'
+    };
+  
+    try {
+      const response = await fetch(url, {
+        method: 'POST',
+        headers,
+        body: JSON.stringify(data),
+      });
+  
+      const responseData = await response.json();
+      console.log('Response:', responseData); // Verificar la respuesta
+  
+      if (!response.ok) {
+        throw new Error(responseData.detail || responseData.message || 'Ocurrió un error en la petición');
+      }
+  
+      return responseData;
+    } catch (error) {
+      console.error(`Error en petición POST sin auth a ${endpoint}:`, error);
+      throw error instanceof Error ? error : new Error('Error desconocido');
+    }
+  },
+
 
   // Método para peticiones GET con token
   async get<T>(endpoint: string): Promise<T> {

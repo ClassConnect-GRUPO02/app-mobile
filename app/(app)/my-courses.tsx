@@ -47,6 +47,8 @@ export default function MyCoursesScreen() {
                     ...course,
                     isEnrolled: true,
                 }))
+                console.log("Obteniendo lista de cursos favoritos")
+
             } else if (userTypeValue === "docente") {
                 // para docentes obtener cursos que ha creado
                 console.log("Obteniendo cursos creados por el docente")
@@ -103,13 +105,24 @@ export default function MyCoursesScreen() {
                         <Text style={styles.errorText}>{error}</Text>
                     </View>
                 )}
+
+                {/* Botón para navegar a los cursos favoritos */}
+                {userType === "alumno" && (
+                    <Button
+                        mode="outlined"
+                        onPress={() => router.push("/(courses)/favorites")}
+                        style={styles.goToFavoritesButton}
+                    >
+                        Ver cursos favoritos
+                    </Button>
+                )}
             </View>
 
             {courses.length > 0 ? (
                 <FlatList
                     data={courses}
                     keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => <CourseCard course={item} isStudent={userType === "alumno"} />}
+                    renderItem={({ item }) => <CourseCard course={item} isStudent={userType === "alumno"}/>}
                     contentContainerStyle={styles.coursesList}
                     showsVerticalScrollIndicator={false}
                     refreshing={refreshing}
@@ -198,5 +211,10 @@ const styles = StyleSheet.create({
     },
     exploreButton: {
         paddingHorizontal: 16,
+    },
+    goToFavoritesButton: {
+        marginTop: 10,
+        borderColor: "#6200ee",
+        borderWidth: 1,
     },
 })
