@@ -244,7 +244,7 @@ export default function ProfileScreen() {
                 description="Personaliza tus preferencias de notificaciones"
                 left={(props) => <List.Icon {...props} icon="bell-outline" />}
                 right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                onPress={() => router.push("./notification-setting")}
+                onPress={() => router.push("/(app)/notification-setting")}
               />
               </List.Section>
             </Card.Content>

@@ -1,32 +1,43 @@
 "use client"
-
 import { useState, useEffect } from "react"
 import { View, StyleSheet, ScrollView, Alert } from "react-native"
-import { Text, Title, Card, Switch, Divider, List, ActivityIndicator, useTheme, Button } from "react-native-paper"
+import { Text, Title, Card, Switch, Divider, List, ActivityIndicator, useTheme, Button, Chip } from "react-native-paper"
 import { StatusBar } from "expo-status-bar"
 import { router } from "expo-router"
 import { getItemAsync } from "expo-secure-store"
 import { setAuthToken } from "../../api/client"
 import { userApi } from "../../api/userApi"
 import React from "react"
-import NotificationSettings from "../../types/NotificationSettings"
 
+// Constantes para los tipos de notificación
+const PUSH_ONLY = 1
+const EMAIL_ONLY = 2
+const BOTH = 3
+
+// Interfaces para los diferentes tipos de configuraciones
+interface StudentSettings {
+  pushEnabled: boolean;
+  emailEnabled: boolean;
+  newAssignment: number;
+  deadlineReminder: number;
+  courseEnrollment: number;
+  favoriteCourseUpdate: number;
+  teacherFeedback: number;
+}
+
+interface TeacherSettings {
+  pushEnabled: boolean;
+  emailEnabled: boolean;
+  assignmentSubmission: number;
+  studentFeedback: number;
+}
 
 export default function NotificationSettingsScreen() {
   const [loading, setLoading] = useState(true)
   const [userType, setUserType] = useState<string>("")
-  const [settings, setSettings] = useState<NotificationSettings>({
-    push_enabled: true,
-    email_enabled: true,
-    // Estudiantes
-    new_assignment: 3, // Ambas
-    deadline_reminder: 3, // Ambas
-    course_enrollment: 3, // Ambas
-    favorite_course_update: 3, // Solo push
-    teacher_feedback: 3, // Ambas
-    // Docentes
-    assignment_submission: 3, // Ambas
-    student_feedback: 3, // Solo push
+  const [settings, setSettings] = useState<any>({
+    pushEnabled: true,
+    emailEnabled: true,
   })
   const theme = useTheme()
 
@@ -49,12 +60,32 @@ export default function NotificationSettingsScreen() {
         const response = await userApi.getUserById(userId)
         setUserType(response.user.userType)
 
-        // Aquí se cargarían las configuraciones de notificaciones desde la API
+        // Cargar configuraciones desde la API
         const notificationSettings = await userApi.getNotificationSettings(userId)
-        if (notificationSettings) {
+        if (notificationSettings && notificationSettings.settings) {
+          console.log("Configuraciones de notificaciones:", notificationSettings.settings)
           setSettings(notificationSettings.settings)
+        } else {
+          // Usar configuraciones predeterminadas si no hay datos
+          const defaultSettings = response.user.userType === "alumno" 
+            ? {
+                pushEnabled: true,
+                emailEnabled: true,
+                newAssignment: BOTH,
+                deadlineReminder: BOTH,
+                courseEnrollment: BOTH,
+                favoriteCourseUpdate: BOTH,
+                teacherFeedback: BOTH,
+              } 
+            : {
+                pushEnabled: true,
+                emailEnabled: true,
+                assignmentSubmission: BOTH,
+                studentFeedback: BOTH,
+              };
+          
+          setSettings(defaultSettings)
         }
-        // Por ahora usamos valores predeterminados
 
         setLoading(false)
       } catch (error) {
@@ -65,16 +96,25 @@ export default function NotificationSettingsScreen() {
     }
 
     fetchUserData()
+     return () => {
+    // Limpiar cualquier estado o suscripción pendiente
+    setSettings({
+      pushEnabled: true,
+      emailEnabled: true,
+    })
+    setUserType("")
+    setLoading(false)
+  }
   }, [])
 
-  const handleToggleChange = (key: keyof NotificationSettings) => {
+  const handleToggleChange = (key: string) => {
     setSettings({
       ...settings,
       [key]: !settings[key],
     })
   }
 
-  const handleNotificationTypeChange = (key: keyof NotificationSettings, value: number) => {
+  const handleNotificationTypeChange = (key: string, value: number) => {
     setSettings({
       ...settings,
       [key]: value,
@@ -84,10 +124,18 @@ export default function NotificationSettingsScreen() {
   const handleSaveSettings = async () => {
     try {
       setLoading(true)
-      const userId = await getItemAsync("userId")?.toString()
-      // Aquí se enviarían las configuraciones a la API
+      const userId = await getItemAsync("userId");
+      
+      if (!userId) {
+        Alert.alert("Error", "No se pudo recuperar el ID del usuario")
+        setLoading(false)
+        return
+      }
+      
+      // Enviamos directamente el objeto settings actual, que ya tiene la estructura correcta
+      // según el tipo de usuario, ya que se cargó desde la API o se inicializó correctamente
       await userApi.setNotificationsSettings(userId, settings);
-
+      
       Alert.alert("Éxito", "Configuraciones de notificaciones guardadas correctamente", [
         { text: "OK", onPress: () => router.back() },
       ])
@@ -96,6 +144,67 @@ export default function NotificationSettingsScreen() {
       Alert.alert("Error", "No se pudieron guardar las configuraciones")
       setLoading(false)
     }
+  }
+
+  // Renderiza los chips de selección de tipo de notificación
+  const renderNotificationTypeSelector = (settingKey: string) => {
+    const currentValue = settings[settingKey] || BOTH;
+    
+    return (
+      <View style={styles.chipContainer}>
+        <Chip
+          selected={currentValue === PUSH_ONLY}
+          onPress={() => handleNotificationTypeChange(settingKey, PUSH_ONLY)}
+          style={styles.chip}
+          disabled={!settings.pushEnabled && currentValue !== PUSH_ONLY}
+          mode={currentValue === PUSH_ONLY ? "flat" : "outlined"}
+          icon="bell"
+        >
+          Push
+        </Chip>
+        <Chip
+          selected={currentValue === EMAIL_ONLY}
+          onPress={() => handleNotificationTypeChange(settingKey, EMAIL_ONLY)}
+          style={styles.chip}
+          disabled={!settings.emailEnabled && currentValue !== EMAIL_ONLY}
+          mode={currentValue === EMAIL_ONLY ? "flat" : "outlined"}
+          icon="email"
+        >
+          Email
+        </Chip>
+        <Chip
+          selected={currentValue === BOTH}
+          onPress={() => handleNotificationTypeChange(settingKey, BOTH)}
+          style={styles.chip}
+          disabled={(!settings.pushEnabled || !settings.emailEnabled) && currentValue !== BOTH}
+          mode={currentValue === BOTH ? "flat" : "outlined"}
+          icon="bell-ring"
+        >
+          Ambos
+        </Chip>
+      </View>
+    );
+  };
+
+  // Función para obtener la descripción del tipo de notificación
+  const getNotificationTypeDescription = (settingKey: string) => {
+    const value = settings[settingKey] || BOTH;
+    
+    switch (value) {
+      case PUSH_ONLY:
+        return "Solo notificaciones push";
+      case EMAIL_ONLY:
+        return "Solo notificaciones por email";
+      case BOTH:
+        return "Notificaciones push y email";
+      default:
+        return "";
+    }
+  };
+
+  // Función para verificar si una configuración existe
+  const hasSettingOption = (key: string): boolean => {
+    return key in settings;
   }
 
   if (loading) {
@@ -116,32 +225,6 @@ export default function NotificationSettingsScreen() {
 
         <Card style={styles.card}>
           <Card.Content>
-            <Text style={styles.legendTitle}>Leyenda:</Text>
-            <View style={styles.legendContainer}>
-              <View style={styles.legendItem}>
-                <Button mode="contained" disabled={false} style={styles.legendButton}>
-                  1
-                </Button>
-                <Text style={styles.legendText}>Solo notificaciones push</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <Button mode="contained" disabled={false} style={styles.legendButton}>
-                  2
-                </Button>
-                <Text style={styles.legendText}>Solo notificaciones por email</Text>
-              </View>
-              <View style={styles.legendItem}>
-                <Button mode="contained" disabled={false} style={styles.legendButton}>
-                  3
-                </Button>
-                <Text style={styles.legendText}>Ambas notificaciones</Text>
-              </View>
-            </View>
-          </Card.Content>
-        </Card>
-
-        <Card style={styles.card}>
-          <Card.Content>
             <List.Section>
               <List.Subheader>Configuración General</List.Subheader>
               <List.Item
@@ -149,7 +232,7 @@ export default function NotificationSettingsScreen() {
                 description="Recibir notificaciones en tu dispositivo"
                 left={(props) => <List.Icon {...props} icon="bell" />}
                 right={() => (
-                  <Switch value={settings.push_enabled} onValueChange={() => handleToggleChange("push_enabled")} />
+                  <Switch value={settings.pushEnabled} onValueChange={() => handleToggleChange("pushEnabled")} />
                 )}
               />
               <Divider />
@@ -158,7 +241,7 @@ export default function NotificationSettingsScreen() {
                 description="Recibir notificaciones en tu correo electrónico"
                 left={(props) => <List.Icon {...props} icon="email" />}
                 right={() => (
-                  <Switch value={settings.email_enabled} onValueChange={() => handleToggleChange("email_enabled")} />
+                  <Switch value={settings.emailEnabled} onValueChange={() => handleToggleChange("emailEnabled")} />
                 )}
               />
             </List.Section>
@@ -171,215 +254,73 @@ export default function NotificationSettingsScreen() {
               <List.Section>
                 <List.Subheader>Notificaciones para Estudiantes</List.Subheader>
 
-                <Text style={styles.categoryTitle}>Tareas y Exámenes</Text>
-                <List.Item
-                  title="Nuevas tareas o exámenes"
-                  description={
-                    settings.new_assignment === 1
-                      ? "Solo notificaciones push"
-                      : settings.new_assignment === 2
-                        ? "Solo notificaciones por email"
-                        : "Notificaciones push y email"
-                  }
-                  left={(props) => <List.Icon {...props} icon="book" />}
-                  right={() => (
-                    <View style={styles.optionContainer}>
-                      <Button
-                        mode={settings.new_assignment === 1 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("new_assignment", 1)}
-                        style={styles.optionButton}
-                        disabled={!settings.push_enabled && settings.new_assignment !== 1}
-                      >
-                        1
-                      </Button>
-                      <Button
-                        mode={settings.new_assignment === 2 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("new_assignment", 2)}
-                        style={styles.optionButton}
-                        disabled={!settings.email_enabled && settings.new_assignment !== 2}
-                      >
-                        2
-                      </Button>
-                      <Button
-                        mode={settings.new_assignment === 3 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("new_assignment", 3)}
-                        style={styles.optionButton}
-                        disabled={(!settings.push_enabled || !settings.email_enabled) && settings.new_assignment !== 3}
-                      >
-                        3
-                      </Button>
-                    </View>
-                  )}
-                />
-                <Divider style={styles.divider} />
+                {hasSettingOption("newAssignment") && (
+                  <>
+                    <Text style={styles.categoryTitle}>Tareas y Exámenes</Text>
+                    <List.Item
+                      title="Nuevas tareas o exámenes"
+                      description={getNotificationTypeDescription("newAssignment")}
+                      left={(props) => <List.Icon {...props} icon="book" />}
+                    />
+                    {renderNotificationTypeSelector("newAssignment")}
+                    <Divider style={styles.divider} />
+                  </>
+                )}
 
-                <Text style={styles.categoryTitle}>Recordatorios</Text>
-                <List.Item
-                  title="Fechas límite de tareas"
-                  description={
-                    settings.deadline_reminder === 1
-                      ? "Solo notificaciones push"
-                      : settings.deadline_reminder === 2
-                        ? "Solo notificaciones por email"
-                        : "Notificaciones push y email"
-                  }
-                  left={(props) => <List.Icon {...props} icon="clock-alert" />}
-                  right={() => (
-                    <View style={styles.optionContainer}>
-                      <Button
-                        mode={settings.deadline_reminder === 1 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("deadline_reminder", 1)}
-                        style={styles.optionButton}
-                        disabled={!settings.push_enabled && settings.deadline_reminder !== 1}
-                      >
-                        1
-                      </Button>
-                      <Button
-                        mode={settings.deadline_reminder === 2 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("deadline_reminder", 2)}
-                        style={styles.optionButton}
-                        disabled={!settings.email_enabled && settings.deadline_reminder !== 2}
-                      >
-                        2
-                      </Button>
-                      <Button
-                        mode={settings.deadline_reminder === 3 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("deadline_reminder", 3)}
-                        style={styles.optionButton}
-                        disabled={(!settings.push_enabled || !settings.email_enabled) && settings.deadline_reminder !== 3}
-                      >
-                        3
-                      </Button>
-                    </View>
-                  )}
-                />
-                <Divider style={styles.divider} />
+                {hasSettingOption("deadlineReminder") && (
+                  <>
+                    <Text style={styles.categoryTitle}>Recordatorios</Text>
+                    <List.Item
+                      title="Fechas límite de tareas"
+                      description={getNotificationTypeDescription("deadlineReminder")}
+                      left={(props) => <List.Icon {...props} icon="clock-alert" />}
+                    />
+                    {renderNotificationTypeSelector("deadlineReminder")}
+                    <Divider style={styles.divider} />
+                  </>
+                )}
 
-                <Text style={styles.categoryTitle}>Cursos</Text>
-                <List.Item
-                  title="Inscripción a nuevos cursos"
-                  description={
-                    settings.course_enrollment === 1
-                      ? "Solo notificaciones push"
-                      : settings.course_enrollment === 2
-                        ? "Solo notificaciones por email"
-                        : "Notificaciones push y email"
-                  }
-                  left={(props) => <List.Icon {...props} icon="school" />}
-                  right={() => (
-                    <View style={styles.optionContainer}>
-                      <Button
-                        mode={settings.course_enrollment === 1 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("course_enrollment", 1)}
-                        style={styles.optionButton}
-                        disabled={!settings.push_enabled && settings.course_enrollment !== 1}
-                      >
-                        1
-                      </Button>
-                      <Button
-                        mode={settings.course_enrollment === 2 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("course_enrollment", 2)}
-                        style={styles.optionButton}
-                        disabled={!settings.email_enabled && settings.course_enrollment !== 2}
-                      >
-                        2
-                      </Button>
-                      <Button
-                        mode={settings.course_enrollment === 3 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("course_enrollment", 3)}
-                        style={styles.optionButton}
-                        disabled={(!settings.push_enabled || !settings.email_enabled) && settings.course_enrollment !== 3}
-                      >
-                        3
-                      </Button>
-                    </View>
-                  )}
-                />
-                <List.Item
-                  title="Actualizaciones de cursos favoritos"
-                  description={
-                    settings.favorite_course_update === 1
-                      ? "Solo notificaciones push"
-                      : settings.favorite_course_update === 2
-                        ? "Solo notificaciones por email"
-                        : "Notificaciones push y email"
-                  }
-                  left={(props) => <List.Icon {...props} icon="star" />}
-                  right={() => (
-                    <View style={styles.optionContainer}>
-                      <Button
-                        mode={settings.favorite_course_update === 1 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("favorite_course_update", 1)}
-                        style={styles.optionButton}
-                        disabled={!settings.push_enabled && settings.favorite_course_update !== 1}
-                      >
-                        1
-                      </Button>
-                      <Button
-                        mode={settings.favorite_course_update === 2 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("favorite_course_update", 2)}
-                        style={styles.optionButton}
-                        disabled={!settings.email_enabled && settings.favorite_course_update !== 2}
-                      >
-                        2
-                      </Button>
-                      <Button
-                        mode={settings.favorite_course_update === 3 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("favorite_course_update", 3)}
-                        style={styles.optionButton}
-                        disabled={
-                          (!settings.push_enabled || !settings.email_enabled) && settings.favorite_course_update !== 3
-                        }
-                      >
-                        3
-                      </Button>
-                    </View>
-                  )}
-                />
-                <Divider style={styles.divider} />
+                {(hasSettingOption("courseEnrollment") || hasSettingOption("favoriteCourseUpdate")) && (
+                  <>
+                    <Text style={styles.categoryTitle}>Cursos</Text>
+                    
+                    {hasSettingOption("courseEnrollment") && (
+                      <>
+                        <List.Item
+                          title="Inscripción a nuevos cursos"
+                          description={getNotificationTypeDescription("courseEnrollment")}
+                          left={(props) => <List.Icon {...props} icon="school" />}
+                        />
+                        {renderNotificationTypeSelector("courseEnrollment")}
+                      </>
+                    )}
+                    
+                    {hasSettingOption("favoriteCourseUpdate") && (
+                      <>
+                        <List.Item
+                          title="Actualizaciones de cursos favoritos"
+                          description={getNotificationTypeDescription("favoriteCourseUpdate")}
+                          left={(props) => <List.Icon {...props} icon="star" />}
+                        />
+                        {renderNotificationTypeSelector("favoriteCourseUpdate")}
+                      </>
+                    )}
+                    
+                    <Divider style={styles.divider} />
+                  </>
+                )}
 
-                <Text style={styles.categoryTitle}>Feedback</Text>
-                <List.Item
-                  title="Feedback de docentes"
-                  description={
-                    settings.teacher_feedback === 1
-                      ? "Solo notificaciones push"
-                      : settings.teacher_feedback === 2
-                        ? "Solo notificaciones por email"
-                        : "Notificaciones push y email"
-                  }
-                  left={(props) => <List.Icon {...props} icon="message-text" />}
-                  right={() => (
-                    <View style={styles.optionContainer}>
-                      <Button
-                        mode={settings.teacher_feedback === 1 ? "contained" : "outlined"}
-                        onPress={() =>
-                          handleNotificationTypeChange("teacher_feedback", 1)
-                        }
-                        style={styles.optionButton}
-                        disabled={!settings.push_enabled && settings.teacher_feedback !== 1}
-                      >
-                        1
-                      </Button>
-                      <Button
-                        mode={settings.teacher_feedback === 2 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("teacher_feedback", 2)}
-                        style={styles.optionButton}
-                        disabled={!settings.email_enabled && settings.teacher_feedback !== 2}
-                      >
-                        2
-                      </Button>
-                      <Button
-                        mode={settings.teacher_feedback === 3 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("teacher_feedback", 3)}
-                        style={styles.optionButton}
-                        disabled={(!settings.push_enabled || !settings.email_enabled) && settings.teacher_feedback !== 3}
-                      >
-                        3
-                      </Button>
-                    </View>
-                  )}
-                />
+                {hasSettingOption("teacherFeedback") && (
+                  <>
+                    <Text style={styles.categoryTitle}>Feedback</Text>
+                    <List.Item
+                      title="Feedback de docentes"
+                      description={getNotificationTypeDescription("teacherFeedback")}
+                      left={(props) => <List.Icon {...props} icon="message-text" />}
+                    />
+                    {renderNotificationTypeSelector("teacherFeedback")}
+                  </>
+                )}
               </List.Section>
             </Card.Content>
           </Card>
@@ -389,90 +330,30 @@ export default function NotificationSettingsScreen() {
               <List.Section>
                 <List.Subheader>Notificaciones para Docentes</List.Subheader>
 
-                <Text style={styles.categoryTitle}>Entregas</Text>
-                <List.Item
-                  title="Entregas de tareas o exámenes"
-                  description={
-                    settings.assignment_submission === 1
-                      ? "Solo notificaciones push"
-                      : settings.assignment_submission === 2
-                        ? "Solo notificaciones por email"
-                        : "Notificaciones push y email"
-                  }
-                  left={(props) => <List.Icon {...props} icon="file-document" />}
-                  right={() => (
-                    <View style={styles.optionContainer}>
-                      <Button
-                        mode={settings.assignment_submission === 1 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("assignment_submission", 1)}
-                        style={styles.optionButton}
-                        disabled={!settings.push_enabled && settings.assignment_submission !== 1}
-                      >
-                        1
-                      </Button>
-                      <Button
-                        mode={settings.assignment_submission === 2 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("assignment_submission", 2)}
-                        style={styles.optionButton}
-                        disabled={!settings.email_enabled && settings.assignment_submission !== 2}
-                      >
-                        2
-                      </Button>
-                      <Button
-                        mode={settings.assignment_submission === 3 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("assignment_submission", 3)}
-                        style={styles.optionButton}
-                        disabled={
-                          (!settings.push_enabled || !settings.email_enabled) && settings.assignment_submission !== 3
-                        }
-                      >
-                        3
-                      </Button>
-                    </View>
-                  )}
-                />
-                <Divider style={styles.divider} />
+                {hasSettingOption("assignmentSubmission") && (
+                  <>
+                    <Text style={styles.categoryTitle}>Entregas</Text>
+                    <List.Item
+                      title="Entregas de tareas o exámenes"
+                      description={getNotificationTypeDescription("assignmentSubmission")}
+                      left={(props) => <List.Icon {...props} icon="file-document" />}
+                    />
+                    {renderNotificationTypeSelector("assignmentSubmission")}
+                    <Divider style={styles.divider} />
+                  </>
+                )}
 
-                <Text style={styles.categoryTitle}>Feedback</Text>
-                <List.Item
-                  title="Feedback de estudiantes"
-                  description={
-                    settings.student_feedback === 1
-                      ? "Solo notificaciones push"
-                      : settings.student_feedback === 2
-                        ? "Solo notificaciones por email"
-                        : "Notificaciones push y email"
-                  }
-                  left={(props) => <List.Icon {...props} icon="message-reply" />}
-                  right={() => (
-                    <View style={styles.optionContainer}>
-                      <Button
-                        mode={settings.student_feedback === 1 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("student_feedback", 1)}
-                        style={styles.optionButton}
-                        disabled={!settings.push_enabled && settings.student_feedback !== 1}
-                      >
-                        1
-                      </Button>
-                      <Button
-                        mode={settings.student_feedback === 2 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("student_feedback", 2)}
-                        style={styles.optionButton}
-                        disabled={!settings.email_enabled && settings.student_feedback !== 2}
-                      >
-                        2
-                      </Button>
-                      <Button
-                        mode={settings.student_feedback === 3 ? "contained" : "outlined"}
-                        onPress={() => handleNotificationTypeChange("student_feedback", 3)}
-                        style={styles.optionButton}
-                        disabled={(!settings.push_enabled || !settings.email_enabled) && settings.student_feedback !== 3}
-                      >
-                        3
-                      </Button>
-                    </View>
-                  )}
-                />
+                {hasSettingOption("studentFeedback") && (
+                  <>
+                    <Text style={styles.categoryTitle}>Feedback</Text>
+                    <List.Item
+                      title="Feedback de estudiantes"
+                      description={getNotificationTypeDescription("studentFeedback")}
+                      left={(props) => <List.Icon {...props} icon="message-reply" />}
+                    />
+                    {renderNotificationTypeSelector("studentFeedback")}
+                  </>
+                )}
               </List.Section>
             </Card.Content>
           </Card>
@@ -533,7 +414,7 @@ const styles = StyleSheet.create({
     color: "#555",
   },
   divider: {
-    marginVertical: 10,
+    marginVertical: 15,
   },
   buttonContainer: {
     margin: 15,
@@ -546,36 +427,14 @@ const styles = StyleSheet.create({
   cancelButton: {
     paddingVertical: 6,
   },
-  optionContainer: {
+  chipContainer: {
     flexDirection: "row",
-    justifyContent: "flex-end",
-    alignItems: "center",
-    gap: 5,
+    flexWrap: "wrap",
+    marginVertical: 8,
+    marginLeft: 54, // Alineado con el contenido del List.Item
+    gap: 8,
   },
-  optionButton: {
-    width: 40,
-    height: 40,
-    margin: 2,
-  },
-  legendTitle: {
-    fontSize: 16,
-    fontWeight: "bold",
-    marginBottom: 10,
-  },
-  legendContainer: {
-    marginBottom: 10,
-  },
-  legendItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 5,
-  },
-  legendButton: {
-    width: 40,
-    height: 40,
-    marginRight: 10,
-  },
-  legendText: {
-    fontSize: 14,
-  },
+  chip: {
+    marginBottom: 4,
+  }
 })

@@ -1,15 +1,15 @@
 interface NotificationSettings {
-  push_enabled: boolean
-  email_enabled: boolean
+  pushEnabled: boolean
+  emailEnabled: boolean
   // Configuraciones específicas para estudiantes (1=solo push, 2=solo email, 3=ambas)
-  new_assignment: number
-  deadline_reminder: number
-  course_enrollment: number
-  favorite_course_update: number
-  teacher_feedback: number
+  newAssignment: number
+  deadlineReminder: number
+  courseEnrollment: number
+  favoriteCourseUpdate: number
+  teacherFeedback: number
   // Configuraciones específicas para docentes (1=solo push, 2=solo email, 3=ambas)
-  assignment_submission: number
-  student_feedback: number
+  assignmentSubmission: number
+  studentFeedback: number
 }
 
 export default NotificationSettings

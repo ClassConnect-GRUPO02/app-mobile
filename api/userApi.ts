@@ -104,7 +104,6 @@ export const userApi = {
   },
 
    async  registerPushToken() {
-    if (!Device.isDevice) return;
 
     const userId = await getItemAsync('userId');
   
@@ -123,7 +122,7 @@ export const userApi = {
   
     // Enviá el token al backend de usuarios
    return apiClient.post<{ description: string }>(`/users/${userId}/push-token`, {
-      pushToken: token,
+      token: token,
     });
 },
 

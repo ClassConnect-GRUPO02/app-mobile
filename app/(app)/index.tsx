@@ -17,13 +17,10 @@ import {
 } from "react-native-paper";
 import { StatusBar } from "expo-status-bar";
 import { apiClient, setAuthToken } from "../../api/client";
-import * as Notifications from "expo-notifications";
-import Toast from "react-native-toast-message";
 import { getItemAsync } from "expo-secure-store";
 
 import type { UserInfo } from "../../api/userApi";
 import { router } from "expo-router";
-import { userApi } from "../../api/userApi";
 
 // Tipo para almacenar la información del usuario
 interface UserData {
@@ -39,49 +36,6 @@ export default function HomeScreen() {
   const [error, setError] = useState<string>("");
   const theme = useTheme();
 
-  useEffect(() => {
-    if (Platform.OS === "android") {
-      Notifications.setNotificationChannelAsync("default", {
-        name: "default",
-        importance: Notifications.AndroidImportance.MAX,
-        vibrationPattern: [0, 250, 250, 250],
-        lightColor: "#FF231F7C",
-      });
-    }
-  }, []);
-
-  useEffect(() => {
-    const fetchData = async () => {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status !== "granted") {
-        alert("Permiso de notificaciones denegado");
-        return;
-      }
-
-      const jwt = await getItemAsync("userToken");
-      const userId = await getItemAsync("userId");
-      if (jwt && userId) {
-        await userApi.registerPushToken();
-        const subscription = Notifications.addNotificationReceivedListener(
-          (notification) => {
-            const { title, body } = notification.request.content;
-
-            Toast.show({
-              type: "info",
-              text1: title ?? "Notificación",
-              text2: body ?? "",
-              visibilityTime: 4000,
-              autoHide: true,
-            });
-          }
-        );
-
-        return () => subscription.remove();
-      }
-    };
-
-    fetchData();
-  }, []);
 
   useEffect(() => {
     const fetchUserData = async () => {
