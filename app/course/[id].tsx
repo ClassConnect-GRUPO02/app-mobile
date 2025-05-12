@@ -1,38 +1,49 @@
-import { useState, useEffect } from "react"
-import { StyleSheet, View, ScrollView, Image, Alert } from "react-native"
-import { Text, Button, Chip, Divider, List, ActivityIndicator, FAB, Modal } from "react-native-paper"
-import { useLocalSearchParams, router } from "expo-router"
-import { courseClient } from "@/api/coursesClient"
-import type { Course } from "@/types/Course"
+import { StyleSheet, View, ScrollView, Image, Alert } from "react-native";
+import {
+  Text,
+  Button,
+  Chip,
+  Divider,
+  List,
+  ActivityIndicator,
+  FAB,
+  Modal,
+} from "react-native-paper";
+import { useLocalSearchParams, router } from "expo-router";
+import { courseClient } from "@/api/coursesClient";
+import { useState, useEffect } from "react";
+import type { Course } from "@/types/Course";
+import { StatusBar } from "expo-status-bar";
+import React from "react";
+import { userApi } from "@/api/userApi";
 import type { Module } from "@/types/Module"
-import { StatusBar } from "expo-status-bar"
 import { ModuleList } from "@/components/modules/ModuleList"
 import { ModuleForm } from "@/components/modules/ModuleForm"
 import AsyncStorage from "@react-native-async-storage/async-storage"
-import {userApi} from "@/api/userApi";
 import {moduleClient} from "@/api/modulesClient";
-import React from "react"
+
 
 export default function CourseDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>()
-  const [course, setCourse] = useState<Course | null>(null)
+  const { id } = useLocalSearchParams<{ id: string }>();
+  const [course, setCourse] = useState<Course | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [deleting, setDeleting] = useState(false);
+  const [enrolling, setEnrolling] = useState(false);
+  const [instructorName, setInstructorName] =
+    useState<string>("No especificado");
+
+  const [isEnrolled, setIsEnrolled] = useState(false);
+  const [isInstructor, setIsInstructor] = useState(false);
+  const [isCreator, setIsCreator] = useState(false);
+  const [userType, setUserType] = useState<string | null>(null);
+
   const [modules, setModules] = useState<Module[]>([])
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState(false)
-  const [enrolling, setEnrolling] = useState(false)
-  const [instructorName, setInstructorName] = useState<string>("No especificado")
   const [showModuleForm, setShowModuleForm] = useState(false)
   const [selectedModule, setSelectedModule] = useState<Module | null>(null)
   const [activeTab, setActiveTab] = useState<"info" | "modules">("info")
 
-  // Estados para los roles del usuario
-  const [isEnrolled, setIsEnrolled] = useState(false)
-  const [isInstructor, setIsInstructor] = useState(false)
-  const [isCreator, setIsCreator] = useState(false)
-  const [userType, setUserType] = useState<string | null>(null)
-
-  // Load the active tab from AsyncStorage when the component mounts
+    // Load the active tab from AsyncStorage when the component mounts
   useEffect(() => {
     const loadActiveTab = async () => {
       try {
@@ -48,6 +59,7 @@ export default function CourseDetailScreen() {
     loadActiveTab()
   }, [id])
 
+
   // Save the active tab to AsyncStorage when it changes
   useEffect(() => {
     const saveActiveTab = async () => {
@@ -61,32 +73,33 @@ export default function CourseDetailScreen() {
     saveActiveTab()
   }, [activeTab, id])
 
+
   useEffect(() => {
     const fetchCourseAndUserStatus = async () => {
       try {
-        setLoading(true)
+        setLoading(true);
 
         // Obtener el ID del usuario actual
-        const userId = await userApi.getUserId()
+        const userId = await userApi.getUserId();
         if (!userId) {
-          throw new Error("No se pudo obtener el ID del usuario")
+          throw new Error("No se pudo obtener el ID del usuario");
         }
+        console.log("el usuario es id", userId);
 
         // Obtener información del usuario
-        const userInfo = await userApi.getUserById(userId)
-        setUserType(userInfo?.user?.userType || null)
+        const userInfo = await userApi.getUserById(userId);
+        setUserType(userInfo?.user?.userType);
 
-
-        // Obtener el curso
-        const courseData = await courseClient.getCourseById(id)
+        const courseData = await courseClient.getCourseById(id);
         if (!courseData) {
-          throw new Error("No se pudo cargar el curso")
+          throw new Error("No se pudo cargar el curso");
 
         }
 
         // Obtener el nombre del creador desde la API de usuarios
         if (courseData.creatorId) {
           try {
+
             const creatorInfo = await userApi.getUserById(courseData.creatorId)
             if (creatorInfo?.user?.name) {
               setInstructorName(creatorInfo.user.name)
@@ -156,21 +169,24 @@ export default function CourseDetailScreen() {
     router.push({
       pathname: "/(courses)/edit",
       params: { id: id },
-    })
-  }
+    });
+  };
 
   const handleEnroll = async () => {
     try {
-      setEnrolling(true)
-      const userId = await userApi.getUserId()
+      setEnrolling(true);
+      const userId = await userApi.getUserId();
 
       if (!userId) {
-        Alert.alert("Error", "Debes iniciar sesión para inscribirte en un curso")
-        return
+        Alert.alert(
+          "Error",
+          "Debes iniciar sesión para inscribirte en un curso"
+        );
+        return;
       }
 
-      await courseClient.enrollStudentInCourse(id, userId)
-      setIsEnrolled(true)
+      await courseClient.enrollStudentInCourse(id, userId);
+      setIsEnrolled(true);
 
       // Actualizar el contador de inscritos en el curso
       if (course) {
@@ -381,27 +397,64 @@ export default function CourseDetailScreen() {
 
             <View style={styles.actionContainer}>
               {/* Mostrar botón de inscripción solo para estudiantes que no sean instructores y no estén inscritos */}
-              {isStudent &&
-                  !isInstructor &&
-                  (isEnrolled ? (
-                      <Button mode="contained" style={[styles.button, styles.enrolledButton]} disabled>
-                        Ya estás inscrito
-                      </Button>
-                  ) : isFullyBooked ? (
-                      <Button mode="contained" style={[styles.button, styles.fullyBookedButton]} disabled>
-                        Sin cupos disponibles
-                      </Button>
-                  ) : (
-                      <Button
-                          mode="contained"
-                          style={styles.button}
-                          onPress={handleEnroll}
-                          loading={enrolling}
-                          disabled={enrolling}
-                      >
-                        Inscribirse
-                      </Button>
-                  ))}
+                          {isStudent &&
+              !isInstructor &&
+              (isEnrolled ? (
+                <>
+                  <Button
+                    mode="contained"
+                    style={[styles.button, styles.enrolledButton]}
+                    disabled
+                  >
+                    Ya estás inscrito
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    style={styles.button}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(courses)/feedback",
+                        params: { id: id },
+                      })
+                    }
+                  >
+                    Dejar Feedback
+                  </Button>
+                </>
+              ) : isFullyBooked ? (
+                <Button
+                  mode="contained"
+                  style={[styles.button, styles.fullyBookedButton]}
+                  disabled
+                >
+                  Sin cupos disponibles
+                </Button>
+              ) : (
+                <Button
+                  mode="contained"
+                  style={styles.button}
+                  onPress={handleEnroll}
+                  loading={enrolling}
+                  disabled={enrolling}
+                >
+                  Inscribirse
+                </Button>
+              ))}
+
+            {isTeacher && (
+              <Button
+                mode="outlined"
+                style={styles.button}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(courses)/feedbacks",
+                    params: { id: id },
+                  })
+                }
+              >
+                Ver Feedbacks del Curso
+              </Button>
+            )}
 
               <Button mode="outlined" style={styles.button} onPress={() => router.back()}>
                 Volver
@@ -539,6 +592,7 @@ const styles = StyleSheet.create({
   fabDelete: {
     backgroundColor: "#f44336",
   },
+
   modalContainer: {
     backgroundColor: "white",
     margin: 0,
@@ -552,4 +606,4 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: "#6200ee",
   },
-})
+});
