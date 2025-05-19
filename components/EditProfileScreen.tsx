@@ -46,14 +46,17 @@ export default function EditProfileScreen({
       return;
     }
 
-    Alert.alert(  "Confirmar cambios",
-      `¿Deseas guardar estos cambios?\n\nNombre: ${name}\nEmail: ${email}`, [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Guardar",
-        onPress: () => submitUpdate(),
-      },
-    ]);
+    Alert.alert(
+      "Confirmar cambios",
+      `¿Deseas guardar estos cambios?\n\nNombre: ${name}\nEmail: ${email}`,
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Guardar",
+          onPress: () => submitUpdate(),
+        },
+      ]
+    );
   };
 
   const handleClose = () => {
@@ -62,13 +65,13 @@ export default function EditProfileScreen({
     } else {
       router.back(); // Navigate back if no callback is provided
     }
-  }
+  };
 
   const submitUpdate = async () => {
     setLoading(true);
     setError("");
 
-    const updateData = {name, email};
+    const updateData = { name, email };
     console.log("Update data:", updateData);
     try {
       const response = await userApi.updateUser(profile.id, updateData);
@@ -83,7 +86,6 @@ export default function EditProfileScreen({
               text: "OK",
               onPress: () => {
                 onProfileUpdated({ ...profile, name, email });
-
               },
             },
           ]
@@ -121,10 +123,10 @@ export default function EditProfileScreen({
             <TextInput
               label="Correo electrónico"
               value={email}
-              onChangeText={setEmail}
               mode="outlined"
               keyboardType="email-address"
               autoCapitalize="none"
+              disabled // <- evita que se edite
               style={styles.input}
             />
           </Card.Content>
