@@ -22,7 +22,6 @@ interface StudentSettings {
   newAssignment: number;
   deadlineReminder: number;
   courseEnrollment: number;
-  favoriteCourseUpdate: number;
   teacherFeedback: number;
 }
 
@@ -75,7 +74,6 @@ export default function NotificationSettingsScreen() {
                 newAssignment: BOTH,
                 deadlineReminder: BOTH,
                 courseEnrollment: BOTH,
-                favoriteCourseUpdate: BOTH,
                 teacherFeedback: BOTH,
               } 
             : {
@@ -293,7 +291,7 @@ const getNotificationTypeDescription = (settingKey: string) => {
                   </>
                 )}
 
-                {(hasSettingOption("courseEnrollment") || hasSettingOption("favoriteCourseUpdate")) && (
+                {(hasSettingOption("courseEnrollment")) && (
                   <>
                     <Text style={styles.categoryTitle}>Cursos</Text>
                     
@@ -308,16 +306,7 @@ const getNotificationTypeDescription = (settingKey: string) => {
                       </>
                     )}
                     
-                    {hasSettingOption("favoriteCourseUpdate") && (
-                      <>
-                        <List.Item
-                          title="Actualizaciones de cursos favoritos"
-                          description={getNotificationTypeDescription("favoriteCourseUpdate")}
-                          left={(props) => <List.Icon {...props} icon="star" />}
-                        />
-                        {renderNotificationTypeSelector("favoriteCourseUpdate")}
-                      </>
-                    )}
+                    
                     
                     <Divider style={styles.divider} />
                   </>
