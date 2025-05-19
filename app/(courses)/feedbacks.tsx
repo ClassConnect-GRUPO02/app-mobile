@@ -22,6 +22,9 @@ export default function CourseFeedbackScreen() {
   const [page, setPage] = useState(1);
   const [summary, setSummary] = useState<string | null>(null);
   const [showSummary, setShowSummary] = useState(true);
+  const [allFeedbacks, setAllFeedbacks] = useState<any[]>([]);
+
+  const ITEMS_PER_PAGE = 5; // Número de items por página
 
   const theme = useTheme();
 
@@ -31,26 +34,35 @@ export default function CourseFeedbackScreen() {
     }
   }, [id, filter, page]);
 
+  useEffect(() => {
+    setPage(1);
+  }, [filter]);
+
   // Cargar courseFeedbacks con filtros y paginación
   const loadCourseFeedbacks = async () => {
     setLoading(true);
     try {
-      const res = await courseClient.getFeedbacksByCourseId(id); // API ajustada
-      const filteredFeedbacks = res.filter((item: any) => {
-        if (filter === "positivo") {
-          return item.punctuation >= 4;
-        } else if (filter === "negativo") {
-          return item.punctuation <= 2;
-        }
+      const res = await courseClient.getFeedbacksByCourseId(id);
+      const filtered = res.filter((item: any) => {
+        if (filter === "positivo") return item.punctuation >= 4;
+        if (filter === "negativo") return item.punctuation <= 2;
         return true;
       });
-      setCourseFeedbacks(filteredFeedbacks);
+
+      setAllFeedbacks(filtered);
+
+      // Corta la parte actual de la página
+      const start = (page - 1) * ITEMS_PER_PAGE;
+      const end = start + ITEMS_PER_PAGE;
+      setCourseFeedbacks(filtered.slice(start, end));
     } catch (err) {
       console.error("Error al cargar courseFeedbacks:", err);
     } finally {
       setLoading(false);
     }
   };
+
+  const totalPages = Math.ceil(allFeedbacks.length / ITEMS_PER_PAGE);
 
   // Generar el resumen con la API de resumen de courseFeedbacks
   const handleSummarize = async () => {
@@ -113,7 +125,12 @@ export default function CourseFeedbackScreen() {
             <Button disabled={page <= 1} onPress={() => setPage(page - 1)}>
               Anterior
             </Button>
-            <Button onPress={() => setPage(page + 1)}>Siguiente</Button>
+            <Button
+              disabled={page >= totalPages}
+              onPress={() => setPage(page + 1)}
+            >
+              Siguiente
+            </Button>
           </View>
 
           {/* Botón para generar resumen */}
