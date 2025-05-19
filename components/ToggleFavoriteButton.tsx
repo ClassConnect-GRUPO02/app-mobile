@@ -55,7 +55,7 @@ const ToggleFavoriteButton: React.FC<ToggleFavoriteButtonProps> = ({ courseId })
       } else {
         await courseClient.addFavorite(userId, courseId);
         setIsFavorite(true);
-        await userApi.notifyUser(userId, "Curso Favorito", `El curso ${courseId} ha sido agregado a tus favoritos.`, "favoriteCourse");
+        Alert.alert("Favorito agregado", "El curso ha sido agregado a tus favoritos.");
       }
     } catch (error) {
       // console.error("Error al actualizar favorito:", error);

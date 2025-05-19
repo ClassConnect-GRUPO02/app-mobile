@@ -100,7 +100,7 @@ export const userApi = {
 
 
   async checkEmailExists(email: string): Promise<{ exists: boolean; token: string; id: string }> {
-    const response = await apiClient.get<{ exists: boolean; token: string, id: string }>(`/check-email-exists/${email}`);
+    const response = await apiClient.getWithoutAuth<{ exists: boolean; token: string, id: string }>(`/check-email-exists/${email}`);
 
     return { exists: response.exists,
               token: response.token,

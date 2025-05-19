@@ -121,10 +121,10 @@ export default function EditProfileScreen({
             <TextInput
               label="Correo electrónico"
               value={email}
-              onChangeText={setEmail}
               mode="outlined"
               keyboardType="email-address"
               autoCapitalize="none"
+              disabled
               style={styles.input}
             />
           </Card.Content>
