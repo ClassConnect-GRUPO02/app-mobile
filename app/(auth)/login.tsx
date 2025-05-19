@@ -156,6 +156,8 @@ const LoginScreen = (): React.JSX.Element => {
           const check = await fetchWithTimeout(
             userApi.checkEmailExists(googleInfo.user.email)
           );
+
+          console.log("Respuesta de verificación de correo:", check);
           
           if (check.exists) {
             await userApi.storeToken(check.token);

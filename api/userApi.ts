@@ -76,7 +76,7 @@ export const userApi = {
 
   // Guardar el ID del usuario en el almacenamiento seguro
   storeUserId: async (id: string): Promise<void> => {
-    await setItemAsync("userId", id); // Guardamos el userId en secure-store
+    await setItemAsync("userId", String(id)); // Guardamos el userId en secure-store
   },
 
   storeRefreshToken: async (refreshToken: string): Promise<void> => {
