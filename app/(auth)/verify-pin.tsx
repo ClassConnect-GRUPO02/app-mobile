@@ -4,6 +4,7 @@ import { useRouter } from "expo-router";
 import { userApi } from "../../api/userApi";
 import { Button, TextInput } from "react-native-paper";
 import { useLocalSearchParams } from "expo-router";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 
 export default function VerifyPinScreen() {
   const [pin, setPin] = useState<string>("");
@@ -27,6 +28,7 @@ const handleVerifyPin = async () => {
 
     if (response.description.includes("Email verified successfully") ) {
       Alert.alert("Éxito", "Tu email fue verificado correctamente.");
+      await AsyncStorage.removeItem("pendingEmailVerification");
       router.push("/(auth)/login");
     } else {
       setError("El PIN es incorrecto o ha expirado.");

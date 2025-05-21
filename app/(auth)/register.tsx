@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from "react";
 import * as Location from 'expo-location';
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native";
 import { TextInput, Button, Text, Title, RadioButton, ActivityIndicator } from "react-native-paper";
 import { Link, useLocalSearchParams, router } from "expo-router";
@@ -101,7 +102,7 @@ export default function RegisterScreen(): React.JSX.Element {
 
       await fetchWithTimeout(userApi.register(userData));
 
-  
+      await AsyncStorage.setItem("pendingEmailVerification", email);
       // Redirigir a la pantalla de verificación de PIN
       router.push(`/(auth)/verify-pin?email=${email}`);
 
