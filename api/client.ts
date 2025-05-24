@@ -140,19 +140,19 @@ export const apiClient = {
     const headers = {
       'Content-Type': 'application/json'
     };
-  
+
     try {
       const response = await fetch(url, {
         method: 'GET',
         headers,
       });
-  
+
       const responseData = await response.json();
-  
+
       if (!response.ok) {
         throw new Error(responseData.message || 'Ocurrió un error en la petición');
       }
-  
+
       return responseData;
     } catch (error) {
       console.error(`Error en petición GET sin auth a ${endpoint}:`, error);

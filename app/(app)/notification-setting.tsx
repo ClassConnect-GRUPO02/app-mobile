@@ -21,10 +21,9 @@ import { userApi } from "../../api/userApi";
 import React from "react";
 
 // Constantes para los tipos de notificación
-const PUSH_ONLY = 1;
-const EMAIL_ONLY = 2;
-const BOTH = 3;
-const DISABLED = 0;
+const PUSH_ONLY = 1
+const EMAIL_ONLY = 2
+const BOTH = 3
 
 // Interfaces para los diferentes tipos de configuraciones
 interface StudentSettings {
@@ -83,24 +82,24 @@ export default function NotificationSettingsScreen() {
           setSettings(notificationSettings);
         } else {
           // Usar configuraciones predeterminadas si no hay datos
-          const defaultSettings =
-            response.user.userType === "alumno"
-              ? {
-                  pushEnabled: true,
-                  emailEnabled: true,
-                  newAssignment: BOTH,
-                  deadlineReminder: BOTH,
-                  courseEnrollment: BOTH,
-                  teacherFeedback: BOTH,
-                }
-              : {
-                  pushEnabled: true,
-                  emailEnabled: true,
-                  assignmentSubmission: BOTH,
-                  studentFeedback: BOTH,
-                };
-
-          setSettings(defaultSettings);
+          const defaultSettings = response.user.userType === "alumno" 
+            ? {
+                pushEnabled: true,
+                emailEnabled: true,
+                newAssignment: BOTH,
+                deadlineReminder: BOTH,
+                courseEnrollment: BOTH,
+                favoriteCourseUpdate: BOTH,
+                teacherFeedback: BOTH,
+              } 
+            : {
+                pushEnabled: true,
+                emailEnabled: true,
+                assignmentSubmission: BOTH,
+                studentFeedback: BOTH,
+              };
+          
+          setSettings(defaultSettings)
         }
 
         setLoading(false);
@@ -166,19 +165,10 @@ export default function NotificationSettingsScreen() {
 
   // Renderiza los chips de selección de tipo de notificación
   const renderNotificationTypeSelector = (settingKey: string) => {
-    const currentValue = settings[settingKey] ?? BOTH;
-
+    const currentValue = settings[settingKey] || BOTH;
+    
     return (
       <View style={styles.chipContainer}>
-        <Chip
-          selected={currentValue === DISABLED}
-          onPress={() => handleNotificationTypeChange(settingKey, DISABLED)}
-          style={styles.chip}
-          mode={currentValue === DISABLED ? "flat" : "outlined"}
-          icon="bell-off"
-        >
-          Ninguna
-        </Chip>
         <Chip
           selected={currentValue === PUSH_ONLY}
           onPress={() => handleNotificationTypeChange(settingKey, PUSH_ONLY)}
@@ -203,10 +193,7 @@ export default function NotificationSettingsScreen() {
           selected={currentValue === BOTH}
           onPress={() => handleNotificationTypeChange(settingKey, BOTH)}
           style={styles.chip}
-          disabled={
-            (!settings.pushEnabled || !settings.emailEnabled) &&
-            currentValue !== BOTH
-          }
+          disabled={(!settings.pushEnabled || !settings.emailEnabled) && currentValue !== BOTH}
           mode={currentValue === BOTH ? "flat" : "outlined"}
           icon="bell-ring"
         >
@@ -215,13 +202,12 @@ export default function NotificationSettingsScreen() {
       </View>
     );
   };
+
   // Función para obtener la descripción del tipo de notificación
   const getNotificationTypeDescription = (settingKey: string) => {
-    const value = settings[settingKey] ?? BOTH;
-
+    const value = settings[settingKey] || BOTH;
+    
     switch (value) {
-      case DISABLED:
-        return "Notificaciones desactivadas";
       case PUSH_ONLY:
         return "Solo notificaciones push";
       case EMAIL_ONLY:
@@ -341,7 +327,18 @@ export default function NotificationSettingsScreen() {
                         {renderNotificationTypeSelector("courseEnrollment")}
                       </>
                     )}
-
+                    
+                    {hasSettingOption("favoriteCourseUpdate") && (
+                      <>
+                        <List.Item
+                          title="Actualizaciones de cursos favoritos"
+                          description={getNotificationTypeDescription("favoriteCourseUpdate")}
+                          left={(props) => <List.Icon {...props} icon="star" />}
+                        />
+                        {renderNotificationTypeSelector("favoriteCourseUpdate")}
+                      </>
+                    )}
+                    
                     <Divider style={styles.divider} />
                   </>
                 )}
