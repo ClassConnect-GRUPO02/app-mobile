@@ -28,6 +28,17 @@ api.interceptors.request.use(
   }
 );
 
+api.interceptors.request.use(
+  async (config) => {
+    const token = await getItemAsync('userToken');
+    if (token) {
+      (config.headers as any)['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
+
 api.interceptors.response.use(
   (response) => {
     console.log(

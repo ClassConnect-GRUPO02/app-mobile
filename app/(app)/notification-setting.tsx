@@ -21,6 +21,7 @@ import { userApi } from "../../api/userApi";
 import React from "react";
 
 // Constantes para los tipos de notificación
+
 const PUSH_ONLY = 1;
 const EMAIL_ONLY = 2;
 const BOTH = 3;
@@ -83,6 +84,7 @@ export default function NotificationSettingsScreen() {
           setSettings(notificationSettings);
         } else {
           // Usar configuraciones predeterminadas si no hay datos
+
           const defaultSettings =
             response.user.userType === "alumno"
               ? {
@@ -165,6 +167,7 @@ export default function NotificationSettingsScreen() {
   };
 
   // Renderiza los chips de selección de tipo de notificación
+
   const renderNotificationTypeSelector = (settingKey: string) => {
     const currentValue = settings[settingKey] ?? BOTH;
 
