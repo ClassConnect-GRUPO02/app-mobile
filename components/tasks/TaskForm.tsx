@@ -11,45 +11,86 @@ import {
     RadioButton,
     Checkbox,
     SegmentedButtons,
+    IconButton,
 } from "react-native-paper"
 import DateTimePicker from "@react-native-community/datetimepicker"
-import type { Task, TaskType, LatePolicy, AnswerFormat } from "@/types/Task"
-import {userApi} from "@/api/userApi";
+import * as DocumentPicker from "expo-document-picker"
+import type { Task, TaskType, LatePolicy, AnswerFormat, TaskQuestion } from "@/types/Task"
+import { taskClient } from "@/api/taskClient"
+import { userApi } from "@/api/userApi"
 
 interface TaskFormProps {
     courseId: string
-    initialData?: Task
-    onSave: (task: any) => void
+    taskId?: string
+    onSave: () => void
     onCancel: () => void
-    isCreating?: boolean
 }
 
-export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSave, onCancel, isCreating = false }) => {
-    const [title, setTitle] = useState(initialData?.title || "")
-    const [description, setDescription] = useState(initialData?.description || "")
-    const [instructions, setInstructions] = useState(initialData?.instructions || "")
-    const [type, setType] = useState<TaskType>(initialData?.type || "tarea")
-    const [dueDate, setDueDate] = useState(initialData?.due_date ? new Date(initialData.due_date) : new Date())
+export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, onCancel }) => {
+    const [initialData, setInitialData] = useState<Task | null>(null)
+    const [loading, setLoading] = useState(false)
+    const [title, setTitle] = useState("")
+    const [description, setDescription] = useState("")
+    const [type, setType] = useState<TaskType>("tarea")
+    const [dueDate, setDueDate] = useState(new Date())
     const [showDatePicker, setShowDatePicker] = useState(false)
-    const [allowLate, setAllowLate] = useState(initialData?.allow_late ?? false)
-    const [latePolicy, setLatePolicy] = useState<LatePolicy>(initialData?.late_policy || "ninguna")
-    const [hasTimer, setHasTimer] = useState(initialData?.has_timer ?? false)
-    const [timeLimit, setTimeLimit] = useState(initialData?.time_limit_minutes?.toString() || "60")
-    const [published, setPublished] = useState(initialData?.published ?? false)
-    const [allowFileUpload, setAllowFileUpload] = useState(true) // Siempre permitir subida de archivos
-    const [answerFormat, setAnswerFormat] = useState<AnswerFormat>("archivo") // Siempre formato archivo
+    const [allowLate, setAllowLate] = useState(false)
+    const [latePolicy, setLatePolicy] = useState<LatePolicy>("ninguna")
+    const [hasTimer, setHasTimer] = useState(false)
+    const [timeLimit, setTimeLimit] = useState("60")
+    const [published, setPublished] = useState(false)
+    const [answerFormat, setAnswerFormat] = useState<AnswerFormat>("archivo")
+    const [questions, setQuestions] = useState<TaskQuestion[]>([{ text: "" }])
+    const [attachmentFile, setAttachmentFile] = useState<{
+        name: string
+        uri: string
+        size: number
+        type: string
+    } | null>(null)
 
     // Validation states
     const [titleError, setTitleError] = useState("")
     const [descriptionError, setDescriptionError] = useState("")
-    const [instructionsError, setInstructionsError] = useState("")
     const [timeLimitError, setTimeLimitError] = useState("")
-    const [loading, setLoading] = useState(false)
+    const [questionsError, setQuestionsError] = useState("")
+
+    React.useEffect(() => {
+        const loadTaskData = async () => {
+            if (taskId) {
+                try {
+                    setLoading(true)
+                    const task = await taskClient.getTaskById(courseId, taskId)
+                    if (task) {
+                        setInitialData(task)
+                        setTitle(task.title)
+                        setDescription(task.description)
+                        setType(task.type)
+                        setDueDate(new Date(task.due_date))
+                        setAllowLate(task.allow_late)
+                        setLatePolicy(task.late_policy)
+                        setHasTimer(task.has_timer)
+                        setTimeLimit(task.time_limit_minutes?.toString() || "60")
+                        setPublished(task.published)
+                        setAnswerFormat(task.answer_format)
+                        if (task.questions && task.questions.length > 0) {
+                            setQuestions(task.questions)
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error loading task:", error)
+                    Alert.alert("Error", "No se pudo cargar la tarea")
+                } finally {
+                    setLoading(false)
+                }
+            }
+        }
+
+        loadTaskData()
+    }, [taskId, courseId])
 
     const validateForm = () => {
         let isValid = true
 
-        // Validate title
         if (!title.trim()) {
             setTitleError("El título es obligatorio")
             isValid = false
@@ -57,7 +98,6 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
             setTitleError("")
         }
 
-        // Validate description
         if (!description.trim()) {
             setDescriptionError("La descripción es obligatoria")
             isValid = false
@@ -65,15 +105,6 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
             setDescriptionError("")
         }
 
-        // Validate instructions
-        if (!instructions.trim()) {
-            setInstructionsError("Las instrucciones son obligatorias")
-            isValid = false
-        } else {
-            setInstructionsError("")
-        }
-
-        // Validate time limit if timer is enabled
         if (hasTimer) {
             const timeLimitNum = Number.parseInt(timeLimit, 10)
             if (isNaN(timeLimitNum) || timeLimitNum <= 0) {
@@ -81,6 +112,16 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
                 isValid = false
             } else {
                 setTimeLimitError("")
+            }
+        }
+
+        if (answerFormat === "preguntas_respuestas") {
+            const validQuestions = questions.filter((q) => q.text.trim())
+            if (validQuestions.length === 0) {
+                setQuestionsError("Debe agregar al menos una pregunta")
+                isValid = false
+            } else {
+                setQuestionsError("")
             }
         }
 
@@ -95,42 +136,95 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
         try {
             setLoading(true)
 
-            // Obtener el ID del usuario actual (docente)
             const userId = await userApi.getUserId()
             if (!userId) {
                 Alert.alert("Error", "No se pudo obtener el ID del usuario")
-                setLoading(false)
                 return
             }
 
+            // Prepare questions for preguntas_respuestas format
+            const taskQuestions =
+                answerFormat === "preguntas_respuestas"
+                    ? questions.filter((q) => q.text.trim()).map((q) => ({ text: q.text.trim() }))
+                    : []
+
             const taskData = {
-                // Only include id if we're editing an existing task
-                ...(isCreating ? {} : { id: initialData?.id }),
+                ...(taskId ? { id: taskId } : {}),
                 course_id: courseId,
-                created_by: userId, // Usar el ID del usuario actual como creador
+                created_by: userId,
                 type,
                 title,
                 description,
-                instructions,
-                due_date: dueDate.toISOString(),
-                allow_late: allowLate,
-                late_policy: latePolicy,
-                has_timer: hasTimer,
-                time_limit_minutes: hasTimer ? Number.parseInt(timeLimit, 10) : null,
+                due_date: type === "tarea" ? dueDate.toISOString() : new Date().toISOString(), // Exams don't use due dates
+                allow_late: type === "tarea" ? allowLate : false, // Only tasks can allow late submissions
+                late_policy: type === "tarea" ? latePolicy : "ninguna",
+                has_timer: type === "examen" ? hasTimer : false, // Only exams use timers
+                time_limit_minutes: type === "examen" && hasTimer ? Number.parseInt(timeLimit, 10) : null,
                 published,
                 visible_from: null,
                 visible_until: null,
-                allow_file_upload: true, // Siempre permitir subida de archivos
-                answer_format: "archivo", // Siempre formato archivo
+                allow_file_upload: true,
+                answer_format: answerFormat,
+                questions: taskQuestions,
             }
 
-            console.log("Guardando tarea:", taskData)
-            onSave(taskData)
+            let result
+            if (taskId) {
+                result = await taskClient.updateTask(courseId, taskId, taskData)
+            } else {
+                result = await taskClient.createTask(courseId, taskData)
+            }
+
+            if (result) {
+                Alert.alert(
+                    "Éxito",
+                    `${type === "tarea" ? "Tarea" : "Examen"} ${taskId ? "actualizada" : "creada"} correctamente`,
+                    [{ text: "OK", onPress: onSave }],
+                )
+            }
         } catch (error) {
-            console.error("Error preparando datos de tarea:", error)
-            Alert.alert("Error", "No se pudo guardar la tarea. Inténtalo de nuevo.")
+            console.error("Error saving task:", error)
+            Alert.alert("Error", "No se pudo guardar la actividad. Inténtalo de nuevo.")
         } finally {
             setLoading(false)
+        }
+    }
+
+    const addQuestion = () => {
+        setQuestions([...questions, { text: "" }])
+    }
+
+    const removeQuestion = (index: number) => {
+        if (questions.length > 1) {
+            setQuestions(questions.filter((_, i) => i !== index))
+        }
+    }
+
+    const updateQuestion = (index: number, text: string) => {
+        const updatedQuestions = [...questions]
+        updatedQuestions[index] = { ...updatedQuestions[index], text }
+        setQuestions(updatedQuestions)
+    }
+
+    const pickAttachment = async () => {
+        try {
+            const result = await DocumentPicker.getDocumentAsync({
+                type: "*/*",
+                copyToCacheDirectory: true,
+            })
+
+            if (!result.canceled) {
+                const fileInfo = result.assets[0]
+                setAttachmentFile({
+                    name: fileInfo.name,
+                    uri: fileInfo.uri,
+                    size: fileInfo.size || 0,
+                    type: fileInfo.mimeType || "application/octet-stream",
+                })
+            }
+        } catch (error) {
+            console.error("Error picking attachment:", error)
+            Alert.alert("Error", "No se pudo seleccionar el archivo")
         }
     }
 
@@ -145,11 +239,19 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
         return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
     }
 
+    if (loading) {
+        return (
+            <View style={styles.loadingContainer}>
+                <Text>Cargando...</Text>
+            </View>
+        )
+    }
+
     return (
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <Text variant="headlineMedium" style={styles.title}>
-                    {isCreating ? "Crear" : "Editar"} {type === "tarea" ? "Tarea" : "Examen"}
+                    {taskId ? "Editar" : "Crear"} {type === "tarea" ? "Tarea" : "Examen"}
                 </Text>
 
                 <View style={styles.formSection}>
@@ -188,80 +290,57 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
                         error={!!descriptionError}
                     />
                     {!!descriptionError && <HelperText type="error">{descriptionError}</HelperText>}
-
-                    <TextInput
-                        label="Instrucciones"
-                        value={instructions}
-                        onChangeText={setInstructions}
-                        mode="outlined"
-                        multiline
-                        numberOfLines={6}
-                        style={styles.input}
-                        error={!!instructionsError}
-                        placeholder="Escribe las instrucciones detalladas para completar esta tarea..."
-                    />
-                    {!!instructionsError && <HelperText type="error">{instructionsError}</HelperText>}
                 </View>
 
                 <Divider style={styles.divider} />
 
-                <View style={styles.formSection}>
-                    <Text variant="titleMedium" style={styles.sectionTitle}>
-                        Fecha de entrega
-                    </Text>
+                {type === "tarea" && (
+                    <>
+                        <View style={styles.formSection}>
+                            <Text variant="titleMedium" style={styles.sectionTitle}>
+                                Fecha de entrega
+                            </Text>
 
-                    <Button mode="outlined" onPress={() => setShowDatePicker(true)} style={styles.dateButton} icon="calendar">
-                        {formatDate(dueDate)}
-                    </Button>
+                            <Button mode="outlined" onPress={() => setShowDatePicker(true)} style={styles.dateButton} icon="calendar">
+                                {formatDate(dueDate)}
+                            </Button>
 
-                    {showDatePicker && (
-                        <DateTimePicker value={dueDate} mode="datetime" display="default" onChange={onDateChange} />
-                    )}
+                            {showDatePicker && (
+                                <DateTimePicker value={dueDate} mode="datetime" display="default" onChange={onDateChange} />
+                            )}
 
-                    <View style={styles.switchContainer}>
-                        <Text>Permitir entregas tardías</Text>
-                        <Switch value={allowLate} onValueChange={setAllowLate} />
-                    </View>
+                            <View style={styles.switchContainer}>
+                                <Text>Permitir entregas tardías</Text>
+                                <Switch value={allowLate} onValueChange={setAllowLate} />
+                            </View>
 
-                    {allowLate && (
-                        <View style={styles.radioGroup}>
-                            <Text>Política de entregas tardías:</Text>
-                            <RadioButton.Group onValueChange={(value) => setLatePolicy(value as LatePolicy)} value={latePolicy}>
-                                <View style={styles.radioOption}>
-                                    <RadioButton value="ninguna" />
-                                    <Text>Sin penalización</Text>
+                            {allowLate && (
+                                <View style={styles.radioGroup}>
+                                    <Text>Política de entregas tardías:</Text>
+                                    <RadioButton.Group onValueChange={(value) => setLatePolicy(value as LatePolicy)} value={latePolicy}>
+                                        <View style={styles.radioOption}>
+                                            <RadioButton value="ninguna" />
+                                            <Text>Sin penalización</Text>
+                                        </View>
+                                        <View style={styles.radioOption}>
+                                            <RadioButton value="aceptar_con_descuento" />
+                                            <Text>Reducción de calificación</Text>
+                                        </View>
+                                        <View style={styles.radioOption}>
+                                            <RadioButton value="aceptar" />
+                                            <Text>Aceptar sin condiciones</Text>
+                                        </View>
+                                    </RadioButton.Group>
                                 </View>
-                                <View style={styles.radioOption}>
-                                    <RadioButton value="descontar" />
-                                    <Text>Reducción de calificación</Text>
-                                </View>
-                                <View style={styles.radioOption}>
-                                    <RadioButton value="aceptar" />
-                                    <Text>Aceptar sin condiciones</Text>
-                                </View>
-                            </RadioButton.Group>
+                            )}
                         </View>
-                    )}
-                </View>
 
-                <Divider style={styles.divider} />
-
-                <View style={styles.formSection}>
-                    <Text variant="titleMedium" style={styles.sectionTitle}>
-                        Configuración de respuestas
-                    </Text>
-
-                    <View style={styles.infoBox}>
-                        <Text style={styles.infoText}>
-                            Esta tarea requiere que los estudiantes suban un archivo como respuesta.
-                        </Text>
-                    </View>
-                </View>
+                        <Divider style={styles.divider} />
+                    </>
+                )}
 
                 {type === "examen" && (
                     <>
-                        <Divider style={styles.divider} />
-
                         <View style={styles.formSection}>
                             <Text variant="titleMedium" style={styles.sectionTitle}>
                                 Configuración de tiempo
@@ -287,8 +366,88 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
                                 </>
                             )}
                         </View>
+
+                        <Divider style={styles.divider} />
                     </>
                 )}
+
+                <View style={styles.formSection}>
+                    <Text variant="titleMedium" style={styles.sectionTitle}>
+                        Formato de respuesta
+                    </Text>
+
+                    <SegmentedButtons
+                        value={answerFormat}
+                        onValueChange={(value) => setAnswerFormat(value as AnswerFormat)}
+                        buttons={[
+                            { value: "archivo", label: "Archivo" },
+                            { value: "preguntas_respuestas", label: "Preguntas" },
+                        ]}
+                        style={styles.segmentedButtons}
+                    />
+
+                    {answerFormat === "preguntas_respuestas" && (
+                        <View style={styles.questionsSection}>
+                            <Text variant="titleSmall" style={styles.questionsTitle}>
+                                Preguntas del {type}
+                            </Text>
+
+                            {questions.map((question, index) => (
+                                <View key={index} style={styles.questionContainer}>
+                                    <TextInput
+                                        label={`Pregunta ${index + 1}`}
+                                        value={question.text}
+                                        onChangeText={(text) => updateQuestion(index, text)}
+                                        mode="outlined"
+                                        multiline
+                                        numberOfLines={2}
+                                        style={styles.questionInput}
+                                    />
+                                    {questions.length > 1 && (
+                                        <IconButton
+                                            icon="delete"
+                                            size={20}
+                                            onPress={() => removeQuestion(index)}
+                                            style={styles.deleteButton}
+                                        />
+                                    )}
+                                </View>
+                            ))}
+
+                            <Button mode="outlined" icon="plus" onPress={addQuestion} style={styles.addQuestionButton}>
+                                Agregar pregunta
+                            </Button>
+
+                            {!!questionsError && <HelperText type="error">{questionsError}</HelperText>}
+                        </View>
+                    )}
+
+                    {answerFormat === "archivo" && (
+                        <View style={styles.infoBox}>
+                            <Text style={styles.infoText}>Los estudiantes deberán subir un archivo como respuesta.</Text>
+                        </View>
+                    )}
+                </View>
+
+                <Divider style={styles.divider} />
+
+                <View style={styles.formSection}>
+                    <Text variant="titleMedium" style={styles.sectionTitle}>
+                        Archivo adjunto (opcional)
+                    </Text>
+                    <Text style={styles.helperText}>Puedes adjuntar un archivo que los estudiantes podrán descargar</Text>
+
+                    <Button mode="outlined" icon="attachment" onPress={pickAttachment} style={styles.attachmentButton}>
+                        {attachmentFile ? "Cambiar archivo" : "Adjuntar archivo"}
+                    </Button>
+
+                    {attachmentFile && (
+                        <View style={styles.fileInfo}>
+                            <Text style={styles.fileName}>{attachmentFile.name}</Text>
+                            <Text style={styles.fileSize}>({(attachmentFile.size / 1024).toFixed(1)} KB)</Text>
+                        </View>
+                    )}
+                </View>
 
                 <Divider style={styles.divider} />
 
@@ -301,9 +460,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
                         <Checkbox status={published ? "checked" : "unchecked"} onPress={() => setPublished(!published)} />
                         <Text>Publicar inmediatamente</Text>
                     </View>
-                    <Text style={styles.helperText}>
-                        Si no está marcado, la actividad se guardará como borrador y los estudiantes no podrán verla.
-                    </Text>
+                    <Text style={styles.helperText}>Si no está marcado, la actividad se guardará como borrador</Text>
                 </View>
 
                 <View style={styles.buttonContainer}>
@@ -311,7 +468,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, initialData, onSav
                         Cancelar
                     </Button>
                     <Button mode="contained" onPress={handleSave} style={styles.button} loading={loading} disabled={loading}>
-                        {isCreating ? "Crear" : "Guardar"}
+                        {taskId ? "Guardar" : "Crear"}
                     </Button>
                 </View>
             </ScrollView>
@@ -323,6 +480,11 @@ const styles = StyleSheet.create({
     container: {
         flex: 1,
         backgroundColor: "#fff",
+    },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
     },
     scrollContent: {
         padding: 16,
@@ -392,5 +554,44 @@ const styles = StyleSheet.create({
     },
     infoText: {
         color: "#0d47a1",
+    },
+    questionsSection: {
+        marginTop: 16,
+    },
+    questionsTitle: {
+        marginBottom: 12,
+        fontWeight: "bold",
+    },
+    questionContainer: {
+        flexDirection: "row",
+        alignItems: "flex-start",
+        marginBottom: 12,
+    },
+    questionInput: {
+        flex: 1,
+        marginRight: 8,
+    },
+    deleteButton: {
+        marginTop: 8,
+    },
+    addQuestionButton: {
+        marginTop: 8,
+        alignSelf: "flex-start",
+    },
+    attachmentButton: {
+        marginVertical: 8,
+    },
+    fileInfo: {
+        marginTop: 8,
+        padding: 8,
+        backgroundColor: "#f5f5f5",
+        borderRadius: 4,
+    },
+    fileName: {
+        fontWeight: "bold",
+    },
+    fileSize: {
+        color: "#666",
+        fontSize: 12,
     },
 })

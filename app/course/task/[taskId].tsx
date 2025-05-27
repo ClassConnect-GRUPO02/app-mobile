@@ -6,10 +6,9 @@ import { taskClient } from "@/api/taskClient"
 import { courseClient } from "@/api/coursesClient"
 import type { Task } from "@/types/Task"
 import { StatusBar } from "expo-status-bar"
-import { WebView } from "react-native-webview"
-import {userApi} from "@/api/userApi";
+import { userApi } from "@/api/userApi"
+import { TaskSubmissionForm } from "@/components/tasks/TaskSubmissionForm"
 import React from "react"
-import {TaskSubmissionForm} from "@/components/tasks/TaskSubmissionList";
 
 export default function TaskDetailScreen() {
     const { courseId, taskId } = useLocalSearchParams<{ courseId: string; taskId: string }>()
@@ -27,7 +26,6 @@ export default function TaskDetailScreen() {
             try {
                 setLoading(true)
 
-                // Obtener el ID del usuario actual
                 const currentUserId = await userApi.getUserId()
                 if (!currentUserId) {
                     throw new Error("No se pudo obtener el ID del usuario")
@@ -35,7 +33,6 @@ export default function TaskDetailScreen() {
 
                 setUserId(currentUserId)
 
-                // Obtener la tarea
                 const taskData = await taskClient.getTaskById(courseId, taskId)
                 if (!taskData) {
                     throw new Error("No se pudo cargar la tarea")
@@ -43,29 +40,24 @@ export default function TaskDetailScreen() {
 
                 setTask(taskData)
 
-                // Verificar si el usuario es docente o creador de la tarea
                 try {
                     const isTeacher = await userApi.isTeacher()
                     const isCreator = taskData.created_by === currentUserId
                     setIsInstructor(isTeacher || isCreator)
                 } catch (error) {
                     console.error("Error al verificar si es docente:", error)
-                    // Si falla la verificación de docente, verificamos si es el creador
                     setIsInstructor(taskData.created_by === currentUserId)
                 }
 
-                // Si no es instructor, verificar si está inscrito en el curso
                 if (!isInstructor) {
                     try {
                         const enrollmentStatus = await courseClient.isEnrolledInCourse(courseId, currentUserId)
                         setIsEnrolled(enrollmentStatus)
                     } catch (error) {
                         console.error("Error al verificar inscripción:", error)
-                        // Por defecto, asumimos que está inscrito para evitar bloqueos incorrectos
                         setIsEnrolled(true)
                     }
 
-                    // Verificar si el usuario ya ha enviado una respuesta
                     try {
                         const submissionData = await taskClient.getTaskSubmission(taskId, currentUserId)
                         if (submissionData) {
@@ -93,7 +85,6 @@ export default function TaskDetailScreen() {
 
     const handleSubmissionComplete = () => {
         setHasSubmitted(true)
-        // Recargar la página para mostrar la entrega
         router.replace({
             pathname: "/course/task/[taskId]",
             params: { courseId, taskId },
@@ -205,6 +196,19 @@ export default function TaskDetailScreen() {
                     </View>
                 )}
 
+                {submission?.answers && submission.answers.length > 0 && (
+                    <View style={styles.answersPreview}>
+                        <Text variant="bodyMedium" style={styles.fileLabel}>
+                            Respuestas enviadas:
+                        </Text>
+                        {submission.answers.map((answer: any, index: number) => (
+                            <View key={index} style={styles.answerItem}>
+                                <Text style={styles.answerText}>{answer.answer_text}</Text>
+                            </View>
+                        ))}
+                    </View>
+                )}
+
                 {submission?.grade !== null && (
                     <View style={styles.gradeContainer}>
                         <Text variant="titleMedium" style={styles.gradeTitle}>
@@ -260,10 +264,16 @@ export default function TaskDetailScreen() {
                             {task.type === "tarea" ? "Tarea" : "Examen"}
                         </Chip>
 
-                        <Text style={styles.dueDate}>
-                            Fecha de entrega: {new Date(task.due_date).toLocaleDateString()}{" "}
-                            {new Date(task.due_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                        </Text>
+                        {task.type === "tarea" && (
+                            <Text style={styles.dueDate}>
+                                Fecha de entrega: {new Date(task.due_date).toLocaleDateString()}{" "}
+                                {new Date(task.due_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </Text>
+                        )}
+
+                        {task.type === "examen" && task.has_timer && task.time_limit_minutes && (
+                            <Text style={styles.dueDate}>Tiempo límite: {task.time_limit_minutes} minutos</Text>
+                        )}
 
                         <Divider style={styles.divider} />
 
@@ -272,41 +282,35 @@ export default function TaskDetailScreen() {
                         </Text>
                         <Text style={styles.description}>{task.description}</Text>
 
-                        <Text variant="titleMedium" style={styles.sectionTitle}>
-                            Instrucciones
-                        </Text>
+                        {task.questions && task.questions.length > 0 && (
+                            <>
+                                <Text variant="titleMedium" style={styles.sectionTitle}>
+                                    Preguntas
+                                </Text>
+                                {task.questions.map((question, index) => (
+                                    <View key={question.id || index} style={styles.questionPreview}>
+                                        <Text style={styles.questionText}>
+                                            {index + 1}. {question.text}
+                                        </Text>
+                                    </View>
+                                ))}
+                            </>
+                        )}
 
-                        {task.instructions.includes("<") && task.instructions.includes(">") ? (
-                            <View style={styles.webViewContainer}>
-                                <WebView
-                                    originWhitelist={["*"]}
-                                    source={{
-                                        html: `
-                    <html>
-                      <head>
-                        <meta name="viewport" content="width=device-width, initial-scale=1.0">
-                        <style>
-                          body {
-                            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-                            padding: 0;
-                            margin: 0;
-                            font-size: 16px;
-                            line-height: 1.5;
-                            color: #333;
-                          }
-                          img { max-width: 100%; height: auto; }
-                          ul, ol { padding-left: 20px; }
-                        </style>
-                      </head>
-                      <body>${task.instructions}</body>
-                    </html>
-                  `,
-                                    }}
-                                    style={styles.webView}
-                                />
+                        {task.attachment_url && (
+                            <View style={styles.attachmentSection}>
+                                <Text variant="titleMedium" style={styles.sectionTitle}>
+                                    Archivo adjunto
+                                </Text>
+                                <Button
+                                    mode="outlined"
+                                    icon="download"
+                                    onPress={() => handleOpenFile(task.attachment_url!)}
+                                    style={styles.attachmentButton}
+                                >
+                                    Descargar archivo adjunto
+                                </Button>
                             </View>
-                        ) : (
-                            <Text style={styles.instructions}>{task.instructions}</Text>
                         )}
 
                         {isInstructor && (
@@ -388,19 +392,20 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         lineHeight: 22,
     },
-    instructions: {
-        lineHeight: 22,
-    },
-    webViewContainer: {
-        height: 300,
-        marginBottom: 16,
-        borderWidth: 1,
-        borderColor: "#e0e0e0",
+    questionPreview: {
+        marginBottom: 12,
+        padding: 12,
+        backgroundColor: "#f5f5f5",
         borderRadius: 8,
-        overflow: "hidden",
     },
-    webView: {
-        flex: 1,
+    questionText: {
+        lineHeight: 20,
+    },
+    attachmentSection: {
+        marginBottom: 16,
+    },
+    attachmentButton: {
+        alignSelf: "flex-start",
     },
     viewSubmissionsButton: {
         marginTop: 24,
@@ -421,6 +426,18 @@ const styles = StyleSheet.create({
     },
     fileButton: {
         alignSelf: "flex-start",
+    },
+    answersPreview: {
+        marginTop: 16,
+    },
+    answerItem: {
+        marginBottom: 8,
+        padding: 8,
+        backgroundColor: "#f5f5f5",
+        borderRadius: 4,
+    },
+    answerText: {
+        lineHeight: 20,
     },
     gradeContainer: {
         marginTop: 16,

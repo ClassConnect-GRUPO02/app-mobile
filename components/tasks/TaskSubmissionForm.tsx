@@ -1,12 +1,12 @@
 import React from "react"
 import { useState, useEffect, useRef } from "react"
-import { View, StyleSheet, ScrollView, Alert } from "react-native"
-import { Text, Button, HelperText, Divider, Chip, Portal, Modal } from "react-native-paper"
+import { View, StyleSheet, ScrollView, Alert, Linking } from "react-native"
+import { Text, Button, HelperText, Divider, Chip, Portal, Modal, TextInput } from "react-native-paper"
 import * as DocumentPicker from "expo-document-picker"
 import { taskClient } from "@/api/taskClient"
 import type { Task } from "@/types/Task"
 import { supabaseClient } from "@/api/supabaseClient"
-import {userApi} from "@/api/userApi";
+import { userApi } from "@/api/userApi"
 
 interface TaskSubmissionFormProps {
     task: Task
@@ -14,13 +14,14 @@ interface TaskSubmissionFormProps {
     onSubmissionComplete: () => void
 }
 
-export const Form: React.FC<TaskSubmissionFormProps> = ({ task, courseId, onSubmissionComplete }) => {
+export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, courseId, onSubmissionComplete }) => {
     const [selectedFile, setSelectedFile] = useState<{
         name: string
         uri: string
         size: number
         type: string
     } | null>(null)
+    const [answers, setAnswers] = useState<{ [questionId: string]: string }>({})
     const [submitting, setSubmitting] = useState(false)
     const [errors, setErrors] = useState<Record<string, string>>({})
     const [timeRemaining, setTimeRemaining] = useState<number | null>(
@@ -32,7 +33,7 @@ export const Form: React.FC<TaskSubmissionFormProps> = ({ task, courseId, onSubm
 
     // Timer logic for exams
     useEffect(() => {
-        if (task.has_timer && task.time_limit_minutes && timeRemaining !== null) {
+        if (task.type === "examen" && task.has_timer && task.time_limit_minutes && timeRemaining !== null) {
             timerRef.current = setInterval(() => {
                 setTimeRemaining((prev) => {
                     if (prev === null || prev <= 0) {
@@ -107,12 +108,28 @@ export const Form: React.FC<TaskSubmissionFormProps> = ({ task, courseId, onSubm
         }
     }
 
+    const handleAnswerChange = (questionId: string, answer: string) => {
+        setAnswers((prev) => ({
+            ...prev,
+            [questionId]: answer,
+        }))
+    }
+
     const validateSubmission = (): boolean => {
         const newErrors: Record<string, string> = {}
 
-        // Validate file upload
-        if (!selectedFile) {
-            newErrors.file = "Debes adjuntar un archivo"
+        if (task.answer_format === "archivo") {
+            if (!selectedFile) {
+                newErrors.file = "Debes adjuntar un archivo"
+            }
+        } else if (task.answer_format === "preguntas_respuestas") {
+            if (task.questions) {
+                for (const question of task.questions) {
+                    if (question.id && !answers[question.id]?.trim()) {
+                        newErrors[`question_${question.id}`] = "Esta pregunta es obligatoria"
+                    }
+                }
+            }
         }
 
         setErrors(newErrors)
@@ -133,14 +150,12 @@ export const Form: React.FC<TaskSubmissionFormProps> = ({ task, courseId, onSubm
                 return
             }
 
-            // Handle file upload
             let fileUrl = ""
             if (selectedFile) {
                 try {
                     setUploadProgress(10)
                     console.log("Preparando para subir archivo:", selectedFile)
 
-                    // Simular progreso de carga
                     const progressInterval = setInterval(() => {
                         setUploadProgress((prev) => {
                             const newProgress = prev + 10
@@ -148,7 +163,6 @@ export const Form: React.FC<TaskSubmissionFormProps> = ({ task, courseId, onSubm
                         })
                     }, 300)
 
-                    // Upload file to Supabase
                     fileUrl = await supabaseClient.uploadFile(selectedFile.uri, courseId, selectedFile.name)
 
                     clearInterval(progressInterval)
@@ -168,9 +182,15 @@ export const Form: React.FC<TaskSubmissionFormProps> = ({ task, courseId, onSubm
                 }
             }
 
-            // Submit the task with empty answers array and the file URL
-            console.log("Enviando respuesta con fileUrl:", fileUrl)
-            const result = await taskClient.submitTask(courseId, task.id, userId, [], fileUrl)
+            // Prepare answers for submission
+            const submissionAnswers =
+                task.questions?.map((question) => ({
+                    question_id: question.id || "",
+                    answer_text: answers[question.id || ""] || "",
+                })) || []
+
+            console.log("Enviando respuesta con:", { submissionAnswers, fileUrl })
+            const result = await taskClient.submitTask(courseId, task.id, userId, submissionAnswers, fileUrl)
 
             if (result) {
                 Alert.alert("Éxito", "Tu respuesta ha sido enviada correctamente", [
@@ -189,15 +209,25 @@ export const Form: React.FC<TaskSubmissionFormProps> = ({ task, courseId, onSubm
     }
 
     const isTaskOverdue = (): boolean => {
+        if (task.type === "examen") return false // Exams don't have due dates
         const now = new Date()
         const dueDate = new Date(task.due_date)
         return now > dueDate && !task.allow_late
     }
 
+    const handleOpenAttachment = () => {
+        if (task.attachment_url) {
+            Linking.openURL(task.attachment_url).catch((err) => {
+                console.error("Error al abrir el archivo:", err)
+                Alert.alert("Error", "No se pudo abrir el archivo adjunto.")
+            })
+        }
+    }
+
     return (
         <ScrollView style={styles.container}>
             {/* Timer for exams */}
-            {task.has_timer && timeRemaining !== null && (
+            {task.type === "examen" && task.has_timer && timeRemaining !== null && (
                 <View style={styles.timerContainer}>
                     <Text style={[styles.timerText, timeRemaining < 300 ? styles.timerWarning : null]}>
                         Tiempo restante: {formatTime(timeRemaining)}
@@ -217,10 +247,12 @@ export const Form: React.FC<TaskSubmissionFormProps> = ({ task, courseId, onSubm
                     {task.type === "tarea" ? "Tarea" : "Examen"}
                 </Chip>
 
-                <Text style={styles.dueDate}>
-                    Fecha de entrega: {new Date(task.due_date).toLocaleDateString()}{" "}
-                    {new Date(task.due_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
-                </Text>
+                {task.type === "tarea" && (
+                    <Text style={styles.dueDate}>
+                        Fecha de entrega: {new Date(task.due_date).toLocaleDateString()}{" "}
+                        {new Date(task.due_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                    </Text>
+                )}
 
                 <Divider style={styles.divider} />
 
@@ -229,34 +261,70 @@ export const Form: React.FC<TaskSubmissionFormProps> = ({ task, courseId, onSubm
                 </Text>
                 <Text style={styles.description}>{task.description}</Text>
 
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                    Instrucciones
-                </Text>
-                <Text style={styles.instructions}>{task.instructions}</Text>
+                {task.attachment_url && (
+                    <View style={styles.attachmentSection}>
+                        <Text variant="titleMedium" style={styles.sectionTitle}>
+                            Archivo adjunto
+                        </Text>
+                        <Button mode="outlined" icon="download" onPress={handleOpenAttachment} style={styles.attachmentButton}>
+                            Descargar archivo adjunto
+                        </Button>
+                    </View>
+                )}
 
                 <Divider style={styles.divider} />
             </View>
 
             <View style={styles.answerSection}>
-                <Text variant="titleMedium" style={styles.sectionTitle}>
-                    Subir archivo
-                </Text>
-                <Button mode="outlined" icon="file-upload" onPress={pickDocument} style={styles.uploadButton}>
-                    Seleccionar archivo
-                </Button>
-
-                {selectedFile && (
-                    <View style={styles.fileInfo}>
-                        <Chip icon="file-document" style={styles.fileChip}>
-                            {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
-                        </Chip>
-                        <Button icon="delete" mode="text" compact onPress={() => setSelectedFile(null)}>
-                            Eliminar
+                {task.answer_format === "preguntas_respuestas" && task.questions ? (
+                    <View>
+                        <Text variant="titleMedium" style={styles.sectionTitle}>
+                            Preguntas
+                        </Text>
+                        {task.questions.map((question, index) => (
+                            <View key={question.id || index} style={styles.questionContainer}>
+                                <Text variant="titleSmall" style={styles.questionText}>
+                                    {index + 1}. {question.text}
+                                </Text>
+                                <TextInput
+                                    mode="outlined"
+                                    multiline
+                                    numberOfLines={3}
+                                    placeholder="Escribe tu respuesta aquí..."
+                                    value={answers[question.id || ""] || ""}
+                                    onChangeText={(text) => handleAnswerChange(question.id || "", text)}
+                                    style={styles.answerInput}
+                                    error={!!errors[`question_${question.id}`]}
+                                />
+                                {errors[`question_${question.id}`] && (
+                                    <HelperText type="error">{errors[`question_${question.id}`]}</HelperText>
+                                )}
+                            </View>
+                        ))}
+                    </View>
+                ) : (
+                    <View>
+                        <Text variant="titleMedium" style={styles.sectionTitle}>
+                            Subir archivo
+                        </Text>
+                        <Button mode="outlined" icon="file-upload" onPress={pickDocument} style={styles.uploadButton}>
+                            Seleccionar archivo
                         </Button>
+
+                        {selectedFile && (
+                            <View style={styles.fileInfo}>
+                                <Chip icon="file-document" style={styles.fileChip}>
+                                    {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
+                                </Chip>
+                                <Button icon="delete" mode="text" compact onPress={() => setSelectedFile(null)}>
+                                    Eliminar
+                                </Button>
+                            </View>
+                        )}
+
+                        {errors.file && <HelperText type="error">{errors.file}</HelperText>}
                     </View>
                 )}
-
-                {errors.file && <HelperText type="error">{errors.file}</HelperText>}
 
                 {uploadProgress > 0 && (
                     <View style={styles.progressContainer}>
@@ -354,14 +422,24 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         lineHeight: 22,
     },
-    instructions: {
-        lineHeight: 22,
+    attachmentSection: {
+        marginBottom: 16,
+    },
+    attachmentButton: {
+        alignSelf: "flex-start",
     },
     answerSection: {
         padding: 16,
         paddingTop: 0,
     },
-    textAnswer: {
+    questionContainer: {
+        marginBottom: 20,
+    },
+    questionText: {
+        marginBottom: 8,
+        fontWeight: "bold",
+    },
+    answerInput: {
         marginBottom: 8,
     },
     uploadButton: {

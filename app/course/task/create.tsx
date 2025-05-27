@@ -5,7 +5,7 @@ import { useLocalSearchParams, router } from "expo-router"
 import { TaskForm } from "@/components/tasks/TaskForm"
 import { StatusBar } from "expo-status-bar"
 import { courseClient } from "@/api/coursesClient"
-import {userApi} from "@/api/userApi";
+import { userApi } from "@/api/userApi"
 import React from "react"
 
 export default function CreateTaskScreen() {
@@ -25,14 +25,12 @@ export default function CreateTaskScreen() {
                     return
                 }
 
-                // Verificar si el usuario es docente
                 try {
                     const isTeacher = await userApi.isTeacher()
                     const instructorStatus = await courseClient.isInstructorInCourse(courseId, currentUserId)
                     setIsInstructor(isTeacher || instructorStatus)
                 } catch (error) {
                     console.error("Error al verificar permisos:", error)
-                    // Por defecto, permitimos el acceso para evitar bloqueos incorrectos
                     setIsInstructor(true)
                 }
             } catch (error) {

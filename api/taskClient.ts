@@ -1,10 +1,9 @@
-import {getBaseUrlCourses} from "@/api/client"
-import type { Task, TaskSubmission, TaskWithSubmissionCount } from "@/types/Task"
-import axios from "axios";
+import { getBaseUrlCourses } from "@/api/client"
+import type { Task } from "@/types/Task"
+import axios from "axios"
 
 const API_URL = getBaseUrlCourses()
 
-// Crea una instancia de axios con la configuración base
 const apiClient = axios.create({
     baseURL: API_URL,
     headers: {
@@ -74,11 +73,11 @@ export const taskClient = {
         courseId: string,
         taskId: string,
         studentId: string,
-        answers: string[],
-        fileUrl: string,
+        answers: Array<{ question_id: string; answer_text: string }>,
+        fileUrl?: string,
     ): Promise<any> => {
         try {
-            console.log("Enviando respuesta de tarea:", {student_id: studentId, answers, fileUrl})
+            console.log("Enviando respuesta de tarea:", { student_id: studentId, answers, fileUrl })
             const response = await apiClient.post(`/courses/${courseId}/tasks/${taskId}/submissions`, {
                 student_id: studentId,
                 answers,
@@ -112,6 +111,7 @@ export const taskClient = {
             return null
         }
     },
+
     // Obtener todas las tareas creadas por un instructor
     getTasksByInstructorId: async (instructorId: string): Promise<any> => {
         try {
@@ -119,9 +119,10 @@ export const taskClient = {
             return response.data
         } catch (error) {
             console.error("Error al obtener tareas del instructor:", error)
-            return {data: []}
+            return { data: [] }
         }
     },
+
     // Obtener todas las entregas de una tarea
     getTaskSubmissions: async (courseId: string, instructorId: string, taskId: string): Promise<any[]> => {
         try {

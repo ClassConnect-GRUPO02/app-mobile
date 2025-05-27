@@ -5,9 +5,16 @@ export type LatePolicy =
     | "aceptar"
     | "aceptar_con_descuento"
     | "aceptar_con_penalizacion"
-export type AnswerFormat = "texto" | "opcion_multiple" | "archivo" | "mixto"
+
+export type AnswerFormat = "preguntas_respuestas" | "archivo"
 export type TaskType = "tarea" | "examen"
 export type SubmissionStatus = "submitted" | "late" | "graded"
+
+export interface TaskQuestion {
+    id?: string
+    task_id?: string
+    text: string
+}
 
 export interface Task {
     id: string
@@ -16,7 +23,6 @@ export interface Task {
     type: TaskType
     title: string
     description: string
-    instructions: string
     due_date: string
     allow_late: boolean
     late_policy: LatePolicy
@@ -30,18 +36,29 @@ export interface Task {
     created_at?: string | null
     updated_at?: string | null
     deleted_at?: string | null
+    questions?: TaskQuestion[]
+    attachment_url?: string | null // For file attachments that students can download
 }
 
 export interface TaskSubmission {
     id?: string
     task_id: string
     student_id: string
-    answers: string[]
+    answers?: StudentAnswer[]
     file_url?: string
     submitted_at: string
     status: SubmissionStatus
     grade?: number | null
     feedback?: string | null
+    time_spent?: number | null
+}
+
+export interface StudentAnswer {
+    id?: string
+    submission_id?: string
+    question_id: string
+    answer_text?: string
+    selected_option_id?: string | null
 }
 
 export interface TaskWithSubmissionCount extends Task {

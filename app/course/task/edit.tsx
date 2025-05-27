@@ -2,18 +2,16 @@ import { useState, useEffect } from "react"
 import { View, StyleSheet } from "react-native"
 import { Text, ActivityIndicator, Button } from "react-native-paper"
 import { useLocalSearchParams, router } from "expo-router"
-import { taskClient } from "@/api/taskClient"
 import { TaskForm } from "@/components/tasks/TaskForm"
 import { StatusBar } from "expo-status-bar"
 import { courseClient } from "@/api/coursesClient"
-import {userApi} from "@/api/userApi";
+import { userApi } from "@/api/userApi"
 import React from "react"
 
 export default function EditTaskScreen() {
     const { courseId, taskId } = useLocalSearchParams<{ courseId: string; taskId: string }>()
     const [loading, setLoading] = useState(true)
     const [isInstructor, setIsInstructor] = useState(false)
-    const [isCreator, setIsCreator] = useState(false)
     const [error, setError] = useState<string | null>(null)
 
     useEffect(() => {
@@ -21,36 +19,19 @@ export default function EditTaskScreen() {
             try {
                 setLoading(true)
 
-                // Obtener el ID del usuario actual
                 const userId = await userApi.getUserId()
                 if (!userId) {
                     setError("No se pudo obtener el ID del usuario")
                     return
                 }
 
-                // Verificar si el usuario es docente
                 try {
                     const isTeacher = await userApi.isTeacher()
                     const instructorStatus = await courseClient.isInstructorInCourse(courseId, userId)
                     setIsInstructor(isTeacher || instructorStatus)
                 } catch (error) {
                     console.error("Error al verificar si es docente:", error)
-                    // Por defecto, permitimos el acceso para evitar bloqueos incorrectos
                     setIsInstructor(true)
-                }
-
-                // Verificar si el usuario es el creador de la tarea
-                if (taskId) {
-                    try {
-                        const taskData = await taskClient.getTaskById(courseId, taskId)
-                        if (taskData) {
-                            setIsCreator(taskData.created_by === userId)
-                        }
-                    } catch (error) {
-                        console.error("Error al obtener tarea:", error)
-                        // Por defecto, permitimos el acceso para evitar bloqueos incorrectos
-                        setIsCreator(true)
-                    }
                 }
             } catch (error) {
                 console.error("Error al verificar permisos:", error)
@@ -94,7 +75,7 @@ export default function EditTaskScreen() {
         )
     }
 
-    if (!isInstructor && !isCreator) {
+    if (!isInstructor) {
         return (
             <View style={styles.errorContainer}>
                 <Text variant="headlineMedium" style={styles.errorTitle}>
