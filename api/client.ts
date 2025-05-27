@@ -104,7 +104,6 @@ export const apiClient = {
     }
   },
 
-
   // Método para peticiones GET con token
   async get<T>(endpoint: string): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
@@ -141,6 +140,7 @@ export const apiClient = {
     const headers = {
       'Content-Type': 'application/json'
     };
+
     try {
       const response = await fetch(url, {
         method: 'GET',
@@ -152,6 +152,7 @@ export const apiClient = {
       if (!response.ok) {
         throw new Error(responseData.message || 'Ocurrió un error en la petición');
       }
+
 
       return responseData;
     } catch (error) {

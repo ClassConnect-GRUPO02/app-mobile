@@ -7,6 +7,7 @@ import React from 'react';
 import {PaperProvider} from "react-native-paper";
 import {SafeAreaProvider} from "react-native-safe-area-context";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -19,18 +20,27 @@ export default function RootLayout() {
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
 
   // Manejar lógica de auth
-  useEffect(() => {
-    const prepare = async () => {
-      const token = await getItemAsync('userToken');
-      setIsAuthenticated(!!token);
-      setIsReady(true);
+useEffect(() => {
+  const prepare = async () => {
+    // ✅ Verificamos si hay email pendiente
+    const pendingEmail = await AsyncStorage.getItem("pendingEmailVerification");
+    if (pendingEmail) {
       SplashScreen.hideAsync();
-    };
-
-    if (loaded) {
-      prepare();
+      router.replace(`/(auth)/verify-pin?email=${pendingEmail}`);
+      return; // Salimos del flujo
     }
-  }, [loaded]);
+
+    // ✅ Si no hay email pendiente, seguimos con auth normal
+    const token = await getItemAsync('userToken');
+    setIsAuthenticated(!!token);
+    setIsReady(true);
+    SplashScreen.hideAsync();
+  };
+
+  if (loaded) {
+    prepare();
+  }
+}, [loaded]);
 
   // Redirigir una vez que tenemos info de auth
   useEffect(() => {

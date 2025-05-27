@@ -1,19 +1,31 @@
-"use client"
-import { useState, useEffect } from "react"
-import { View, StyleSheet, ScrollView, Alert } from "react-native"
-import { Text, Title, Card, Switch, Divider, List, ActivityIndicator, useTheme, Button, Chip } from "react-native-paper"
-import { StatusBar } from "expo-status-bar"
-import { router } from "expo-router"
-import { getItemAsync } from "expo-secure-store"
-import { setAuthToken } from "../../api/client"
-import { userApi } from "../../api/userApi"
-import React from "react"
+"use client";
+import { useState, useEffect } from "react";
+import { View, StyleSheet, ScrollView, Alert } from "react-native";
+import {
+  Text,
+  Title,
+  Card,
+  Switch,
+  Divider,
+  List,
+  ActivityIndicator,
+  useTheme,
+  Button,
+  Chip,
+} from "react-native-paper";
+import { StatusBar } from "expo-status-bar";
+import { router } from "expo-router";
+import { getItemAsync } from "expo-secure-store";
+import { setAuthToken } from "../../api/client";
+import { userApi } from "../../api/userApi";
+import React from "react";
 
 // Constantes para los tipos de notificación
-const PUSH_ONLY = 1
-const EMAIL_ONLY = 2
-const BOTH = 3
-const DISABLED = 0
+
+const PUSH_ONLY = 1;
+const EMAIL_ONLY = 2;
+const BOTH = 3;
+const DISABLED = 0;
 
 // Interfaces para los diferentes tipos de configuraciones
 interface StudentSettings {
@@ -33,197 +45,208 @@ interface TeacherSettings {
 }
 
 export default function NotificationSettingsScreen() {
-  const [loading, setLoading] = useState(true)
-  const [userType, setUserType] = useState<string>("")
+  const [loading, setLoading] = useState(true);
+  const [userType, setUserType] = useState<string>("");
   const [settings, setSettings] = useState<any>({
     pushEnabled: true,
     emailEnabled: true,
-  })
-  const theme = useTheme()
+  });
+  const theme = useTheme();
 
   useEffect(() => {
     const fetchUserData = async () => {
       try {
-        setLoading(true)
-        const userId = await getItemAsync("userId")
-        const token = await getItemAsync("userToken")
+        setLoading(true);
+        const userId = await getItemAsync("userId");
+        const token = await getItemAsync("userToken");
 
         if (!token || !userId) {
-          Alert.alert("Error", "No se pudo recuperar la sesión")
-          router.replace("/(auth)/login")
-          return
+          Alert.alert("Error", "No se pudo recuperar la sesión");
+          router.replace("/(auth)/login");
+          return;
         }
 
-        setAuthToken(token)
+        setAuthToken(token);
 
         // Obtener datos del usuario
-        const response = await userApi.getUserById(userId)
-        setUserType(response.user.userType)
+        const response = await userApi.getUserById(userId);
+        setUserType(response.user.userType);
 
         // Cargar configuraciones desde la API
-        const notificationSettings = await userApi.getNotificationSettings(userId)
+        const notificationSettings = await userApi.getNotificationSettings(
+          userId
+        );
         if (notificationSettings) {
-          console.log("Configuraciones de notificaciones:", notificationSettings.settings)
-          setSettings(notificationSettings)
+          console.log(
+            "Configuraciones de notificaciones:",
+            notificationSettings.settings
+          );
+          setSettings(notificationSettings);
         } else {
           // Usar configuraciones predeterminadas si no hay datos
-          const defaultSettings = response.user.userType === "alumno" 
-            ? {
-                pushEnabled: true,
-                emailEnabled: true,
-                newAssignment: BOTH,
-                deadlineReminder: BOTH,
-                courseEnrollment: BOTH,
-                teacherFeedback: BOTH,
-              } 
-            : {
-                pushEnabled: true,
-                emailEnabled: true,
-                assignmentSubmission: BOTH,
-                studentFeedback: BOTH,
-              };
-          
-          setSettings(defaultSettings)
+
+          const defaultSettings =
+            response.user.userType === "alumno"
+              ? {
+                  pushEnabled: true,
+                  emailEnabled: true,
+                  newAssignment: BOTH,
+                  deadlineReminder: BOTH,
+                  courseEnrollment: BOTH,
+                  teacherFeedback: BOTH,
+                }
+              : {
+                  pushEnabled: true,
+                  emailEnabled: true,
+                  assignmentSubmission: BOTH,
+                  studentFeedback: BOTH,
+                };
+
+          setSettings(defaultSettings);
         }
 
-        setLoading(false)
+        setLoading(false);
       } catch (error) {
-        console.error("Error al cargar datos:", error)
-        setLoading(false)
-        Alert.alert("Error", "No se pudieron cargar las configuraciones")
+        console.error("Error al cargar datos:", error);
+        setLoading(false);
+        Alert.alert("Error", "No se pudieron cargar las configuraciones");
       }
-    }
+    };
 
-    fetchUserData()
-     return () => {
-    // Limpiar cualquier estado o suscripción pendiente
-    setSettings({
-      pushEnabled: true,
-      emailEnabled: true,
-    })
-    setUserType("")
-    setLoading(false)
-  }
-  }, [])
+    fetchUserData();
+    return () => {
+      // Limpiar cualquier estado o suscripción pendiente
+      setSettings({
+        pushEnabled: true,
+        emailEnabled: true,
+      });
+      setUserType("");
+      setLoading(false);
+    };
+  }, []);
 
   const handleToggleChange = (key: string) => {
     setSettings({
       ...settings,
       [key]: !settings[key],
-    })
-  }
+    });
+  };
 
   const handleNotificationTypeChange = (key: string, value: number) => {
     setSettings({
       ...settings,
       [key]: value,
-    })
-  }
+    });
+  };
 
   const handleSaveSettings = async () => {
     try {
-      setLoading(true)
+      setLoading(true);
       const userId = await getItemAsync("userId");
-      
+
       if (!userId) {
-        Alert.alert("Error", "No se pudo recuperar el ID del usuario")
-        setLoading(false)
-        return
+        Alert.alert("Error", "No se pudo recuperar el ID del usuario");
+        setLoading(false);
+        return;
       }
-      
+
       // Enviamos directamente el objeto settings actual, que ya tiene la estructura correcta
       // según el tipo de usuario, ya que se cargó desde la API o se inicializó correctamente
       await userApi.setNotificationsSettings(userId, settings);
-      
-      Alert.alert("Éxito", "Configuraciones de notificaciones guardadas correctamente", [
-        { text: "OK", onPress: () => router.back() },
-      ])
+
+      Alert.alert(
+        "Éxito",
+        "Configuraciones de notificaciones guardadas correctamente",
+        [{ text: "OK", onPress: () => router.back() }]
+      );
     } catch (error) {
-      console.error("Error al guardar configuraciones:", error)
-      Alert.alert("Error", "No se pudieron guardar las configuraciones")
-      setLoading(false)
+      console.error("Error al guardar configuraciones:", error);
+      Alert.alert("Error", "No se pudieron guardar las configuraciones");
+      setLoading(false);
     }
-  }
+  };
 
   // Renderiza los chips de selección de tipo de notificación
-const renderNotificationTypeSelector = (settingKey: string) => {
-  const currentValue = settings[settingKey] ?? BOTH;
 
-  return (
-    <View style={styles.chipContainer}>
-      <Chip
-        selected={currentValue === DISABLED}
-        onPress={() => handleNotificationTypeChange(settingKey, DISABLED)}
-        style={styles.chip}
-        mode={currentValue === DISABLED ? "flat" : "outlined"}
-        icon="bell-off"
-      >
-        Ninguna
-      </Chip>
-      <Chip
-        selected={currentValue === PUSH_ONLY}
-        onPress={() => handleNotificationTypeChange(settingKey, PUSH_ONLY)}
-        style={styles.chip}
-        disabled={!settings.pushEnabled && currentValue !== PUSH_ONLY}
-        mode={currentValue === PUSH_ONLY ? "flat" : "outlined"}
-        icon="bell"
-      >
-        Push
-      </Chip>
-      <Chip
-        selected={currentValue === EMAIL_ONLY}
-        onPress={() => handleNotificationTypeChange(settingKey, EMAIL_ONLY)}
-        style={styles.chip}
-        disabled={!settings.emailEnabled && currentValue !== EMAIL_ONLY}
-        mode={currentValue === EMAIL_ONLY ? "flat" : "outlined"}
-        icon="email"
-      >
-        Email
-      </Chip>
-      <Chip
-        selected={currentValue === BOTH}
-        onPress={() => handleNotificationTypeChange(settingKey, BOTH)}
-        style={styles.chip}
-        disabled={(!settings.pushEnabled || !settings.emailEnabled) && currentValue !== BOTH}
-        mode={currentValue === BOTH ? "flat" : "outlined"}
-        icon="bell-ring"
-      >
-        Ambos
-      </Chip>
-    </View>
-  );
-};
+  const renderNotificationTypeSelector = (settingKey: string) => {
+    const currentValue = settings[settingKey] ?? BOTH;
 
+    return (
+      <View style={styles.chipContainer}>
+        <Chip
+          selected={currentValue === DISABLED}
+          onPress={() => handleNotificationTypeChange(settingKey, DISABLED)}
+          style={styles.chip}
+          mode={currentValue === DISABLED ? "flat" : "outlined"}
+          icon="bell-off"
+        >
+          Ninguna
+        </Chip>
+        <Chip
+          selected={currentValue === PUSH_ONLY}
+          onPress={() => handleNotificationTypeChange(settingKey, PUSH_ONLY)}
+          style={styles.chip}
+          disabled={!settings.pushEnabled && currentValue !== PUSH_ONLY}
+          mode={currentValue === PUSH_ONLY ? "flat" : "outlined"}
+          icon="bell"
+        >
+          Push
+        </Chip>
+        <Chip
+          selected={currentValue === EMAIL_ONLY}
+          onPress={() => handleNotificationTypeChange(settingKey, EMAIL_ONLY)}
+          style={styles.chip}
+          disabled={!settings.emailEnabled && currentValue !== EMAIL_ONLY}
+          mode={currentValue === EMAIL_ONLY ? "flat" : "outlined"}
+          icon="email"
+        >
+          Email
+        </Chip>
+        <Chip
+          selected={currentValue === BOTH}
+          onPress={() => handleNotificationTypeChange(settingKey, BOTH)}
+          style={styles.chip}
+          disabled={
+            (!settings.pushEnabled || !settings.emailEnabled) &&
+            currentValue !== BOTH
+          }
+          mode={currentValue === BOTH ? "flat" : "outlined"}
+          icon="bell-ring"
+        >
+          Ambos
+        </Chip>
+      </View>
+    );
+  };
   // Función para obtener la descripción del tipo de notificación
-const getNotificationTypeDescription = (settingKey: string) => {
-  const value = settings[settingKey] ?? BOTH;
+  const getNotificationTypeDescription = (settingKey: string) => {
+    const value = settings[settingKey] ?? BOTH;
 
-  switch (value) {
-    case DISABLED:
-      return "Notificaciones desactivadas";
-    case PUSH_ONLY:
-      return "Solo notificaciones push";
-    case EMAIL_ONLY:
-      return "Solo notificaciones por email";
-    case BOTH:
-      return "Notificaciones push y email";
-    default:
-      return "";
-  }
-};
-
+    switch (value) {
+      case DISABLED:
+        return "Notificaciones desactivadas";
+      case PUSH_ONLY:
+        return "Solo notificaciones push";
+      case EMAIL_ONLY:
+        return "Solo notificaciones por email";
+      case BOTH:
+        return "Notificaciones push y email";
+      default:
+        return "";
+    }
+  };
 
   // Función para verificar si una configuración existe
   const hasSettingOption = (key: string): boolean => {
     return key in settings;
-  }
+  };
 
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
         <ActivityIndicator size="large" color={theme.colors.primary} />
       </View>
-    )
+    );
   }
 
   return (
@@ -243,7 +266,10 @@ const getNotificationTypeDescription = (settingKey: string) => {
                 description="Recibir notificaciones en tu dispositivo"
                 left={(props) => <List.Icon {...props} icon="bell" />}
                 right={() => (
-                  <Switch value={settings.pushEnabled} onValueChange={() => handleToggleChange("pushEnabled")} />
+                  <Switch
+                    value={settings.pushEnabled}
+                    onValueChange={() => handleToggleChange("pushEnabled")}
+                  />
                 )}
               />
               <Divider />
@@ -252,7 +278,10 @@ const getNotificationTypeDescription = (settingKey: string) => {
                 description="Recibir notificaciones en tu correo electrónico"
                 left={(props) => <List.Icon {...props} icon="email" />}
                 right={() => (
-                  <Switch value={settings.emailEnabled} onValueChange={() => handleToggleChange("emailEnabled")} />
+                  <Switch
+                    value={settings.emailEnabled}
+                    onValueChange={() => handleToggleChange("emailEnabled")}
+                  />
                 )}
               />
             </List.Section>
@@ -270,7 +299,9 @@ const getNotificationTypeDescription = (settingKey: string) => {
                     <Text style={styles.categoryTitle}>Tareas y Exámenes</Text>
                     <List.Item
                       title="Nuevas tareas o exámenes"
-                      description={getNotificationTypeDescription("newAssignment")}
+                      description={getNotificationTypeDescription(
+                        "newAssignment"
+                      )}
                       left={(props) => <List.Icon {...props} icon="book" />}
                     />
                     {renderNotificationTypeSelector("newAssignment")}
@@ -283,8 +314,12 @@ const getNotificationTypeDescription = (settingKey: string) => {
                     <Text style={styles.categoryTitle}>Recordatorios</Text>
                     <List.Item
                       title="Fechas límite de tareas"
-                      description={getNotificationTypeDescription("deadlineReminder")}
-                      left={(props) => <List.Icon {...props} icon="clock-alert" />}
+                      description={getNotificationTypeDescription(
+                        "deadlineReminder"
+                      )}
+                      left={(props) => (
+                        <List.Icon {...props} icon="clock-alert" />
+                      )}
                     />
                     {renderNotificationTypeSelector("deadlineReminder")}
                     <Divider style={styles.divider} />
@@ -294,20 +329,22 @@ const getNotificationTypeDescription = (settingKey: string) => {
                 {(hasSettingOption("courseEnrollment")) && (
                   <>
                     <Text style={styles.categoryTitle}>Cursos</Text>
-                    
+
                     {hasSettingOption("courseEnrollment") && (
                       <>
                         <List.Item
                           title="Inscripción a nuevos cursos"
-                          description={getNotificationTypeDescription("courseEnrollment")}
-                          left={(props) => <List.Icon {...props} icon="school" />}
+                          description={getNotificationTypeDescription(
+                            "courseEnrollment"
+                          )}
+                          left={(props) => (
+                            <List.Icon {...props} icon="school" />
+                          )}
                         />
                         {renderNotificationTypeSelector("courseEnrollment")}
                       </>
                     )}
-                    
-                    
-                    
+
                     <Divider style={styles.divider} />
                   </>
                 )}
@@ -317,8 +354,12 @@ const getNotificationTypeDescription = (settingKey: string) => {
                     <Text style={styles.categoryTitle}>Feedback</Text>
                     <List.Item
                       title="Feedback de docentes"
-                      description={getNotificationTypeDescription("teacherFeedback")}
-                      left={(props) => <List.Icon {...props} icon="message-text" />}
+                      description={getNotificationTypeDescription(
+                        "teacherFeedback"
+                      )}
+                      left={(props) => (
+                        <List.Icon {...props} icon="message-text" />
+                      )}
                     />
                     {renderNotificationTypeSelector("teacherFeedback")}
                   </>
@@ -337,8 +378,12 @@ const getNotificationTypeDescription = (settingKey: string) => {
                     <Text style={styles.categoryTitle}>Entregas</Text>
                     <List.Item
                       title="Entregas de tareas o exámenes"
-                      description={getNotificationTypeDescription("assignmentSubmission")}
-                      left={(props) => <List.Icon {...props} icon="file-document" />}
+                      description={getNotificationTypeDescription(
+                        "assignmentSubmission"
+                      )}
+                      left={(props) => (
+                        <List.Icon {...props} icon="file-document" />
+                      )}
                     />
                     {renderNotificationTypeSelector("assignmentSubmission")}
                     <Divider style={styles.divider} />
@@ -350,8 +395,12 @@ const getNotificationTypeDescription = (settingKey: string) => {
                     <Text style={styles.categoryTitle}>Feedback</Text>
                     <List.Item
                       title="Feedback de estudiantes"
-                      description={getNotificationTypeDescription("studentFeedback")}
-                      left={(props) => <List.Icon {...props} icon="message-reply" />}
+                      description={getNotificationTypeDescription(
+                        "studentFeedback"
+                      )}
+                      left={(props) => (
+                        <List.Icon {...props} icon="message-reply" />
+                      )}
                     />
                     {renderNotificationTypeSelector("studentFeedback")}
                   </>
@@ -362,16 +411,24 @@ const getNotificationTypeDescription = (settingKey: string) => {
         )}
 
         <View style={styles.buttonContainer}>
-          <Button mode="contained" onPress={handleSaveSettings} style={styles.saveButton}>
+          <Button
+            mode="contained"
+            onPress={handleSaveSettings}
+            style={styles.saveButton}
+          >
             Guardar configuración
           </Button>
-          <Button mode="outlined" onPress={() => router.back()} style={styles.cancelButton}>
+          <Button
+            mode="outlined"
+            onPress={() => router.back()}
+            style={styles.cancelButton}
+          >
             Cancelar
           </Button>
         </View>
       </ScrollView>
     </View>
-  )
+  );
 }
 
 const styles = StyleSheet.create({
@@ -438,5 +495,5 @@ const styles = StyleSheet.create({
   },
   chip: {
     marginBottom: 4,
-  }
-})
+  },
+});

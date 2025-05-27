@@ -27,6 +27,7 @@ export interface LoginResponse {
   id: string;
   token: string;
   message?: string;
+  refreshToken?: string;
 }
 
 export interface UserInfo {
@@ -36,6 +37,7 @@ export interface UserInfo {
   userType: string;
   latitude?: number;
   longitude?: number;
+  avatarUrl?: string;
 }
 
 export const userApi = {
@@ -48,17 +50,16 @@ export const userApi = {
   // Login de un usuario
   async login(credentials: LoginRequest): Promise<LoginResponse> {
     try {
-      const response = await apiClient.post<LoginResponse>(
-        "/login",
-        credentials
-      );
-
+      const response = await apiClient.post<LoginResponse>('/login', credentials);
+      console.log('Respuesta del login:', response);
       // Si login es exitoso, almacenamos el token y el userId
-      if (response.token && response.id) {
-        console.log("Token recibido:", response.token);
-        console.log("ID de usuario recibido:", response.id);
-        await userApi.storeToken(response.token); // Guardamos el token
-        await userApi.storeUserId(response.id); // Guardamos el id del usuario
+      if (response.token && response.id && response.refreshToken) {
+        console.log('Token recibido:', response.token);
+        console.log('ID de usuario recibido:', response.id);
+        await userApi.storeToken(response.token);  // Guardamos el token
+        await userApi.storeUserId(response.id);    // Guardamos el id del usuario
+          await userApi.storeRefreshToken(response.refreshToken);
+        
       }
 
       return response;
@@ -75,7 +76,11 @@ export const userApi = {
 
   // Guardar el ID del usuario en el almacenamiento seguro
   storeUserId: async (id: string): Promise<void> => {
-    await setItemAsync("userId", id); // Guardamos el userId en secure-store
+    await setItemAsync("userId", String(id)); // Guardamos el userId en secure-store
+  },
+
+  storeRefreshToken: async (refreshToken: string): Promise<void> => {
+    await setItemAsync('refreshToken', refreshToken);  // Guardamos el refreshToken en secure-store
   },
 
   // Obtener el ID del usuario desde secure-store
@@ -108,6 +113,50 @@ export const userApi = {
     userData: Partial<UserInfo>
   ): Promise<{ description: string }> {
     return apiClient.put<{ description: string }>(`/user/${id}`, userData);
+  },
+   async verifyPin(pin: number, email: string): Promise<{ success: boolean; description: string }> {
+    try {
+      const response = await apiClient.postWithoutAuth<{ success: boolean; description: string }>('/users/verify', {
+        email,
+        pin,
+      });
+      return response;
+    } catch (error) {
+      console.error('Error al verificar el PIN:', error);
+      throw error;
+    }
+  },
+
+  // Solicitar un nuevo PIN
+  async requestNewPin(email: string): Promise<{ success: boolean; message?: string }> {
+    try {
+      const response = await apiClient.postWithoutAuth<{ success: boolean; message?: string }>('/users/request-new-pin', {
+        email,
+      });
+      return response;
+    } catch (error) {
+      console.error('Error al solicitar un nuevo PIN:', error);
+      throw error;
+    }
+  },
+
+
+  async refreshToken(refreshToken: string): Promise<LoginResponse> {
+    try {
+      const response = await apiClient.post<LoginResponse>('/biometric-login', { refreshToken });
+      
+      // Si el refresh es exitoso, almacenamos el nuevo token
+      if (response.token) {
+        console.log('Nuevo token recibido:', response.token);
+        await userApi.storeToken(response.token);  // Guardamos el nuevo token
+        await userApi.storeUserId(response.id);    // Guardamos el id del usuario
+      }
+
+      return response;
+    } catch (error) {
+      console.error('Error al refrescar el token:', error);
+      throw error;
+    }
   },
   
   async setNotificationsSettings(
@@ -147,12 +196,13 @@ export const userApi = {
 async notifyUser(
   userId: string,
   title: string,
-  body: string
+  body: string,
+  notificationType: string
 ): Promise<{ description: string }> {
   return apiClient.post<{ description: string }>(`/users/${userId}/notifications`, {
     title,
     body,
+    notificationType,
   });
 }
 }
-
