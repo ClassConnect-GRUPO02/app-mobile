@@ -150,7 +150,7 @@ export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, co
                 return
             }
 
-            let fileUrl = ""
+            let fileUrl;
             if (selectedFile) {
                 try {
                     setUploadProgress(10)
