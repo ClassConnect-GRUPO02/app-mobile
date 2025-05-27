@@ -1,6 +1,7 @@
 import {getBaseUrlCourses} from "./client"
 import type { Resource } from "@/types/Resource"
 import axios from "axios";
+import { getItemAsync } from "expo-secure-store"
 
 const API_URL = getBaseUrlCourses()
 
@@ -11,6 +12,29 @@ const apiClient = axios.create({
         "Content-Type": "application/json",
     },
 })
+
+// Añadir interceptores para debugging
+apiClient.interceptors.request.use(
+    (config) => {
+        console.log(`[API Request] ${config.method?.toUpperCase()} ${config.url}`)
+        return config
+    },
+    (error) => {
+        console.error("[API Request Error]", error)
+        return Promise.reject(error)
+    },
+)
+
+apiClient.interceptors.request.use(
+  async (config) => {
+    const token = await getItemAsync('userToken');
+    if (token) {
+      (config.headers as any)['Authorization'] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
+);
 
 export const resourceClient = {
 
