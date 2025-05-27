@@ -34,6 +34,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, on
     const [type, setType] = useState<TaskType>("tarea")
     const [dueDate, setDueDate] = useState(new Date())
     const [showDatePicker, setShowDatePicker] = useState(false)
+    const [showTimePicker, setShowTimePicker] = useState(false)
     const [allowLate, setAllowLate] = useState(false)
     const [latePolicy, setLatePolicy] = useState<LatePolicy>("ninguna")
     const [hasTimer, setHasTimer] = useState(false)
@@ -155,7 +156,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, on
                 type,
                 title,
                 description,
-                due_date: type === "tarea" ? dueDate.toISOString() : new Date().toISOString(), // Exams don't use due dates
+                due_date: dueDate.toISOString(),
                 allow_late: type === "tarea" ? allowLate : false, // Only tasks can allow late submissions
                 late_policy: type === "tarea" ? latePolicy : "ninguna",
                 has_timer: type === "examen" ? hasTimer : false, // Only exams use timers
@@ -229,9 +230,31 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, on
     }
 
     const onDateChange = (event: any, selectedDate?: Date) => {
-        setShowDatePicker(false)
+        const { type } = event
+        if (type === "dismissed") {
+            setShowDatePicker(false)
+            setShowTimePicker(false)
+            return
+        }
+
         if (selectedDate) {
-            setDueDate(selectedDate)
+            if (showDatePicker) {
+                const newDate = new Date(dueDate)
+                newDate.setFullYear(selectedDate.getFullYear())
+                newDate.setMonth(selectedDate.getMonth())
+                newDate.setDate(selectedDate.getDate())
+                setDueDate(newDate)
+                setShowDatePicker(false)
+            } else if (showTimePicker) {
+                const newDate = new Date(dueDate)
+                newDate.setHours(selectedDate.getHours())
+                newDate.setMinutes(selectedDate.getMinutes())
+                setDueDate(newDate)
+                setShowTimePicker(false)
+            }
+        } else {
+            setShowDatePicker(false)
+            setShowTimePicker(false)
         }
     }
 
@@ -294,50 +317,82 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, on
 
                 <Divider style={styles.divider} />
 
-                {type === "tarea" && (
-                    <>
-                        <View style={styles.formSection}>
-                            <Text variant="titleMedium" style={styles.sectionTitle}>
-                                Fecha de entrega
-                            </Text>
+                {(type === "tarea" || type === "examen") && (
+                    <View style={styles.formSection}>
+                        <Text variant="titleMedium" style={styles.sectionTitle}>
+                            Fecha de entrega
+                        </Text>
 
-                            <Button mode="outlined" onPress={() => setShowDatePicker(true)} style={styles.dateButton} icon="calendar">
-                                {formatDate(dueDate)}
+                        <View style={styles.dateTimeContainer}>
+                            <Button
+                                mode="outlined"
+                                onPress={() => setShowDatePicker(true)}
+                                style={[styles.dateButton, styles.dateButtonHalf]}
+                                icon="calendar"
+                            >
+                                {dueDate.toLocaleDateString()}
                             </Button>
 
-                            {showDatePicker && (
-                                <DateTimePicker value={dueDate} mode="datetime" display="default" onChange={onDateChange} />
-                            )}
-
-                            <View style={styles.switchContainer}>
-                                <Text>Permitir entregas tardías</Text>
-                                <Switch value={allowLate} onValueChange={setAllowLate} />
-                            </View>
-
-                            {allowLate && (
-                                <View style={styles.radioGroup}>
-                                    <Text>Política de entregas tardías:</Text>
-                                    <RadioButton.Group onValueChange={(value) => setLatePolicy(value as LatePolicy)} value={latePolicy}>
-                                        <View style={styles.radioOption}>
-                                            <RadioButton value="ninguna" />
-                                            <Text>Sin penalización</Text>
-                                        </View>
-                                        <View style={styles.radioOption}>
-                                            <RadioButton value="aceptar_con_descuento" />
-                                            <Text>Reducción de calificación</Text>
-                                        </View>
-                                        <View style={styles.radioOption}>
-                                            <RadioButton value="aceptar" />
-                                            <Text>Aceptar sin condiciones</Text>
-                                        </View>
-                                    </RadioButton.Group>
-                                </View>
-                            )}
+                            <Button
+                                mode="outlined"
+                                onPress={() => setShowTimePicker(true)}
+                                style={[styles.dateButton, styles.dateButtonHalf]}
+                                icon="clock"
+                            >
+                                {dueDate.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                            </Button>
                         </View>
 
-                        <Divider style={styles.divider} />
-                    </>
+                        {showDatePicker && (
+                            <DateTimePicker
+                                value={dueDate}
+                                mode="date"
+                                display={Platform.OS === "ios" ? "default" : "default"}
+                                onChange={onDateChange}
+                            />
+                        )}
+
+                        {showTimePicker && (
+                            <DateTimePicker
+                                value={dueDate}
+                                mode="time"
+                                display={Platform.OS === "ios" ? "default" : "default"}
+                                onChange={onDateChange}
+                            />
+                        )}
+
+                        {type === "tarea" && (
+                            <>
+                                <View style={styles.switchContainer}>
+                                    <Text>Permitir entregas tardías</Text>
+                                    <Switch value={allowLate} onValueChange={setAllowLate} />
+                                </View>
+
+                                {allowLate && (
+                                    <View style={styles.radioGroup}>
+                                        <Text>Política de entregas tardías:</Text>
+                                        <RadioButton.Group onValueChange={(value) => setLatePolicy(value as LatePolicy)} value={latePolicy}>
+                                            <View style={styles.radioOption}>
+                                                <RadioButton value="ninguna" />
+                                                <Text>Sin penalización</Text>
+                                            </View>
+                                            <View style={styles.radioOption}>
+                                                <RadioButton value="aceptar_con_descuento" />
+                                                <Text>Reducción de calificación</Text>
+                                            </View>
+                                            <View style={styles.radioOption}>
+                                                <RadioButton value="aceptar" />
+                                                <Text>Aceptar sin condiciones</Text>
+                                            </View>
+                                        </RadioButton.Group>
+                                    </View>
+                                )}
+                            </>
+                        )}
+                    </View>
                 )}
+
+                <Divider style={styles.divider} />
 
                 {type === "examen" && (
                     <>
@@ -593,5 +648,13 @@ const styles = StyleSheet.create({
     fileSize: {
         color: "#666",
         fontSize: 12,
+    },
+    dateTimeContainer: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 8,
+    },
+    dateButtonHalf: {
+        flex: 0.48,
     },
 })
