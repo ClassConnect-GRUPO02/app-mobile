@@ -199,5 +199,40 @@ export const apiClient = {
       console.error(`Error en petición PUT a ${endpoint}:`, error);
       throw error instanceof Error ? error : new Error('Error desconocido');
     }
+  },
+
+async putWithoutAuth<T>(endpoint: string, data: any, customHeaders?: HeadersInit): Promise<T> {
+  const url = `${BASE_URL}${endpoint}`;
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...(customHeaders || {})
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    const contentType = response.headers.get('content-type');
+
+    if (contentType && contentType.includes('application/json')) {
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Ocurrió un error en la petición');
+      }
+
+      return responseData;
+    } else {
+      const textResponse = await response.text();
+      throw new Error(`Respuesta no JSON del servidor: ${textResponse}`);
+    }
+  } catch (error) {
+    console.error(`Error en petición PUT sin auth a ${endpoint}:`, error);
+    throw error instanceof Error ? error : new Error('Error desconocido');
   }
+},
+
 };

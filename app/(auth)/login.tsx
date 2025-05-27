@@ -26,11 +26,9 @@ import {
   isSuccessResponse,
   SignInSuccessResponse,
   statusCodes,
-  type User
-} from '@react-native-google-signin/google-signin';
-import * as Location from 'expo-location';
-
-
+  type User,
+} from "@react-native-google-signin/google-signin";
+import * as Location from "expo-location";
 
 interface GoogleUserData {
   name: string;
@@ -61,12 +59,15 @@ const LoginScreen = (): React.JSX.Element => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [canUseBiometric, setCanUseBiometric] = useState(false);
-  const [googleUserData, setGoogleUserData] = useState<GoogleUserData | null>(null);
+  const [googleUserData, setGoogleUserData] = useState<GoogleUserData | null>(
+    null
+  );
 
   useEffect(() => {
     // Configurar Google Sign-In
     GoogleSignin.configure({
-      webClientId: "120382293299-ds3j4ogbipqrb553mj4qj8rqt5ihgjo2.apps.googleusercontent.com",
+      webClientId:
+        "120382293299-ds3j4ogbipqrb553mj4qj8rqt5ihgjo2.apps.googleusercontent.com",
       offlineAccess: true,
     });
   }, []);
@@ -110,7 +111,7 @@ const LoginScreen = (): React.JSX.Element => {
 
   const handleLogin = async (): Promise<void> => {
     if (!validateForm()) return;
-  
+
     setLoading(true);
     try {
       const credentials = { email, password };
@@ -123,7 +124,7 @@ const LoginScreen = (): React.JSX.Element => {
       }
     } catch (error: any) {
       console.error("Error durante el inicio de sesión:", error);
-  
+
       if (error?.response?.status === 403) {
         // Usuario bloqueado
         setError("Tu cuenta está bloqueada. Por favor, contactá al soporte.");
@@ -136,29 +137,29 @@ const LoginScreen = (): React.JSX.Element => {
       setLoading(false);
     }
   };
-  
 
   const handleGoogleLogin = async () => {
     try {
       // Verificar si Google Play Services está disponible
-      await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
       const response = await GoogleSignin.signIn();
-      
-      console.log('✅ Respuesta de Google:', response);
-      
-      if(isSuccessResponse(response)) {
+
+      console.log("✅ Respuesta de Google:", response);
+
+      if (isSuccessResponse(response)) {
         try {
-          const googleInfo = response.data
+          const googleInfo = response.data;
           //const photo = googleInfo.user?.photo;
-      
-  
-      // Consultar a la API si ya está registrado
+
+          // Consultar a la API si ya está registrado
           const check = await fetchWithTimeout(
             userApi.checkEmailExists(googleInfo.user.email)
           );
 
           console.log("Respuesta de verificación de correo:", check);
-          
+
           if (check.exists) {
             await userApi.storeToken(check.token);
             await userApi.storeUserId(check.id);
@@ -168,15 +169,20 @@ const LoginScreen = (): React.JSX.Element => {
           } else {
             // Guardamos los datos para registro
             setGoogleUserData({
-              name: googleInfo.user.givenName + " " +googleInfo.user.familyName || "Usuario",
+              name:
+                googleInfo.user.givenName + " " + googleInfo.user.familyName ||
+                "Usuario",
               email: googleInfo.user.email,
             });
-  
+
             router.push({
               pathname: "/(auth)/register",
               params: {
                 googleUserData: JSON.stringify({
-                  name: googleInfo.user.givenName + " " +googleInfo.user.familyName || "Usuario",
+                  name:
+                    googleInfo.user.givenName +
+                      " " +
+                      googleInfo.user.familyName || "Usuario",
                   email: googleInfo.user.email,
                   password: googleInfo.user.id,
                 }),
@@ -191,20 +197,21 @@ const LoginScreen = (): React.JSX.Element => {
         Alert.alert("Error", "No se pudo obtener la información de Google");
       }
     } catch (error: any) {
-      console.error('Error Google Sign-In:', error);
+      console.error("Error Google Sign-In:", error);
       if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        Alert.alert('Cancelado', 'El inicio de sesión fue cancelado');
+        Alert.alert("Cancelado", "El inicio de sesión fue cancelado");
       } else if (error.code === statusCodes.IN_PROGRESS) {
-        Alert.alert('En progreso', 'El inicio de sesión está en curso');
+        Alert.alert("En progreso", "El inicio de sesión está en curso");
       } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert('Error', 'Servicios de Google Play no disponibles');
+        Alert.alert("Error", "Servicios de Google Play no disponibles");
       } else {
-        Alert.alert('Error de inicio de sesión', error.message || 'Ocurrió un error inesperado');
+        Alert.alert(
+          "Error de inicio de sesión",
+          error.message || "Ocurrió un error inesperado"
+        );
       }
     }
   };
-  
-  
 
   const handleBiometricLogin = async () => {
     const savedRefreshToken = await SecureStore.getItemAsync("refreshToken");
@@ -279,6 +286,13 @@ const LoginScreen = (): React.JSX.Element => {
             secureTextEntry
             left={<TextInput.Icon icon="lock" />}
           />
+          <View style={{ alignItems: "flex-end", marginBottom: 12 }}>
+            <Link href={"/(auth)/forgot-password" as unknown as any} asChild>
+              <Button mode="text" compact>
+                ¿Olvidaste tu contraseña?
+              </Button>
+            </Link>
+          </View>
 
           <Button
             mode="contained"
@@ -321,7 +335,7 @@ const LoginScreen = (): React.JSX.Element => {
       </ScrollView>
     </KeyboardAvoidingView>
   );
-}
+};
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -372,7 +386,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     padding: 20,
     margin: 20,
     borderRadius: 10,
