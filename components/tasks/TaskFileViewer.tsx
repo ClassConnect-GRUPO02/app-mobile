@@ -1,10 +1,9 @@
 import React from "react"
 import { useState } from "react"
-import { View, StyleSheet, Alert, Linking, Dimensions, ScrollView } from "react-native"
+import { View, StyleSheet, Alert, Linking, Dimensions, ScrollView, Platform } from "react-native"
 import { Text, Button, Card, Portal, Modal, ActivityIndicator, IconButton, Surface } from "react-native-paper"
 import { WebView } from "react-native-webview"
 import * as FileSystem from "expo-file-system"
-import * as MediaLibrary from "expo-media-library"
 import * as Sharing from "expo-sharing"
 import { Image } from "expo-image"
 
@@ -42,29 +41,70 @@ export const TaskFileViewer: React.FC<TaskFileViewerProps> = ({ fileUrl, fileNam
         return "other"
     }
 
-    const getFileIcon = (filename: string): string => {
-        const fileType = getFileType(filename)
+    const handlePreview = () => {
+        setShowPreview(true)
+    }
 
-        switch (fileType) {
-            case "image":
-                return "image"
-            case "pdf":
-                return "file-pdf-box"
-            case "office":
-                return "file-document"
-            case "text":
-                return "file-document-outline"
-            case "video":
-                return "video"
-            case "audio":
-                return "music"
-            default:
-                return "file"
+    const downloadToDownloadsFolder = async () => {
+        try {
+            if (Platform.OS === "android") {
+                const permissions = await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync()
+
+                if (!permissions.granted) {
+                    Alert.alert("Permisos requeridos", "Se necesitan permisos para acceder a la carpeta de descargas")
+                    return null
+                }
+
+                const tempUri = FileSystem.documentDirectory + fileName
+                const downloadResult = await FileSystem.downloadAsync(fileUrl, tempUri)
+
+                if (downloadResult.uri) {
+                    const fileUri = await FileSystem.StorageAccessFramework.createFileAsync(
+                        permissions.directoryUri,
+                        fileName,
+                        getFileType(fileName) === "pdf" ? "application/pdf" : "*/*",
+                    )
+
+                    const fileContent = await FileSystem.readAsStringAsync(downloadResult.uri, {
+                        encoding: FileSystem.EncodingType.Base64,
+                    })
+
+                    await FileSystem.writeAsStringAsync(fileUri, fileContent, {
+                        encoding: FileSystem.EncodingType.Base64,
+                    })
+
+                    await FileSystem.deleteAsync(tempUri, { idempotent: true })
+
+                    return fileUri
+                }
+            } else {
+                const localUri = FileSystem.documentDirectory + fileName
+                const downloadResult = await FileSystem.downloadAsync(fileUrl, localUri)
+                return downloadResult.uri
+            }
+        } catch (error) {
+            console.error("Error downloading to downloads folder:", error)
+            return null
         }
     }
 
-    const handlePreview = () => {
-        setShowPreview(true)
+    const downloadToAppDirectory = async () => {
+        try {
+            const downloadsDir = FileSystem.documentDirectory + "downloads/"
+            const dirInfo = await FileSystem.getInfoAsync(downloadsDir)
+
+            if (!dirInfo.exists) {
+                await FileSystem.makeDirectoryAsync(downloadsDir, { intermediates: true })
+            }
+
+            const localUri = downloadsDir + fileName
+            const downloadResult = await FileSystem.downloadAsync(fileUrl, localUri)
+
+            return downloadResult.uri
+        } catch (error) {
+            console.error("Error downloading to app directory:", error)
+            return null
+        }
     }
 
     const handleDownload = async () => {
@@ -72,47 +112,114 @@ export const TaskFileViewer: React.FC<TaskFileViewerProps> = ({ fileUrl, fileNam
             setDownloading(true)
             setDownloadProgress(0)
 
-            const { status } = await MediaLibrary.requestPermissionsAsync()
-            if (status !== "granted") {
-                Alert.alert("Error", "Se necesitan permisos para descargar archivos")
-                return
+            console.log("Starting download from:", fileUrl)
+
+            const downloadsDir = FileSystem.documentDirectory + "downloads/"
+            const dirInfo = await FileSystem.getInfoAsync(downloadsDir)
+
+            if (!dirInfo.exists) {
+                await FileSystem.makeDirectoryAsync(downloadsDir, { intermediates: true })
             }
 
-            const timestamp = Date.now()
-            const fileExtension = getFileExtension(fileName)
-            const uniqueFileName = `${fileName.replace(/\.[^/.]+$/, "")}_${timestamp}.${fileExtension}`
+            const localUri = downloadsDir + fileName
 
-            // Create download with progress
             const downloadResumable = FileSystem.createDownloadResumable(
                 fileUrl,
-                FileSystem.documentDirectory + uniqueFileName,
-                {},
+                localUri,
+                {
+                    headers: {
+                        "User-Agent": "Mozilla/5.0 (compatible; TaskApp/1.0)",
+                    },
+                },
                 (downloadProgress) => {
                     const progress = downloadProgress.totalBytesWritten / downloadProgress.totalBytesExpectedToWrite
-                    setDownloadProgress(Math.round(progress * 100))
+                    const progressPercent = Math.round(progress * 100)
+                    setDownloadProgress(progressPercent)
                 },
             )
 
             const result = await downloadResumable.downloadAsync()
+            console.log("Download result:", result)
 
             if (result?.uri) {
-                const asset = await MediaLibrary.saveToLibraryAsync(result.uri)
+                const fileInfo = await FileSystem.getInfoAsync(result.uri)
+                console.log("File info:", fileInfo)
 
-                Alert.alert("Descarga completada", `El archivo ${fileName} se ha descargado correctamente`, [
-                    { text: "OK" },
-                    {
-                        text: "Compartir",
-                        onPress: async () => {
-                            if (await Sharing.isAvailableAsync()) {
-                                await Sharing.shareAsync(result.uri)
+                if (fileInfo.exists && fileInfo.size && fileInfo.size > 0) {
+                    let finalUri = result.uri
+                    let locationMessage = "en la carpeta de la aplicación"
+
+                    if (Platform.OS === "android") {
+                        try {
+                            const systemDownloadUri = await downloadToDownloadsFolder()
+                            if (systemDownloadUri) {
+                                finalUri = systemDownloadUri
+                                locationMessage = "en la carpeta de Descargas"
                             }
-                        },
-                    },
-                ])
+                        } catch (error) {
+                            console.log("Could not save to system downloads, keeping in app folder")
+                        }
+                    }
+
+                    Alert.alert(
+                        "Descarga completada",
+                        `El archivo ${fileName} se ha descargado correctamente ${locationMessage}`,
+                        [
+                            { text: "OK" },
+                            {
+                                text: "Compartir",
+                                onPress: async () => {
+                                    try {
+                                        if (await Sharing.isAvailableAsync()) {
+                                            await Sharing.shareAsync(finalUri, {
+                                                mimeType: getFileType(fileName) === "pdf" ? "application/pdf" : undefined,
+                                                dialogTitle: `Compartir ${fileName}`,
+                                            })
+                                        }
+                                    } catch (shareError) {
+                                        console.error("Error sharing file:", shareError)
+                                    }
+                                },
+                            },
+                            {
+                                text: "Ver ubicación",
+                                onPress: () => {
+                                    Alert.alert(
+                                        "Ubicación del archivo",
+                                        Platform.OS === "android"
+                                            ? "El archivo está en la carpeta de Descargas de tu dispositivo"
+                                            : "El archivo está en la carpeta de documentos de la aplicación. Puedes acceder a él usando la opción 'Compartir'",
+                                        [{ text: "OK" }],
+                                    )
+                                },
+                            },
+                        ],
+                    )
+                } else {
+                    throw new Error("El archivo descargado está vacío o corrupto")
+                }
+            } else {
+                throw new Error("No se pudo completar la descarga")
             }
         } catch (error) {
             console.error("Error downloading file:", error)
-            Alert.alert("Error", "No se pudo descargar el archivo. Inténtalo de nuevo.")
+
+            let errorMessage = "No se pudo descargar el archivo."
+            if (error.message?.includes("Network")) {
+                errorMessage = "Error de conexión. Verifica tu internet e inténtalo de nuevo."
+            } else if (error.message?.includes("permission")) {
+                errorMessage = "Error de permisos. Verifica los permisos de la app."
+            } else if (error.message?.includes("space")) {
+                errorMessage = "No hay suficiente espacio en el dispositivo."
+            }
+
+            Alert.alert("Error de descarga", errorMessage, [
+                { text: "OK" },
+                {
+                    text: "Abrir externamente",
+                    onPress: handleExternalOpen,
+                },
+            ])
         } finally {
             setDownloading(false)
             setDownloadProgress(0)
@@ -156,11 +263,16 @@ export const TaskFileViewer: React.FC<TaskFileViewerProps> = ({ fileUrl, fileNam
                 return (
                     <View style={{ width: contentWidth, height: contentHeight }}>
                         <WebView
-                            source={{ uri: fileUrl }}
+                            source={{ uri: `https://docs.google.com/gview?embedded=true&url=${encodeURIComponent(fileUrl)}` }}
                             style={{ flex: 1, borderRadius: 8 }}
                             startInLoadingState={true}
                             onLoadStart={() => setWebViewLoading(true)}
                             onLoadEnd={() => setWebViewLoading(false)}
+                            onError={(syntheticEvent) => {
+                                const { nativeEvent } = syntheticEvent
+                                console.error("WebView error: ", nativeEvent)
+                                Alert.alert("Error", "No se pudo cargar el PDF. Intenta descargarlo.")
+                            }}
                             renderLoading={() => (
                                 <View style={styles.loadingContainer}>
                                     <ActivityIndicator size="large" color="#6200ee" />
@@ -170,6 +282,9 @@ export const TaskFileViewer: React.FC<TaskFileViewerProps> = ({ fileUrl, fileNam
                             javaScriptEnabled={true}
                             domStorageEnabled={true}
                             allowsInlineMediaPlayback={true}
+                            scalesPageToFit={true}
+                            showsHorizontalScrollIndicator={false}
+                            showsVerticalScrollIndicator={false}
                         />
                     </View>
                 )
