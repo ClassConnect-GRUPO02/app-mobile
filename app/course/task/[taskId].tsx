@@ -8,6 +8,7 @@ import type { Task } from "@/types/Task"
 import { StatusBar } from "expo-status-bar"
 import { userApi } from "@/api/userApi"
 import { TaskSubmissionForm } from "@/components/tasks/TaskSubmissionForm"
+import { TaskFileViewer } from "@/components/tasks/TaskFileViewer"
 import React from "react"
 
 export default function TaskDetailScreen() {
@@ -297,19 +298,15 @@ export default function TaskDetailScreen() {
                             </>
                         )}
 
-                        {task.attachment_url && (
+                        {task.file_url && (
                             <View style={styles.attachmentSection}>
                                 <Text variant="titleMedium" style={styles.sectionTitle}>
                                     Archivo adjunto
                                 </Text>
-                                <Button
-                                    mode="outlined"
-                                    icon="download"
-                                    onPress={() => handleOpenFile(task.attachment_url!)}
-                                    style={styles.attachmentButton}
-                                >
-                                    Descargar archivo adjunto
-                                </Button>
+                                <TaskFileViewer
+                                    fileUrl={task.file_url}
+                                    fileName={task.file_url.split("/").pop() || "archivo_adjunto"}
+                                />
                             </View>
                         )}
 
@@ -403,9 +400,6 @@ const styles = StyleSheet.create({
     },
     attachmentSection: {
         marginBottom: 16,
-    },
-    attachmentButton: {
-        alignSelf: "flex-start",
     },
     viewSubmissionsButton: {
         marginTop: 24,

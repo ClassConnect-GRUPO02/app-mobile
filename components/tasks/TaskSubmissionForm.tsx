@@ -1,12 +1,13 @@
 import React from "react"
 import { useState, useEffect, useRef } from "react"
-import { View, StyleSheet, ScrollView, Alert, Linking } from "react-native"
+import { View, StyleSheet, ScrollView, Alert } from "react-native"
 import { Text, Button, HelperText, Divider, Chip, Portal, Modal, TextInput } from "react-native-paper"
 import * as DocumentPicker from "expo-document-picker"
 import { taskClient } from "@/api/taskClient"
 import type { Task } from "@/types/Task"
 import { supabaseClient } from "@/api/supabaseClient"
 import { userApi } from "@/api/userApi"
+import { TaskFileViewer } from "@/components/tasks/TaskFileViewer"
 
 interface TaskSubmissionFormProps {
     task: Task
@@ -150,7 +151,7 @@ export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, co
                 return
             }
 
-            let fileUrl;
+            let fileUrl = ""
             if (selectedFile) {
                 try {
                     setUploadProgress(10)
@@ -215,15 +216,6 @@ export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, co
         return now > dueDate && !task.allow_late
     }
 
-    const handleOpenAttachment = () => {
-        if (task.attachment_url) {
-            Linking.openURL(task.attachment_url).catch((err) => {
-                console.error("Error al abrir el archivo:", err)
-                Alert.alert("Error", "No se pudo abrir el archivo adjunto.")
-            })
-        }
-    }
-
     return (
         <ScrollView style={styles.container}>
             {/* Timer for exams */}
@@ -261,14 +253,12 @@ export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, co
                 </Text>
                 <Text style={styles.description}>{task.description}</Text>
 
-                {task.attachment_url && (
+                {task.file_url && (
                     <View style={styles.attachmentSection}>
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Archivo adjunto
                         </Text>
-                        <Button mode="outlined" icon="download" onPress={handleOpenAttachment} style={styles.attachmentButton}>
-                            Descargar archivo adjunto
-                        </Button>
+                        <TaskFileViewer fileUrl={task.file_url} fileName={task.file_url.split("/").pop() || "archivo_adjunto"} />
                     </View>
                 )}
 
@@ -424,9 +414,6 @@ const styles = StyleSheet.create({
     },
     attachmentSection: {
         marginBottom: 16,
-    },
-    attachmentButton: {
-        alignSelf: "flex-start",
     },
     answerSection: {
         padding: 16,

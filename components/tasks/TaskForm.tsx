@@ -18,6 +18,7 @@ import * as DocumentPicker from "expo-document-picker"
 import type { Task, TaskType, LatePolicy, AnswerFormat, TaskQuestion } from "@/types/Task"
 import { taskClient } from "@/api/taskClient"
 import { userApi } from "@/api/userApi"
+import { supabaseClient } from "@/api/supabaseClient"
 
 interface TaskFormProps {
     courseId: string
@@ -75,6 +76,15 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, on
                         setAnswerFormat(task.answer_format)
                         if (task.questions && task.questions.length > 0) {
                             setQuestions(task.questions)
+                        }
+                        if (task.file_url) {
+                            const fileName = task.file_url.split("/").pop() || "archivo_adjunto"
+                            setAttachmentFile({
+                                name: fileName,
+                                uri: task.file_url,
+                                size: 0,
+                                type: "application/octet-stream",
+                            })
                         }
                     }
                 } catch (error) {
@@ -143,6 +153,23 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, on
                 return
             }
 
+            let fileUrl = "";
+            if (attachmentFile) {
+                try {
+                    console.log("Subiendo archivo adjunto:", attachmentFile)
+                    fileUrl = await supabaseClient.uploadFile(attachmentFile.uri, courseId, attachmentFile.name)
+                    if (!fileUrl) {
+                        throw new Error("No se pudo subir el archivo adjunto")
+                    }
+                    console.log("Archivo adjunto subido:", fileUrl)
+                } catch (uploadError) {
+                    console.error("Error al subir archivo adjunto:", uploadError)
+                    Alert.alert("Error", "No se pudo subir el archivo adjunto. Inténtalo de nuevo.")
+                    setLoading(false)
+                    return
+                }
+            }
+
             // Prepare questions for preguntas_respuestas format
             const taskQuestions =
                 answerFormat === "preguntas_respuestas"
@@ -156,10 +183,11 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, on
                 type,
                 title,
                 description,
+                file_url: fileUrl || null,
                 due_date: dueDate.toISOString(),
-                allow_late: type === "tarea" ? allowLate : false, // Only tasks can allow late submissions
+                allow_late: type === "tarea" ? allowLate : false,
                 late_policy: type === "tarea" ? latePolicy : "ninguna",
-                has_timer: type === "examen" ? hasTimer : false, // Only exams use timers
+                has_timer: type === "examen" ? hasTimer : false,
                 time_limit_minutes: type === "examen" && hasTimer ? Number.parseInt(timeLimit, 10) : null,
                 published,
                 visible_from: null,

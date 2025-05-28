@@ -23,6 +23,7 @@ export interface Task {
     type: TaskType
     title: string
     description: string
+    file_url?: string | null
     due_date: string
     allow_late: boolean
     late_policy: LatePolicy
@@ -37,7 +38,6 @@ export interface Task {
     updated_at?: string | null
     deleted_at?: string | null
     questions?: TaskQuestion[]
-    attachment_url?: string | null // For file attachments that students can download
 }
 
 export interface TaskSubmission {
