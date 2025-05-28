@@ -34,6 +34,8 @@ export default function CourseDetailScreen() {
   const [showModuleForm, setShowModuleForm] = useState(false)
   const [selectedModule, setSelectedModule] = useState<Module | null>(null)
 
+  const canViewModulesAndTasks = isEnrolled || isInstructor || isCreator
+
   useEffect(() => {
     if (!id) return
 
@@ -179,16 +181,29 @@ export default function CourseDetailScreen() {
   }
 
   const handleSaveModule = async (module: Module) => {
-    setShowModuleForm(false)
-
-    // Recargar los módulos para mostrar los cambios
     try {
       const updatedModules = await moduleClient.getModulesByCourseId(id)
       setModules(updatedModules)
+      setShowModuleForm(false)
+      setSelectedModule(null)
     } catch (error) {
       console.error("Error al recargar módulos:", error)
     }
   }
+
+  useEffect(() => {
+    if (activeTab === "modules" && canViewModulesAndTasks) {
+      const reloadModules = async () => {
+        try {
+          const updatedModules = await moduleClient.getModulesByCourseId(id)
+          setModules(updatedModules)
+        } catch (error) {
+          console.error("Error al recargar módulos:", error)
+        }
+      }
+      reloadModules()
+    }
+  }, [activeTab, id, canViewModulesAndTasks])
 
   if (loading) {
     return (
@@ -214,9 +229,6 @@ export default function CourseDetailScreen() {
   const isFullyBooked = availableSpots === 0
   const isStudent = userType === "alumno"
   const isTeacher = userType === "docente"
-
-  // Determinar si el usuario puede ver las pestañas de módulos y tareas
-  const canViewModulesAndTasks = isEnrolled || isInstructor || isCreator
 
   const renderInfoTab = () => (
       <View style={styles.container}>
@@ -355,20 +367,6 @@ export default function CourseDetailScreen() {
             </View>
           </View>
         </ScrollView>
-
-        {/* Modal para crear/editar módulo */}
-        <Modal
-            visible={showModuleForm}
-            onDismiss={() => setShowModuleForm(false)}
-            contentContainerStyle={styles.modalContainer}
-        >
-          <ModuleForm
-              courseId={id}
-              initialData={selectedModule || undefined}
-              onSave={handleSaveModule}
-              onCancel={() => setShowModuleForm(false)}
-          />
-        </Modal>
       </View>
   )
 
@@ -486,6 +484,25 @@ export default function CourseDetailScreen() {
         {activeTab === "tasks" && canViewModulesAndTasks && renderTasksTab()}
         {activeTab === "students" && renderStudentsTab()}
 
+        <Modal
+            visible={showModuleForm}
+            onDismiss={() => {
+              setShowModuleForm(false)
+              setSelectedModule(null)
+            }}
+            contentContainerStyle={styles.modalContainer}
+        >
+          <ModuleForm
+              courseId={id}
+              initialData={selectedModule || undefined}
+              onSave={handleSaveModule}
+              onCancel={() => {
+                setShowModuleForm(false)
+                setSelectedModule(null)
+              }}
+          />
+        </Modal>
+
         {isCreator && activeTab === "info" && (
             <View style={styles.fabContainer}>
               <FAB
@@ -602,11 +619,12 @@ const styles = StyleSheet.create({
 
   modalContainer: {
     backgroundColor: "white",
-    margin: 0,
-    padding: 0,
+    margin: 16,
+    padding: 16,
     flex: 1,
   },
   modulesContainer: {
+    padding: 15,
     flex: 1,
   },
   addModuleButton: {
