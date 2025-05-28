@@ -16,6 +16,7 @@ import { getItemAsync } from "expo-secure-store";
 import { userApi } from "@/api/userApi";
 import { ActivityIndicator } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
+import { chatClient } from "@/api/chatClient";
 
 interface ChatMessage {
   id: string;
@@ -140,20 +141,14 @@ export default function ChatAsistenciaScreen() {
       const history = buildHistory([...messages, userMessage].slice(-5));
 
       // Descomenta esta línea cuando tengas el API funcionando
-      /*const response = await chatClient.sendChatMessage({
-        userId,
+      const response = await chatClient.sendChatMessage({
         message: userMessage.text,
         history,
-      });*/
-
-      // Respuesta de prueba temporal
-      const response = {
-        reply: "Esta es una respuesta de prueba desde el servidor",
-      };
+      });
 
       const botMessage: ChatMessage = {
         id: (Date.now() + Math.random()).toString(),
-        text: response.reply,
+        text: response.data,
         createdAt: new Date(),
         isUser: false,
       };
@@ -164,14 +159,14 @@ export default function ChatAsistenciaScreen() {
       await addDoc(collection(db, "chat"), {
         userId,
         pregunta: userMessage.text,
-        respuesta: response.reply,
+        respuesta: response.data,
         timestamp: serverTimestamp(),
       });
 
       // Scroll al final después de añadir mensaje
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
-      }, 1000);
+      }, 100);
     } catch (error) {
       console.error(
         "Error procesando el mensaje o guardando en Firebase:",

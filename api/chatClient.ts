@@ -1,9 +1,9 @@
-import { getItemAsync } from "expo-secure-store"
-import axios from "axios"
+import { getItemAsync } from "expo-secure-store";
+import axios from "axios";
 
 import { getBaseUrlCourses } from './client';
 
-const API_URL = getBaseUrlCourses()
+const API_URL = getBaseUrlCourses();
 
 // Crea una instancia de axios con la configuración base
 const api = axios.create({
@@ -23,6 +23,18 @@ api.interceptors.request.use(
     console.error("[API Request Error]", error);
     return Promise.reject(error);
   }
+);
+
+// Interceptor para agregar el token de autenticación
+api.interceptors.request.use(
+  async (config) => {
+    const token = await getItemAsync("userToken");
+    if (token) {
+      (config.headers as any)["Authorization"] = `Bearer ${token}`;
+    }
+    return config;
+  },
+  (error) => Promise.reject(error)
 );
 
 api.interceptors.response.use(
@@ -47,22 +59,22 @@ api.interceptors.response.use(
   }
 );
 
+// Cliente de chat
 export const chatClient = {
   sendChatMessage: async ({
-    userId,
     message,
     history = [],
   }: {
-    userId: string;
     message: string;
     history?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
   }) => {
     try {
-      const response = await api.post('/chat', {
-        userId,
+      const response = await api.post("/chat", {
         message,
         history,
       });
+      console.log("Mensaje enviado al backend:", message);
+      console.log("Respuesta del backend:", response.data);
 
       return response.data; // { reply: "..." }
     } catch (error) {
