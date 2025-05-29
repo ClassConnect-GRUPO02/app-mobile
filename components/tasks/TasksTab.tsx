@@ -1,11 +1,11 @@
 import { useState, useEffect } from "react"
 import { View, StyleSheet, FlatList, RefreshControl, Alert } from "react-native"
-import { Text, Card, Button, ActivityIndicator, Chip, FAB } from "react-native-paper"
+import { Text, Card, Button, ActivityIndicator, Chip, FAB, SegmentedButtons } from "react-native-paper"
 import { router } from "expo-router"
 import { taskClient } from "@/api/taskClient"
 import type { Task } from "@/types/Task"
 import { courseClient } from "@/api/coursesClient"
-import {userApi} from "@/api/userApi";
+import { userApi } from "@/api/userApi"
 import React from "react"
 
 export const TasksTab = ({ courseId }: { courseId: string }) => {
@@ -14,6 +14,7 @@ export const TasksTab = ({ courseId }: { courseId: string }) => {
     const [refreshing, setRefreshing] = useState(false)
     const [isInstructor, setIsInstructor] = useState(false)
     const [isEnrolled, setIsEnrolled] = useState(false)
+    const [activeTab, setActiveTab] = useState<"tareas" | "examenes">("tareas")
 
     useEffect(() => {
         loadTasks()
@@ -78,9 +79,18 @@ export const TasksTab = ({ courseId }: { courseId: string }) => {
     const handleCreateTask = () => {
         router.push({
             pathname: "/course/task/create",
-            params: { courseId },
+            params: { courseId, type: activeTab === "tareas" ? "tarea" : "examen" },
         })
     }
+
+    // Filtrar tareas según la pestaña activa
+    const filteredTasks = tasks.filter((task) => {
+        if (activeTab === "tareas") {
+            return task.type === "tarea"
+        } else {
+            return task.type === "examen"
+        }
+    })
 
     const renderTaskItem = ({ item }: { item: Task }) => {
         const dueDate = new Date(item.due_date)
@@ -93,12 +103,11 @@ export const TasksTab = ({ courseId }: { courseId: string }) => {
                         <Text variant="titleMedium" style={styles.taskTitle}>
                             {item.title}
                         </Text>
-                        <Chip
-                            style={[styles.typeChip, { backgroundColor: item.type === "tarea" ? "#e3f2fd" : "#fff3e0" }]}
-                            textStyle={{ color: item.type === "tarea" ? "#1976d2" : "#e65100" }}
-                        >
-                            {item.type === "tarea" ? "Tarea" : "Examen"}
-                        </Chip>
+                        {!item.published && (
+                            <Chip icon="eye-off" style={styles.draftChip}>
+                                Borrador
+                            </Chip>
+                        )}
                     </View>
 
                     <Text style={styles.taskDescription} numberOfLines={2}>
@@ -110,11 +119,19 @@ export const TasksTab = ({ courseId }: { courseId: string }) => {
                             Fecha límite: {dueDate.toLocaleDateString()}
                         </Text>
 
-                        {!item.published && (
-                            <Chip icon="eye-off" style={styles.draftChip}>
-                                Borrador
-                            </Chip>
-                        )}
+                        <View style={styles.taskFeatures}>
+                            {item.has_timer && (
+                                <Chip icon="timer" style={styles.featureChip}>
+                                    {item.time_limit_minutes} min
+                                </Chip>
+                            )}
+
+                            {item.allow_file_upload && (
+                                <Chip icon="file-upload" style={styles.featureChip}>
+                                    Archivos
+                                </Chip>
+                            )}
+                        </View>
                     </View>
                 </Card.Content>
             </Card>
@@ -125,40 +142,58 @@ export const TasksTab = ({ courseId }: { courseId: string }) => {
         return (
             <View style={styles.loadingContainer}>
                 <ActivityIndicator size="large" color="#6200ee" />
-                <Text style={styles.loadingText}>Cargando tareas...</Text>
+                <Text style={styles.loadingText}>Cargando actividades...</Text>
             </View>
         )
     }
 
+    const emptyMessage = isInstructor
+        ? `No has creado ${activeTab === "tareas" ? "tareas" : "exámenes"} para este curso.`
+        : `No hay ${activeTab === "tareas" ? "tareas" : "exámenes"} disponibles en este curso.`
+
     return (
         <View style={styles.container}>
+            {/* Tabs para separar tareas y exámenes */}
+            <SegmentedButtons
+                value={activeTab}
+                onValueChange={(value) => setActiveTab(value as "tareas" | "examenes")}
+                buttons={[
+                    {
+                        value: "tareas",
+                        label: `📝 Tareas (${tasks.filter((t) => t.type === "tarea").length})`,
+                    },
+                    {
+                        value: "examenes",
+                        label: `📋 Exámenes (${tasks.filter((t) => t.type === "examen").length})`,
+                    },
+                ]}
+                style={styles.segmentedButtons}
+            />
+
             {isInstructor && (
                 <Button mode="contained" icon="plus" onPress={handleCreateTask} style={styles.createButton}>
-                    Crear nueva tarea
+                    Crear {activeTab === "tareas" ? "tarea" : "examen"}
                 </Button>
             )}
 
-            {tasks.length === 0 ? (
+            {filteredTasks.length === 0 ? (
                 <View style={styles.emptyContainer}>
-                    <Text variant="titleMedium">No hay tareas disponibles</Text>
-                    <Text style={styles.emptyText}>
-                        {isInstructor
-                            ? "Crea una nueva tarea para este curso."
-                            : "El instructor aún no ha creado tareas para este curso."}
-                    </Text>
+                    <Text variant="titleMedium">No hay {activeTab === "tareas" ? "tareas" : "exámenes"} disponibles</Text>
+                    <Text style={styles.emptyText}>{emptyMessage}</Text>
                     {isInstructor && (
                         <Button mode="contained" icon="plus" onPress={handleCreateTask} style={styles.emptyButton}>
-                            Crear tarea
+                            Crear {activeTab === "tareas" ? "tarea" : "examen"}
                         </Button>
                     )}
                 </View>
             ) : (
                 <FlatList
-                    data={tasks}
+                    data={filteredTasks}
                     renderItem={renderTaskItem}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContent}
                     refreshControl={<RefreshControl refreshing={refreshing} onRefresh={handleRefresh} />}
+                    showsVerticalScrollIndicator={false}
                 />
             )}
 
@@ -180,13 +215,19 @@ const styles = StyleSheet.create({
     loadingText: {
         marginTop: 16,
     },
+    segmentedButtons: {
+        margin: 16,
+        marginBottom: 8,
+    },
     listContent: {
         padding: 16,
+        paddingTop: 0,
         paddingBottom: 80,
     },
     taskCard: {
-        marginBottom: 16,
+        marginBottom: 12,
         borderRadius: 8,
+        backgroundColor: "#fff",
     },
     taskHeader: {
         flexDirection: "row",
@@ -198,8 +239,9 @@ const styles = StyleSheet.create({
         flex: 1,
         marginRight: 8,
     },
-    typeChip: {
-        height: 28,
+    draftChip: {
+        backgroundColor: "#f5f5f5",
+        height: 24,
     },
     taskDescription: {
         color: "#666",
@@ -217,9 +259,13 @@ const styles = StyleSheet.create({
     overdue: {
         color: "#d32f2f",
     },
-    draftChip: {
-        backgroundColor: "#f5f5f5",
+    taskFeatures: {
+        flexDirection: "row",
+    },
+    featureChip: {
+        marginLeft: 4,
         height: 24,
+        backgroundColor: "#e8f5e9",
     },
     emptyContainer: {
         flex: 1,
@@ -245,6 +291,7 @@ const styles = StyleSheet.create({
     },
     createButton: {
         margin: 16,
+        marginTop: 8,
         marginBottom: 8,
         backgroundColor: "#6200ee",
     },

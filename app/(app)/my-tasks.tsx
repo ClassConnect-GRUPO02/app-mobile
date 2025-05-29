@@ -1,12 +1,14 @@
 import { useState, useEffect } from "react"
 import { View, StyleSheet, FlatList } from "react-native"
-import { Text, ActivityIndicator, Searchbar, Chip, Button, Card, Divider } from "react-native-paper"
+import { Text, ActivityIndicator, Searchbar, Button, Card, Divider, SegmentedButtons } from "react-native-paper"
 import { router } from "expo-router"
 import { taskClient } from "@/api/taskClient"
 import type { Task } from "@/types/Task"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
-import {userApi} from "@/api/userApi";
+import { userApi } from "@/api/userApi"
 import React from "react"
+
+type StatusFilter = "pending" | "overdue" | "completed" | "draft"
 
 export default function MyTasksScreen() {
     const [tasks, setTasks] = useState<Task[]>([])
@@ -15,7 +17,10 @@ export default function MyTasksScreen() {
     const [error, setError] = useState<string | null>(null)
     const [searchQuery, setSearchQuery] = useState("")
     const [userType, setUserType] = useState<string | null>(null)
-    const [activeFilter, setActiveFilter] = useState<"all" | "pending" | "completed" | "overdue">("all")
+    const [activeFilter, setActiveFilter] = useState<StatusFilter>("pending")
+    const [activeTab, setActiveTab] = useState<"tareas" | "examenes">("tareas")
+    const [currentPage, setCurrentPage] = useState(1)
+    const [itemsPerPage] = useState(5)
 
     useEffect(() => {
         const fetchTasks = async () => {
@@ -69,29 +74,130 @@ export default function MyTasksScreen() {
             )
         }
 
-        // Apply status filter
-        if (activeFilter !== "all") {
-            if (activeFilter === "pending") {
-                // Pending: due date is in the future
-                result = result.filter((task) => {
-                    const dueDate = new Date(task.due_date)
-                    return dueDate > now
-                })
-            } else if (activeFilter === "overdue") {
-                // Overdue: due date is in the past
-                result = result.filter((task) => {
-                    const dueDate = new Date(task.due_date)
-                    return dueDate < now
-                })
-            } else if (activeFilter === "completed") {
-                // Completed: has submission (this would need to be implemented with actual submission data)
-                // For now, we'll just show a placeholder
-                result = []
+        // Apply tab filter (tareas vs examenes)
+        result = result.filter((task) => {
+            if (activeTab === "tareas") {
+                return task.type === "tarea"
+            } else {
+                return task.type === "examen"
             }
+        })
+
+        // Apply status filter
+        if (activeFilter === "pending") {
+            // Pending: due date is in the future
+            result = result.filter((task) => {
+                const dueDate = new Date(task.due_date)
+                return dueDate > now
+            })
+        } else if (activeFilter === "overdue") {
+            // Overdue: due date is in the past
+            result = result.filter((task) => {
+                const dueDate = new Date(task.due_date)
+                return dueDate < now
+            })
+        } else if (activeFilter === "completed") {
+            // Completed: has submission (this would need to be implemented with actual submission data)
+            // For now, we'll show a placeholder for students
+            result = []
+        } else if (activeFilter === "draft") {
+            // Draft: not published (only for teachers)
+            result = result.filter((task) => !task.published)
         }
 
         setFilteredTasks(result)
-    }, [tasks, searchQuery, activeFilter])
+    }, [tasks, searchQuery, activeFilter, activeTab])
+
+    useEffect(() => {
+        // Reset to first page when filters change
+        setCurrentPage(1)
+    }, [searchQuery, activeFilter, activeTab])
+
+    // Pagination calculations
+    const totalPages = Math.ceil(filteredTasks.length / itemsPerPage)
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    const currentPageTasks = filteredTasks.slice(startIndex, endIndex)
+
+    const handlePreviousPage = () => {
+        if (currentPage > 1) {
+            setCurrentPage(currentPage - 1)
+        }
+    }
+
+    const handleNextPage = () => {
+        if (currentPage < totalPages) {
+            setCurrentPage(currentPage + 1)
+        }
+    }
+
+    const handlePageSelect = (page: number) => {
+        setCurrentPage(page)
+    }
+
+    const renderPaginationControls = () => {
+        if (totalPages <= 1) return null
+
+        const pageNumbers = []
+        const maxVisiblePages = 5
+        let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2))
+        const endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
+
+        if (endPage - startPage + 1 < maxVisiblePages) {
+            startPage = Math.max(1, endPage - maxVisiblePages + 1)
+        }
+
+        for (let i = startPage; i <= endPage; i++) {
+            pageNumbers.push(i)
+        }
+
+        return (
+            <View style={styles.paginationContainer}>
+                <View style={styles.paginationInfo}>
+                    <Text style={styles.paginationText}>
+                        Página {currentPage} de {totalPages} • {filteredTasks.length}{" "}
+                        {activeTab === "tareas" ? "tareas" : "exámenes"}
+                    </Text>
+                </View>
+
+                <View style={styles.paginationControls}>
+                    <Button
+                        mode="outlined"
+                        onPress={handlePreviousPage}
+                        disabled={currentPage === 1}
+                        style={styles.paginationButton}
+                        compact
+                    >
+                        Anterior
+                    </Button>
+
+                    <View style={styles.pageNumbers}>
+                        {pageNumbers.map((pageNum) => (
+                            <Button
+                                key={pageNum}
+                                mode={currentPage === pageNum ? "contained" : "outlined"}
+                                onPress={() => handlePageSelect(pageNum)}
+                                style={styles.pageNumberButton}
+                                compact
+                            >
+                                {pageNum}
+                            </Button>
+                        ))}
+                    </View>
+
+                    <Button
+                        mode="outlined"
+                        onPress={handleNextPage}
+                        disabled={currentPage === totalPages}
+                        style={styles.paginationButton}
+                        compact
+                    >
+                        Siguiente
+                    </Button>
+                </View>
+            </View>
+        )
+    }
 
     const handleTaskPress = (task: Task) => {
         router.push({
@@ -108,10 +214,10 @@ export default function MyTasksScreen() {
             <Card style={styles.taskCard} onPress={() => handleTaskPress(item)}>
                 <Card.Content>
                     <View style={styles.taskHeader}>
-                        <Text variant="titleMedium">{item.title}</Text>
-                        <Chip style={[styles.statusChip, { backgroundColor: item.type === "tarea" ? "#e3f2fd" : "#fff8e1" }]}>
-                            {item.type === "tarea" ? "Tarea" : "Examen"}
-                        </Chip>
+                        <Text variant="titleMedium" style={styles.taskTitle}>
+                            {item.title}
+                        </Text>
+                        {!item.published && <Text style={styles.draftBadge}>Borrador</Text>}
                     </View>
 
                     <Text style={styles.taskDescription} numberOfLines={2}>
@@ -131,6 +237,23 @@ export default function MyTasksScreen() {
         )
     }
 
+    // Get available filters based on user type
+    const getStatusFilters = () => {
+        if (userType === "docente") {
+            return [
+                { value: "pending", label: "Pendientes" },
+                { value: "overdue", label: "Vencidas" },
+                { value: "draft", label: "En borrador" },
+            ]
+        } else {
+            return [
+                { value: "pending", label: "Pendientes" },
+                { value: "overdue", label: "Vencidas" },
+                { value: "completed", label: "Completadas" },
+            ]
+        }
+    }
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -139,6 +262,9 @@ export default function MyTasksScreen() {
             </View>
         )
     }
+
+    const tareas = tasks.filter((task) => task.type === "tarea")
+    const examenes = tasks.filter((task) => task.type === "examen")
 
     return (
         <GestureHandlerRootView style={styles.container}>
@@ -154,39 +280,39 @@ export default function MyTasksScreen() {
                     style={styles.searchBar}
                 />
 
+                {/* Tabs para separar tareas y exámenes */}
+                <SegmentedButtons
+                    value={activeTab}
+                    onValueChange={(value) => setActiveTab(value as "tareas" | "examenes")}
+                    buttons={[
+                        {
+                            value: "tareas",
+                            label: `📝 Tareas (${tareas.length})`,
+                        },
+                        {
+                            value: "examenes",
+                            label: `📋 Exámenes (${examenes.length})`,
+                        },
+                    ]}
+                    style={styles.segmentedButtons}
+                />
+
+                {/* Filtros por estado */}
                 <View style={styles.filterContainer}>
-                    <Button
-                        mode={activeFilter === "all" ? "contained" : "outlined"}
-                        onPress={() => setActiveFilter("all")}
-                        style={styles.filterButton}
-                        compact
-                    >
-                        Todas
-                    </Button>
-                    <Button
-                        mode={activeFilter === "pending" ? "contained" : "outlined"}
-                        onPress={() => setActiveFilter("pending")}
-                        style={styles.filterButton}
-                        compact
-                    >
-                        Pendientes
-                    </Button>
-                    <Button
-                        mode={activeFilter === "overdue" ? "contained" : "outlined"}
-                        onPress={() => setActiveFilter("overdue")}
-                        style={styles.filterButton}
-                        compact
-                    >
-                        Vencidas
-                    </Button>
-                    <Button
-                        mode={activeFilter === "completed" ? "contained" : "outlined"}
-                        onPress={() => setActiveFilter("completed")}
-                        style={styles.filterButton}
-                        compact
-                    >
-                        Completadas
-                    </Button>
+                    <Text variant="labelMedium" style={styles.filterLabel}>
+                        Estado:
+                    </Text>
+                    {getStatusFilters().map((filter) => (
+                        <Button
+                            key={filter.value}
+                            mode={activeFilter === filter.value ? "contained" : "outlined"}
+                            onPress={() => setActiveFilter(filter.value as StatusFilter)}
+                            style={styles.filterButton}
+                            compact
+                        >
+                            {filter.label}
+                        </Button>
+                    ))}
                 </View>
             </View>
 
@@ -201,23 +327,28 @@ export default function MyTasksScreen() {
                 <View style={styles.emptyContainer}>
                     <Text variant="titleMedium" style={styles.emptyText}>
                         {searchQuery
-                            ? "No se encontraron actividades que coincidan con tu búsqueda"
-                            : activeFilter !== "all"
-                                ? `No hay actividades ${
-                                    activeFilter === "pending" ? "pendientes" : activeFilter === "overdue" ? "vencidas" : "completadas"
-                                }`
-                                : userType === "docente"
-                                    ? "No has creado ninguna actividad aún"
-                                    : "No tienes tareas o exámenes asignados"}
+                            ? `No se encontraron ${activeTab === "tareas" ? "tareas" : "exámenes"} que coincidan con tu búsqueda`
+                            : activeFilter === "pending"
+                                ? `No hay ${activeTab === "tareas" ? "tareas" : "exámenes"} pendientes`
+                                : activeFilter === "overdue"
+                                    ? `No hay ${activeTab === "tareas" ? "tareas" : "exámenes"} vencidas`
+                                    : activeFilter === "completed"
+                                        ? `No hay ${activeTab === "tareas" ? "tareas" : "exámenes"} completadas`
+                                        : activeFilter === "draft"
+                                            ? `No hay ${activeTab === "tareas" ? "tareas" : "exámenes"} en borrador`
+                                            : userType === "docente"
+                                                ? `No has creado ${activeTab === "tareas" ? "tareas" : "exámenes"} aún`
+                                                : `No tienes ${activeTab === "tareas" ? "tareas" : "exámenes"} asignadas`}
                     </Text>
                 </View>
             ) : (
                 <FlatList
-                    data={filteredTasks}
+                    data={currentPageTasks}
                     renderItem={renderTaskItem}
                     keyExtractor={(item) => item.id}
                     contentContainerStyle={styles.listContent}
                     showsVerticalScrollIndicator={false}
+                    ListFooterComponent={renderPaginationControls}
                 />
             )}
         </GestureHandlerRootView>
@@ -241,9 +372,19 @@ const styles = StyleSheet.create({
         marginBottom: 16,
         elevation: 0,
     },
+    segmentedButtons: {
+        marginBottom: 16,
+    },
     filterContainer: {
         flexDirection: "row",
+        alignItems: "center",
         marginBottom: 8,
+        flexWrap: "wrap",
+    },
+    filterLabel: {
+        marginRight: 8,
+        color: "#666",
+        minWidth: 50,
     },
     filterButton: {
         marginRight: 8,
@@ -288,6 +429,7 @@ const styles = StyleSheet.create({
     taskCard: {
         marginBottom: 16,
         elevation: 2,
+        backgroundColor: "#fff",
     },
     taskHeader: {
         flexDirection: "row",
@@ -295,8 +437,17 @@ const styles = StyleSheet.create({
         alignItems: "center",
         marginBottom: 8,
     },
-    statusChip: {
-        height: 28,
+    taskTitle: {
+        flex: 1,
+        marginRight: 8,
+    },
+    draftBadge: {
+        backgroundColor: "#f5f5f5",
+        color: "#666",
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 12,
+        fontSize: 12,
     },
     taskDescription: {
         color: "#666",
@@ -316,5 +467,36 @@ const styles = StyleSheet.create({
     },
     overdue: {
         color: "#d32f2f",
+    },
+    paginationContainer: {
+        backgroundColor: "#fff",
+        padding: 16,
+        marginTop: 16,
+        borderRadius: 8,
+        elevation: 1,
+    },
+    paginationInfo: {
+        alignItems: "center",
+        marginBottom: 12,
+    },
+    paginationText: {
+        fontSize: 14,
+        color: "#666",
+    },
+    paginationControls: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        alignItems: "center",
+    },
+    paginationButton: {
+        minWidth: 80,
+    },
+    pageNumbers: {
+        flexDirection: "row",
+        alignItems: "center",
+    },
+    pageNumberButton: {
+        marginHorizontal: 2,
+        minWidth: 40,
     },
 })
