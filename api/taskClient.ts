@@ -173,4 +173,26 @@ export const taskClient = {
             return null
         }
     },
+
+    // Iniciar un examen (solo para exámenes con timer)
+    startExam: async (courseId: string, taskId: string): Promise<any> => {
+        try {
+            const response = await apiClient.post<{ data: any }>(`/courses/${courseId}/tasks/${taskId}/start-exam`)
+            return response.data
+        } catch (error) {
+            console.error("Error al iniciar examen:", error)
+            throw error
+        }
+    },
+
+    // Obtener el tiempo restante de un examen
+    getTaskTimer: async (taskId: string): Promise<string> => {
+        try {
+            const response = await apiClient.get<{ data: string }>(`/tasks/${taskId}/timer`)
+            return response.data.data
+        } catch (error) {
+            console.error("Error al obtener timer:", error)
+            throw error
+        }
+    },
 }
