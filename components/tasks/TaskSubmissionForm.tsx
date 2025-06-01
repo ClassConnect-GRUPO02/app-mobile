@@ -1,6 +1,6 @@
 import React from "react"
 import { useState, useEffect, useRef } from "react"
-import { View, StyleSheet, ScrollView, Alert } from "react-native"
+import { View, StyleSheet, ScrollView, Alert, AppState } from "react-native"
 import { Text, Button, HelperText, Divider, Chip, Portal, Modal, TextInput } from "react-native-paper"
 import * as DocumentPicker from "expo-document-picker"
 import { taskClient } from "@/api/taskClient"
@@ -25,44 +25,179 @@ export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, co
     const [answers, setAnswers] = useState<{ [questionId: string]: string }>({})
     const [submitting, setSubmitting] = useState(false)
     const [errors, setErrors] = useState<Record<string, string>>({})
-    const [timeRemaining, setTimeRemaining] = useState<number | null>(
-        task.has_timer && task.time_limit_minutes ? task.time_limit_minutes * 60 : null,
-    )
+    const [timeRemaining, setTimeRemaining] = useState<number | null>(null)
+    const [examStarted, setExamStarted] = useState(false)
+    const [examExpired, setExamExpired] = useState(false)
     const [showTimeWarning, setShowTimeWarning] = useState(false)
     const [uploadProgress, setUploadProgress] = useState(0)
+    const [startingExam, setStartingExam] = useState(false)
+    const [checkingStatus, setCheckingStatus] = useState(true)
     const timerRef = useRef<NodeJS.Timeout | null>(null)
+    const [examCompleted, setExamCompleted] = useState(false)
 
-    // Timer logic for exams
+    const parseTimeToSeconds = (timeString: string): number => {
+        const parts = timeString.split(":")
+        if (parts.length !== 3) return 0
+
+        const hours = Number.parseInt(parts[0], 10) || 0
+        const minutes = Number.parseInt(parts[1], 10) || 0
+        const seconds = Number.parseInt(parts[2], 10) || 0
+
+        return hours * 3600 + minutes * 60 + seconds
+    }
+
     useEffect(() => {
-        if (task.type === "examen" && task.has_timer && task.time_limit_minutes && timeRemaining !== null) {
-            timerRef.current = setInterval(() => {
-                setTimeRemaining((prev) => {
-                    if (prev === null || prev <= 0) {
-                        if (timerRef.current) clearInterval(timerRef.current)
-                        handleTimeUp()
-                        return 0
-                    }
-
-                    // Show warning when 5 minutes remaining
-                    if (prev === 300) {
-                        setShowTimeWarning(true)
-                    }
-
-                    return prev - 1
-                })
-            }, 1000)
-
-            return () => {
-                if (timerRef.current) clearInterval(timerRef.current)
-            }
+        if (task.type === "examen" && task.has_timer && task.time_limit_minutes) {
+            checkExamStatus()
+        } else {
+            setCheckingStatus(false)
+        }
+        return () => {
+            if (timerRef.current) clearInterval(timerRef.current)
         }
     }, [task])
 
+    useEffect(() => {
+        const handleAppStateChange = (nextAppState: string) => {
+            if (nextAppState === "active" && examStarted && !examExpired && !examCompleted) {
+                console.log("App became active - syncing timer")
+                syncTimerWithServer()
+            }
+        }
+
+        const subscription = AppState.addEventListener("change", handleAppStateChange)
+        return () => subscription?.remove()
+    }, [examStarted, examExpired, examCompleted])
+
+    const checkExamStatus = async () => {
+        try {
+            setCheckingStatus(true)
+            console.log("=== CHECKING EXAM STATUS ===")
+
+            const userId = await userApi.getUserId()
+            if (!userId) {
+                console.log("No user ID found")
+                setCheckingStatus(false)
+                return
+            }
+
+            console.log("User ID:", userId)
+
+            try {
+                const submission = await taskClient.getTaskSubmission(task.id, userId)
+                console.log("Submission data:", JSON.stringify(submission, null, 2))
+
+                if (submission) {
+                    setExamCompleted(true)
+                    setCheckingStatus(false)
+                    return
+                }
+
+                try {
+                    const timeString = await taskClient.getTaskTimer(task.id)
+                    console.log("Timer from server:", timeString)
+
+                    const remainingSeconds = parseTimeToSeconds(timeString)
+                    console.log("Remaining seconds:", remainingSeconds)
+
+                    if (remainingSeconds > 0) {
+                        setExamStarted(true)
+                        setTimeRemaining(remainingSeconds)
+                        startLocalTimer()
+                    } else {
+                        setExamExpired(true)
+                        setTimeRemaining(0)
+                    }
+                } catch (timerError) {
+                    console.log("No timer found - exam not started yet")
+                }
+            } catch (submissionError) {
+                console.log("❌ NO SUBMISSION FOUND (error):", submissionError)
+            }
+        } catch (error) {
+            console.error("Error checking exam status:", error)
+        } finally {
+            setCheckingStatus(false)
+        }
+    }
+
+    const syncTimerWithServer = async () => {
+        try {
+            console.log("Syncing timer with server...")
+            const timeString = await taskClient.getTaskTimer(task.id)
+            const remainingSeconds = parseTimeToSeconds(timeString)
+
+            console.log(`Server time: ${timeString}, Seconds: ${remainingSeconds}`)
+
+            if (remainingSeconds <= 0) {
+                handleTimeUp()
+                return
+            }
+
+            setTimeRemaining(remainingSeconds)
+        } catch (error) {
+            console.error("Error syncing timer:", error)
+        }
+    }
+
+    const startLocalTimer = () => {
+        if (timerRef.current) clearInterval(timerRef.current)
+
+        timerRef.current = setInterval(() => {
+            setTimeRemaining((prev) => {
+                if (prev === null || prev <= 0) {
+                    if (timerRef.current) clearInterval(timerRef.current)
+                    handleTimeUp()
+                    return 0
+                }
+
+                if (prev === 300) {
+                    setShowTimeWarning(true)
+                }
+
+                return prev - 1
+            })
+        }, 1000)
+    }
+
+    const handleStartExam = async () => {
+        try {
+            setStartingExam(true)
+            console.log("Starting exam...")
+
+            await taskClient.startExam(courseId, task.id)
+
+            if (task.time_limit_minutes) {
+                const initialSeconds = task.time_limit_minutes * 60
+                console.log("Setting initial timer to", initialSeconds, "seconds")
+                setTimeRemaining(initialSeconds)
+                setExamStarted(true)
+                startLocalTimer()
+            }
+
+            Alert.alert(
+                "Examen iniciado",
+                `Tienes ${task.time_limit_minutes} minutos para completar este examen. El tiempo comenzará a correr ahora.`,
+                [{ text: "Entendido" }],
+            )
+        } catch (error) {
+            console.error("Error starting exam:", error)
+            Alert.alert("Error", "No se pudo iniciar el examen. Inténtalo de nuevo.")
+        } finally {
+            setStartingExam(false)
+        }
+    }
+
     const handleTimeUp = () => {
+        console.log("Time is up!")
+        setExamExpired(true)
+        setTimeRemaining(0)
+        if (timerRef.current) clearInterval(timerRef.current)
+
         Alert.alert(
             "Tiempo agotado",
-            "El tiempo para completar este examen ha terminado. Tu respuesta será enviada automáticamente.",
-            [{ text: "OK", onPress: () => handleSubmit() }],
+            "El tiempo para completar este examen ha terminado. Ya no puedes enviar respuestas.",
+            [{ text: "OK" }],
         )
     }
 
@@ -119,6 +254,11 @@ export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, co
     const validateSubmission = (): boolean => {
         const newErrors: Record<string, string> = {}
 
+        if (task.type === "examen" && examExpired) {
+            Alert.alert("Error", "El tiempo del examen ha expirado. No puedes enviar respuestas.")
+            return false
+        }
+
         if (task.answer_format === "archivo") {
             if (!selectedFile) {
                 newErrors.file = "Debes adjuntar un archivo"
@@ -139,6 +279,11 @@ export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, co
 
     const handleSubmit = async () => {
         if (!validateSubmission()) {
+            return
+        }
+
+        if (task.type === "examen" && examExpired) {
+            Alert.alert("Error", "El tiempo del examen ha expirado.")
             return
         }
 
@@ -194,6 +339,8 @@ export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, co
             const result = await taskClient.submitTask(courseId, task.id, userId, submissionAnswers, fileUrl)
 
             if (result) {
+                if (timerRef.current) clearInterval(timerRef.current)
+
                 Alert.alert("Éxito", "Tu respuesta ha sido enviada correctamente", [
                     { text: "OK", onPress: onSubmissionComplete },
                 ])
@@ -210,20 +357,103 @@ export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, co
     }
 
     const isTaskOverdue = (): boolean => {
-        if (task.type === "examen") return false // Exams don't have due dates
+        if (task.type === "examen") return examExpired
         const now = new Date()
         const dueDate = new Date(task.due_date)
         return now > dueDate && !task.allow_late
     }
 
+    if (checkingStatus) {
+        return (
+            <View style={styles.loadingContainer}>
+                <Text>Verificando estado del examen...</Text>
+            </View>
+        )
+    }
+
+    if (examCompleted) {
+        return (
+            <View style={styles.completionContainer}>
+                <Text variant="titleLarge" style={styles.completionTitle}>
+                    Examen completado
+                </Text>
+                <Text style={styles.completionText}>
+                    Ya has enviado tu respuesta para este examen. No puedes realizar cambios adicionales.
+                </Text>
+                <Button mode="outlined" onPress={onSubmissionComplete} style={styles.backButton}>
+                    Volver
+                </Button>
+            </View>
+        )
+    }
+
+    if (task.type === "examen" && task.has_timer && !examStarted && !examExpired) {
+        return (
+            <ScrollView style={styles.container}>
+                <View style={styles.taskInfo}>
+                    <Text variant="titleLarge" style={styles.taskTitle}>
+                        {task.title}
+                    </Text>
+
+                    <Chip style={[styles.typeChip, { backgroundColor: "#fff3e0" }]} textStyle={{ color: "#e65100" }}>
+                        Examen
+                    </Chip>
+
+                    {task.time_limit_minutes && (
+                        <Text style={styles.dueDate}>Tiempo límite: {task.time_limit_minutes} minutos</Text>
+                    )}
+
+                    <Divider style={styles.divider} />
+
+                    <Text variant="titleMedium" style={styles.sectionTitle}>
+                        Descripción
+                    </Text>
+                    <Text style={styles.description}>{task.description}</Text>
+
+                    {task.file_url && (
+                        <View style={styles.attachmentSection}>
+                            <Text variant="titleMedium" style={styles.sectionTitle}>
+                                Archivo adjunto
+                            </Text>
+                            <TaskFileViewer fileUrl={task.file_url} fileName={task.file_url.split("/").pop() || "archivo_adjunto"} />
+                        </View>
+                    )}
+
+                    <Divider style={styles.divider} />
+
+                    <View style={styles.examStartSection}>
+                        <Text variant="titleMedium" style={styles.examWarningTitle}>
+                            ⚠️ Importante
+                        </Text>
+                        <Text style={styles.examWarningText}>
+                            Este es un examen con tiempo límite de {task.time_limit_minutes} minutos. Una vez que inicies el examen,
+                            el tiempo comenzará a correr y no se puede pausar.
+                        </Text>
+
+                        <Button
+                            mode="contained"
+                            onPress={handleStartExam}
+                            loading={startingExam}
+                            disabled={startingExam}
+                            style={styles.startExamButton}
+                            icon="play"
+                        >
+                            Iniciar Examen
+                        </Button>
+                    </View>
+                </View>
+            </ScrollView>
+        )
+    }
+
     return (
         <ScrollView style={styles.container}>
-            {/* Timer for exams */}
             {task.type === "examen" && task.has_timer && timeRemaining !== null && (
                 <View style={styles.timerContainer}>
                     <Text style={[styles.timerText, timeRemaining < 300 ? styles.timerWarning : null]}>
                         Tiempo restante: {formatTime(timeRemaining)}
                     </Text>
+                    {examExpired && <Text style={styles.expiredText}>⏰ Tiempo agotado</Text>}
                 </View>
             )}
 
@@ -244,6 +474,10 @@ export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, co
                         Fecha de entrega: {new Date(task.due_date).toLocaleDateString()}{" "}
                         {new Date(task.due_date).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
                     </Text>
+                )}
+
+                {task.type === "examen" && task.has_timer && task.time_limit_minutes && (
+                    <Text style={styles.dueDate}>Tiempo límite: {task.time_limit_minutes} minutos</Text>
                 )}
 
                 <Divider style={styles.divider} />
@@ -285,6 +519,7 @@ export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, co
                                     onChangeText={(text) => handleAnswerChange(question.id || "", text)}
                                     style={styles.answerInput}
                                     error={!!errors[`question_${question.id}`]}
+                                    disabled={examExpired}
                                 />
                                 {errors[`question_${question.id}`] && (
                                     <HelperText type="error">{errors[`question_${question.id}`]}</HelperText>
@@ -297,7 +532,13 @@ export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, co
                         <Text variant="titleMedium" style={styles.sectionTitle}>
                             Subir archivo
                         </Text>
-                        <Button mode="outlined" icon="file-upload" onPress={pickDocument} style={styles.uploadButton}>
+                        <Button
+                            mode="outlined"
+                            icon="file-upload"
+                            onPress={pickDocument}
+                            style={styles.uploadButton}
+                            disabled={examExpired}
+                        >
                             Seleccionar archivo
                         </Button>
 
@@ -306,7 +547,7 @@ export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, co
                                 <Chip icon="file-document" style={styles.fileChip}>
                                     {selectedFile.name} ({(selectedFile.size / 1024).toFixed(1)} KB)
                                 </Chip>
-                                <Button icon="delete" mode="text" compact onPress={() => setSelectedFile(null)}>
+                                <Button icon="delete" mode="text" compact onPress={() => setSelectedFile(null)} disabled={examExpired}>
                                     Eliminar
                                 </Button>
                             </View>
@@ -337,7 +578,9 @@ export const TaskSubmissionForm: React.FC<TaskSubmissionFormProps> = ({ task, co
 
                 {isTaskOverdue() && (
                     <Text style={styles.overdueWarning}>
-                        La fecha límite de entrega ha pasado y no se permiten entregas tardías.
+                        {task.type === "examen"
+                            ? "El tiempo del examen ha expirado."
+                            : "La fecha límite de entrega ha pasado y no se permiten entregas tardías."}
                     </Text>
                 )}
             </View>
@@ -372,6 +615,33 @@ const styles = StyleSheet.create({
         flex: 1,
         backgroundColor: "#fff",
     },
+    loadingContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    completionContainer: {
+        flex: 1,
+        justifyContent: "center",
+        alignItems: "center",
+        padding: 20,
+    },
+    completionTitle: {
+        fontWeight: "bold",
+        marginBottom: 16,
+        textAlign: "center",
+        color: "#4caf50",
+    },
+    completionText: {
+        textAlign: "center",
+        marginBottom: 24,
+        lineHeight: 22,
+        color: "#666",
+    },
+    backButton: {
+        paddingHorizontal: 24,
+    },
     timerContainer: {
         backgroundColor: "#f5f5f5",
         padding: 12,
@@ -385,6 +655,12 @@ const styles = StyleSheet.create({
     },
     timerWarning: {
         color: "#d32f2f",
+    },
+    expiredText: {
+        color: "#d32f2f",
+        fontSize: 16,
+        fontWeight: "bold",
+        marginTop: 4,
     },
     taskInfo: {
         padding: 16,
@@ -414,6 +690,26 @@ const styles = StyleSheet.create({
     },
     attachmentSection: {
         marginBottom: 16,
+    },
+    examStartSection: {
+        padding: 16,
+        backgroundColor: "#fff3e0",
+        borderRadius: 8,
+        marginTop: 16,
+    },
+    examWarningTitle: {
+        fontWeight: "bold",
+        color: "#e65100",
+        marginBottom: 12,
+    },
+    examWarningText: {
+        marginBottom: 12,
+        lineHeight: 20,
+        color: "#333",
+    },
+    startExamButton: {
+        marginTop: 8,
+        backgroundColor: "#e65100",
     },
     answerSection: {
         padding: 16,
