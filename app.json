@@ -19,21 +19,7 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.app.classconnect",
-      "permissions": [
-        "android.permission.INTERNET",
-        "android.permission.ACCESS_NETWORK_STATE"
-      ],
-      "networkSecurityConfig": {
-        "domain": [
-          {
-            "domain": "35.223.247.76",
-            "includeSubdomains": true,
-            "cleartextTrafficPermitted": true
-          }
-        ],
-        "cleartextTrafficPermitted": true
-      }
+      "package": "com.app.classconnect"
     },
     "web": {
       "bundler": "metro",
@@ -53,16 +39,7 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store",
-      [
-        "expo-build-properties",
-        {
-          "android": {
-            "usesCleartextTraffic": true,
-            "networkSecurityConfig": "./network_security_config.xml"
-          }
-        }
-      ]
+      "expo-secure-store"
     ],
     "experiments": {
       "typedRoutes": true
