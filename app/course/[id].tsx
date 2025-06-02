@@ -1,497 +1,523 @@
-import {
-  StyleSheet,
-  View,
-  ScrollView,
-  Image,
-  Alert,
-  Dimensions,
-} from "react-native";
-import {
-  Text,
-  Button,
-  Chip,
-  Divider,
-  List,
-  ActivityIndicator,
-  FAB,
-  Modal,
-} from "react-native-paper";
-import { useLocalSearchParams, router } from "expo-router";
-import { courseClient } from "@/api/coursesClient";
-import { useState, useEffect } from "react";
-import type { Course } from "@/types/Course";
-import React from "react";
-import { userApi } from "@/api/userApi";
-import FeedbackForm from "../(courses)/feedback-form";
-import { Platform, SafeAreaView, StatusBar } from "react-native";
-import type { Module } from "@/types/Module";
-import { ModuleList } from "@/components/modules/ModuleList";
-import { ModuleForm } from "@/components/modules/ModuleForm";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { moduleClient } from "@/api/modulesClient";
+import { useState, useEffect } from "react"
+import { StyleSheet, View, ScrollView, Image, Alert } from "react-native"
+import { Text, Button, Chip, Divider, List, ActivityIndicator, FAB, Modal } from "react-native-paper"
+import { useLocalSearchParams, router } from "expo-router"
+import { courseClient } from "@/api/coursesClient"
+import type { Course } from "@/types/Course"
+import { userApi } from "@/api/userApi"
+import FeedbackForm from "../(courses)/feedback-form"
+import { StatusBar } from "react-native"
+import type { Module } from "@/types/Module"
+import { ModuleList } from "@/components/modules/ModuleList"
+import { ModuleForm } from "@/components/modules/ModuleForm"
+import { moduleClient } from "@/api/modulesClient"
+import { TasksTab } from "@/components/tasks/TasksTab"
+import React from "react"
 
 export default function CourseDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
-  const [course, setCourse] = useState<Course | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [deleting, setDeleting] = useState(false);
-  const [enrolling, setEnrolling] = useState(false);
-  const [instructorName, setInstructorName] = useState("No especificado");
-  const [isEnrolled, setIsEnrolled] = useState(false);
-  const [isInstructor, setIsInstructor] = useState(false);
-  const [isCreator, setIsCreator] = useState(false);
-  const [userType, setUserType] = useState<string | null>(null);
-  const [students, setStudents] = useState<any[]>([]);
-  const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
-  const [isModalVisible, setIsModalVisible] = useState(false); // Estado para controlar el modal
-  const [activeTab, setActiveTab] = useState<"info" | "students" | "modules">(
-    "info"
-  );
-  const [modules, setModules] = useState<Module[]>([]);
-  const [showModuleForm, setShowModuleForm] = useState(false);
-  const [selectedModule, setSelectedModule] = useState<Module | null>(null);
+  const { id } = useLocalSearchParams<{ id: string }>()
+  const [course, setCourse] = useState<Course | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
+  const [enrolling, setEnrolling] = useState(false)
+  const [instructorName, setInstructorName] = useState("No especificado")
+  const [isEnrolled, setIsEnrolled] = useState(false)
+  const [isInstructor, setIsInstructor] = useState(false)
+  const [isCreator, setIsCreator] = useState(false)
+  const [userType, setUserType] = useState<string | null>(null)
+  const [students, setStudents] = useState<any[]>([])
+  const [selectedStudent, setSelectedStudent] = useState<any | null>(null)
+  const [isModalVisible, setIsModalVisible] = useState(false) // Estado para controlar el modal
+  const [activeTab, setActiveTab] = useState<"info" | "students" | "modules" | "tasks">("info")
+  const [modules, setModules] = useState<Module[]>([])
+  const [showModuleForm, setShowModuleForm] = useState(false)
+  const [selectedModule, setSelectedModule] = useState<Module | null>(null)
+
+  const canViewModulesAndTasks = isEnrolled || isInstructor || isCreator
 
   useEffect(() => {
-  if (!id) return;
+    if (!id) return
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const userId = await userApi.getUserId();
-      if (!userId) throw new Error("No se pudo obtener el ID del usuario");
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        const userId = await userApi.getUserId()
+        if (!userId) throw new Error("No se pudo obtener el ID del usuario")
 
-      const [userInfo, courseData, fetchedModules] = await Promise.all([
-        userApi.getUserById(userId),
-        courseClient.getCourseById(id),
-        moduleClient.getModulesByCourseId(id),
-      ]);
+        const [userInfo, courseData, fetchedModules] = await Promise.all([
+          userApi.getUserById(userId),
+          courseClient.getCourseById(id),
+          moduleClient.getModulesByCourseId(id),
+        ])
 
-      setUserType(userInfo?.user?.userType);
-      setCourse(courseData);
-      setModules(fetchedModules);
+        setUserType(userInfo?.user?.userType)
+        setCourse(courseData)
+        setModules(fetchedModules)
 
-      if (courseData.creatorId) {
-        const creatorInfo = await userApi.getUserById(courseData.creatorId);
-        setInstructorName(creatorInfo?.user?.name || "No especificado");
+        if (courseData.creatorId) {
+          const creatorInfo = await userApi.getUserById(courseData.creatorId)
+          setInstructorName(creatorInfo?.user?.name || "No especificado")
+        }
+
+        setIsCreator(courseData.creatorId === userId)
+
+        const [instructorStatus, enrollmentStatus] = await Promise.all([
+          courseClient.isInstructorInCourse(id, userId),
+          courseClient.isEnrolledInCourse(id, userId),
+        ])
+
+        console.log("Instructor status:", instructorStatus)
+        console.log("Enrollment status:", enrollmentStatus)
+
+        setIsInstructor(instructorStatus)
+        setIsEnrolled(enrollmentStatus)
+
+        if (instructorStatus) {
+          const studentList = await courseClient.getStudentsInCourse(id)
+          setStudents(studentList)
+        }
+      } catch (err) {
+        console.error("Error al cargar el curso:", err)
+        setError("No se pudo cargar la información del curso")
+      } finally {
+        setLoading(false)
+        console.log("Final state:", {
+          instructorName,
+          isEnrolled,
+          isInstructor,
+          isCreator,
+          userType,
+        })
       }
-
-      setIsCreator(courseData.creatorId === userId);
-
-      const [instructorStatus, enrollmentStatus] = await Promise.all([
-        courseClient.isInstructorInCourse(id, userId),
-        courseClient.isEnrolledInCourse(id, userId),
-      ]);
-
-      console.log("Instructor status:", instructorStatus);
-      console.log("Enrollment status:", enrollmentStatus);
-
-      setIsInstructor(instructorStatus);
-      setIsEnrolled(enrollmentStatus);
-
-      if (instructorStatus) {
-        const studentList = await courseClient.getStudentsInCourse(id);
-        setStudents(studentList);
-      }
-    } catch (err) {
-      console.error("Error al cargar el curso:", err);
-      setError("No se pudo cargar la información del curso");
-    } finally {
-      setLoading(false);
-      console.log("Final state:", {
-    instructorName,
-    isEnrolled,
-    isInstructor,
-    isCreator,
-    userType,
-  });
     }
 
-
-  };
-
-  fetchData();
-
-  
-}, [id]);
-
+    fetchData()
+  }, [id])
 
   const handleDelete = () => {
-    Alert.alert(
-      "Eliminar curso",
-      "¿Estás seguro de que deseas eliminar este curso?",
-      [
-        { text: "Cancelar", style: "cancel" },
-        {
-          text: "Eliminar",
-          style: "destructive",
-          onPress: async () => {
-            try {
-              setDeleting(true);
-              await courseClient.deleteCourse(id);
-              Alert.alert("Éxito", "Curso eliminado", [
-                { text: "OK", onPress: () => router.replace("/(courses)") },
-              ]);
-            } catch (error) {
-              console.error("Error al eliminar el curso:", error);
-              Alert.alert("Error", "No se pudo eliminar el curso.");
-              setDeleting(false);
-            }
-          },
+    Alert.alert("Eliminar curso", "¿Estás seguro de que deseas eliminar este curso?", [
+      { text: "Cancelar", style: "cancel" },
+      {
+        text: "Eliminar",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            setDeleting(true)
+            await courseClient.deleteCourse(id)
+            Alert.alert("Éxito", "Curso eliminado", [{ text: "OK", onPress: () => router.replace("/(courses)") }])
+          } catch (error) {
+            console.error("Error al eliminar el curso:", error)
+            Alert.alert("Error", "No se pudo eliminar el curso.")
+            setDeleting(false)
+          }
         },
-      ]
-    );
-  };
+      },
+    ])
+  }
 
-  const handleFeedbackSubmitted = () => setSelectedStudent(null);
+  const handleFeedbackSubmitted = () => setSelectedStudent(null)
 
-  const handleEdit = () =>
-    router.push({ pathname: "/(courses)/edit", params: { id } });
+  const handleEdit = () => router.push({ pathname: "/(courses)/edit", params: { id } })
 
   const handleEnroll = async () => {
     try {
-      setEnrolling(true);
-      const userId = await userApi.getUserId();
+      setEnrolling(true)
+      const userId = await userApi.getUserId()
       if (!userId) {
-        Alert.alert("Error", "Debes iniciar sesión para inscribirte");
-        return;
+        Alert.alert("Error", "Debes iniciar sesión para inscribirte")
+        return
       }
-      await courseClient.enrollStudentInCourse(id, userId);
-      setIsEnrolled(true);
+      await courseClient.enrollStudentInCourse(id, userId)
+      setIsEnrolled(true)
       if (course) {
-        setCourse({ ...course, enrolled: course.enrolled + 1 });
+        setCourse({ ...course, enrolled: course.enrolled + 1 })
       }
       await userApi.notifyUser(
-        userId,
-        "Inscripción exitosa",
-        `Te has inscrito en el curso ${course?.name}`,
-        "courseEnrollment"
-      );
+          userId,
+          "Inscripción exitosa",
+          `Te has inscrito en el curso ${course?.name}`,
+          "courseEnrollment",
+      )
     } catch (error) {
-      console.error("Error al inscribirse:", error);
-      Alert.alert("Error", "No se pudo completar la inscripción.");
+      console.error("Error al inscribirse:", error)
+      Alert.alert("Error", "No se pudo completar la inscripción.")
     } finally {
-      setEnrolling(false);
+      setEnrolling(false)
     }
-  };
+  }
 
   const handleAddModule = () => {
-    setSelectedModule(null);
-    setShowModuleForm(true);
-  };
+    setSelectedModule(null)
+    setShowModuleForm(true)
+  }
 
   const handleEditModule = (module: Module) => {
-    setSelectedModule(module);
-    setShowModuleForm(true);
-  };
+    setSelectedModule(module)
+    setShowModuleForm(true)
+  }
 
   const handleDeleteModule = async (moduleId: string) => {
     try {
-      const success = await moduleClient.deleteModule(id, moduleId);
+      const success = await moduleClient.deleteModule(id, moduleId)
       if (success) {
         // Actualizar la lista de módulos
-        setModules(modules.filter((module) => module.id !== moduleId));
-        Alert.alert("Éxito", "El módulo ha sido eliminado correctamente");
+        setModules(modules.filter((module) => module.id !== moduleId))
+        Alert.alert("Éxito", "El módulo ha sido eliminado correctamente")
       } else {
-        Alert.alert("Error", "No se pudo eliminar el módulo");
+        Alert.alert("Error", "No se pudo eliminar el módulo")
       }
     } catch (error) {
-      console.error("Error al eliminar el módulo:", error);
-      Alert.alert("Error", "Ocurrió un error al eliminar el módulo");
+      console.error("Error al eliminar el módulo:", error)
+      Alert.alert("Error", "Ocurrió un error al eliminar el módulo")
     }
-  };
+  }
 
   const handleModulePress = (moduleId: string) => {
     router.push({
       pathname: "/course/module/[moduleId]",
       params: { moduleId, courseId: id },
-    });
-  };
+    })
+  }
 
   const handleSaveModule = async (module: Module) => {
-    setShowModuleForm(false);
-
-    // Recargar los módulos para mostrar los cambios
     try {
-      const updatedModules = await moduleClient.getModulesByCourseId(id);
-      setModules(updatedModules);
+      const updatedModules = await moduleClient.getModulesByCourseId(id)
+      setModules(updatedModules)
+      setShowModuleForm(false)
+      setSelectedModule(null)
     } catch (error) {
-      console.error("Error al recargar módulos:", error);
+      console.error("Error al recargar módulos:", error)
     }
-  };
+  }
+
+  useEffect(() => {
+    if (activeTab === "modules" && canViewModulesAndTasks) {
+      const reloadModules = async () => {
+        try {
+          const updatedModules = await moduleClient.getModulesByCourseId(id)
+          setModules(updatedModules)
+        } catch (error) {
+          console.error("Error al recargar módulos:", error)
+        }
+      }
+      reloadModules()
+    }
+  }, [activeTab, id, canViewModulesAndTasks])
 
   if (loading) {
     return (
-      <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6200ee" />
-        <Text style={styles.loadingText}>Cargando curso...</Text>
-      </View>
-    );
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#6200ee" />
+          <Text style={styles.loadingText}>Cargando curso...</Text>
+        </View>
+    )
   }
 
   if (error || !course) {
     return (
-      <View style={styles.notFoundContainer}>
-        <Text variant="headlineMedium">Curso no encontrado</Text>
-        <Button
-          mode="contained"
-          onPress={() => router.back()}
-          style={styles.backButton}
-        >
-          Volver
-        </Button>
-      </View>
-    );
+        <View style={styles.notFoundContainer}>
+          <Text variant="headlineMedium">Curso no encontrado</Text>
+          <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
+            Volver
+          </Button>
+        </View>
+    )
   }
 
-  const availableSpots = course.capacity - course.enrolled;
-  const isFullyBooked = availableSpots === 0;
-  const isStudent = userType === "alumno";
-  const isTeacher = userType === "docente";
+  const availableSpots = course.capacity - course.enrolled
+  const isFullyBooked = availableSpots === 0
+  const isStudent = userType === "alumno"
+  const isTeacher = userType === "docente"
 
   const renderInfoTab = () => (
-    <View style={styles.container}>
-      <ScrollView>
-        <StatusBar barStyle="light-content" />
+      <View style={styles.container}>
+        <ScrollView>
+          <StatusBar barStyle="light-content" />
 
-        <Image
-          source={{
-            uri:
-              course.imageUrl ||
-              "https://images.unsplash.com/photo-1587620962725-abab7fe55159?q=80&w=2062&auto=format&fit=crop",
-          }}
-          style={styles.courseImage}
-        />
+          <Image
+              source={{
+                uri:
+                    course.imageUrl ||
+                    "https://images.unsplash.com/photo-1587620962725-abab7fe55159?q=80&w=2062&auto=format&fit=crop",
+              }}
+              style={styles.courseImage}
+          />
 
-        <View style={styles.contentContainer}>
-          <Text variant="headlineSmall" style={styles.title}>
-            {course.name}
-          </Text>
+          <View style={styles.contentContainer}>
+            <Text variant="headlineSmall" style={styles.title}>
+              {course.name}
+            </Text>
 
-          <View style={styles.chipContainer}>
-            <Chip style={styles.chip}>{course.category}</Chip>
-            <Chip style={styles.chip}>{course.level}</Chip>
-            <Chip style={styles.chip}>{course.modality}</Chip>
-          </View>
+            <View style={styles.chipContainer}>
+              <Chip style={styles.chip}>{course.category}</Chip>
+              <Chip style={styles.chip}>{course.level}</Chip>
+              <Chip style={styles.chip}>{course.modality}</Chip>
+            </View>
 
-          <Divider style={styles.divider} />
+            <Divider style={styles.divider} />
 
-          <View style={styles.actionContainer}>
-            {/* Mostrar botón de inscripción solo para estudiantes que no sean instructores y no estén inscritos */}
-            {isStudent &&
-              !isInstructor &&
-              (isEnrolled ? (
+            <View style={styles.section}>
+              <Text variant="bodyLarge" style={styles.description}>
+                {course.description}
+              </Text>
+            </View>
+
+            <Divider style={styles.divider} />
+
+            <View style={styles.section}>
+              <Text variant="titleMedium" style={styles.sectionTitle}>
+                Detalles del curso
+              </Text>
+
+              <List.Item
+                  title="Fechas"
+                  description={`${new Date(course.startDate).toLocaleDateString()} - ${new Date(course.endDate).toLocaleDateString()}`}
+                  left={(props) => <List.Icon {...props} icon="calendar" />}
+              />
+
+              <List.Item
+                  title="Instructor"
+                  description={instructorName}
+                  left={(props) => <List.Icon {...props} icon="account" />}
+              />
+
+              <List.Item
+                  title="Capacidad"
+                  description={`${course.enrolled} / ${course.capacity} estudiantes`}
+                  left={(props) => <List.Icon {...props} icon="account-group" />}
+              />
+            </View>
+
+            {course.prerequisites.length > 0 && (
                 <>
-                  <Button
-                    mode="contained"
-                    style={[styles.button, styles.enrolledButton]}
-                    disabled
-                  >
-                    Ya estás inscrito
-                  </Button>
-                  <Button
-                    mode="outlined"
-                    style={styles.button}
-                    onPress={() =>
-                      router.push({
-                        pathname: "/(courses)/feedback",
-                        params: { id: id },
-                      })
-                    }
-                  >
-                    Dejar Feedback
-                  </Button>
-                </>
-              ) : isFullyBooked ? (
-                <Button
-                  mode="contained"
-                  style={[styles.button, styles.fullyBookedButton]}
-                  disabled
-                >
-                  Sin cupos disponibles
-                </Button>
-              ) : (
-                <Button
-                  mode="contained"
-                  style={styles.button}
-                  onPress={handleEnroll}
-                  loading={enrolling}
-                  disabled={enrolling}
-                >
-                  Inscribirse
-                </Button>
-              ))}
+                  <Divider style={styles.divider} />
 
-            {isTeacher && (
-              <Button
-                mode="outlined"
-                style={styles.button}
-                onPress={() =>
-                  router.push({
-                    pathname: "/(courses)/feedbacks",
-                    params: { id: id },
-                  })
-                }
-              >
-                Ver Feedbacks del Curso
-              </Button>
+                  <View style={styles.section}>
+                    <Text variant="titleMedium" style={styles.sectionTitle}>
+                      Requisitos previos
+                    </Text>
+                    {course.prerequisites.map((prerequisite, index) => (
+                        <List.Item
+                            key={index}
+                            title={prerequisite}
+                            left={(props) => <List.Icon {...props} icon="check-circle" />}
+                        />
+                    ))}
+                  </View>
+                </>
             )}
 
-            <Button
-              mode="outlined"
-              style={styles.button}
-              onPress={() => router.back()}
-            >
-              Volver
-            </Button>
-          </View>
-        </View>
-      </ScrollView>
+            <View style={styles.actionContainer}>
+              {/* Mostrar botón de inscripción solo para estudiantes que no sean instructores y no estén inscritos */}
+              {isStudent &&
+                  !isInstructor &&
+                  (isEnrolled ? (
+                      <>
+                        <Button mode="contained" style={[styles.button, styles.enrolledButton]} disabled>
+                          Ya estás inscrito
+                        </Button>
+                        <Button
+                            mode="outlined"
+                            style={styles.button}
+                            onPress={() =>
+                                router.push({
+                                  pathname: "/(courses)/feedback",
+                                  params: { id: id },
+                                })
+                            }
+                        >
+                          Dejar Feedback
+                        </Button>
+                      </>
+                  ) : isFullyBooked ? (
+                      <Button mode="contained" style={[styles.button, styles.fullyBookedButton]} disabled>
+                        Sin cupos disponibles
+                      </Button>
+                  ) : (
+                      <Button
+                          mode="contained"
+                          style={styles.button}
+                          onPress={handleEnroll}
+                          loading={enrolling}
+                          disabled={enrolling}
+                      >
+                        Inscribirse
+                      </Button>
+                  ))}
 
-      {/* Modal para crear/editar módulo */}
-      <Modal
-        visible={showModuleForm}
-        onDismiss={() => setShowModuleForm(false)}
-        contentContainerStyle={styles.modalContainer}
-      >
-        <ModuleForm
-          courseId={id}
-          initialData={selectedModule || undefined}
-          onSave={handleSaveModule}
-          onCancel={() => setShowModuleForm(false)}
-        />
-      </Modal>
-    </View>
-  );
+              {isTeacher && (
+                  <Button
+                      mode="outlined"
+                      style={styles.button}
+                      onPress={() =>
+                          router.push({
+                            pathname: "/(courses)/feedbacks",
+                            params: { id: id },
+                          })
+                      }
+                  >
+                    Ver Feedbacks del Curso
+                  </Button>
+              )}
+
+              <Button mode="outlined" style={styles.button} onPress={() => router.back()}>
+                Volver
+              </Button>
+            </View>
+          </View>
+        </ScrollView>
+      </View>
+  )
 
   const renderModulesTab = () => (
-    <View style={styles.modulesContainer}>
-      {isCreator && (
-        <Button
-          mode="contained"
-          icon="plus"
-          onPress={handleAddModule}
-          style={styles.addModuleButton}
-        >
-          Agregar módulo
-        </Button>
-      )}
+      <View style={styles.modulesContainer}>
+        {isCreator && (
+            <Button mode="contained" icon="plus" onPress={handleAddModule} style={styles.addModuleButton}>
+              Agregar módulo
+            </Button>
+        )}
 
-      <ModuleList
-        courseId={id}
-        modules={modules}
-        isCreator={isCreator}
-        onModulePress={handleModulePress}
-        onEditModule={isCreator ? handleEditModule : undefined}
-        onDeleteModule={isCreator ? handleDeleteModule : undefined}
-      />
-    </View>
-  );
-
- const renderStudentsTab = () => (
-  <ScrollView contentContainerStyle={{ padding: 16 }}>
-    {students.map((student) => (
-      <View
-        key={student.id}
-        style={{
-          flexDirection: "row",
-          alignItems: "center",
-          marginBottom: 12,
-        }}
-      >
-        <Image
-          source={{
-            uri: student.avatarUrl || "https://via.placeholder.com/40",
-          }}
-          style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12 }}
-        />
-        <Text style={{ flex: 1 }}>{student.name}</Text>
-        <Button
-          mode="outlined"
-          onPress={() => setSelectedStudent(student)}
-          compact
-        >
-          Dar feedback
-        </Button>
-      </View>
-    ))}
-
-    {/* Aquí mostramos el formulario de feedback si hay un estudiante seleccionado */}
-    {selectedStudent && (
-      <View style={styles.feedbackFormContainer}>
-        {/* Botón de cierre fuera del formulario */}
-        <Button
-          mode="text"
-          onPress={() => setSelectedStudent(null)} // Cierra el formulario
-          style={styles.closeButton}
-        >
-          <Text style={styles.closeButtonText}>X</Text>
-        </Button>
-        
-        {/* Formulario de feedback */}
-        <FeedbackForm
-          studentId={selectedStudent.id}
-          courseId={course.id}
-          onFeedbackSubmitted={handleFeedbackSubmitted}
+        <ModuleList
+            courseId={id}
+            modules={modules}
+            isCreator={isCreator}
+            onModulePress={handleModulePress}
+            onEditModule={isCreator ? handleEditModule : undefined}
+            onDeleteModule={isCreator ? handleDeleteModule : undefined}
         />
       </View>
-    )}
-  </ScrollView>
-  );
+  )
+
+  const renderTasksTab = () => <TasksTab courseId={id} />
+
+  const renderStudentsTab = () => (
+      <ScrollView contentContainerStyle={{ padding: 16 }}>
+        {students.map((student) => (
+            <View
+                key={student.id}
+                style={{
+                  flexDirection: "row",
+                  alignItems: "center",
+                  marginBottom: 12,
+                }}
+            >
+              <Image
+                  source={{
+                    uri: student.avatarUrl || "https://via.placeholder.com/40",
+                  }}
+                  style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12 }}
+              />
+              <Text style={{ flex: 1 }}>{student.name}</Text>
+              <Button mode="outlined" onPress={() => setSelectedStudent(student)} compact>
+                Dar feedback
+              </Button>
+            </View>
+        ))}
+
+        {/* Aquí mostramos el formulario de feedback si hay un estudiante seleccionado */}
+        {selectedStudent && (
+            <View style={styles.feedbackFormContainer}>
+              {/* Botón de cierre fuera del formulario */}
+              <Button
+                  mode="text"
+                  onPress={() => setSelectedStudent(null)} // Cierra el formulario
+                  style={styles.closeButton}
+              >
+                <Text style={styles.closeButtonText}>X</Text>
+              </Button>
+
+              {/* Formulario de feedback */}
+              <FeedbackForm
+                  studentId={selectedStudent.id}
+                  courseId={course.id}
+                  onFeedbackSubmitted={handleFeedbackSubmitted}
+              />
+            </View>
+        )}
+      </ScrollView>
+  )
 
   return (
-    <View style={styles.container}>
-      <View style={styles.tabHeader}>
-        <Button
-          mode={activeTab === "info" ? "contained" : "outlined"}
-          onPress={() => setActiveTab("info")}
-          style={styles.tabButton}
-        >
-          Información
-        </Button>
-        <Button
-          mode={activeTab === "modules" ? "contained" : "outlined"}
-          onPress={() => setActiveTab("modules")}
-          style={styles.tabButton}
-        >
-          Módulos
-        </Button>
-        
-        {isInstructor && (
+      <View style={styles.container}>
+        <View style={styles.tabHeader}>
           <Button
-            mode={activeTab === "students" ? "contained" : "outlined"}
-            onPress={() => setActiveTab("students")}
-            style={styles.tabButton}
+              mode={activeTab === "info" ? "contained" : "outlined"}
+              onPress={() => setActiveTab("info")}
+              style={styles.tabButton}
           >
-            Alumnos
+            Información
           </Button>
+
+          {canViewModulesAndTasks && (
+              <>
+                <Button
+                    mode={activeTab === "modules" ? "contained" : "outlined"}
+                    onPress={() => setActiveTab("modules")}
+                    style={styles.tabButton}
+                >
+                  Módulos
+                </Button>
+                <Button
+                    mode={activeTab === "tasks" ? "contained" : "outlined"}
+                    onPress={() => setActiveTab("tasks")}
+                    style={styles.tabButton}
+                >
+                  Tareas
+                </Button>
+              </>
+          )}
+
+          {isInstructor && (
+              <Button
+                  mode={activeTab === "students" ? "contained" : "outlined"}
+                  onPress={() => setActiveTab("students")}
+                  style={styles.tabButton}
+              >
+                Alumnos
+              </Button>
+          )}
+        </View>
+
+        {activeTab === "info" && renderInfoTab()}
+        {activeTab === "modules" && canViewModulesAndTasks && renderModulesTab()}
+        {activeTab === "tasks" && canViewModulesAndTasks && renderTasksTab()}
+        {activeTab === "students" && renderStudentsTab()}
+
+        <Modal
+            visible={showModuleForm}
+            onDismiss={() => {
+              setShowModuleForm(false)
+              setSelectedModule(null)
+            }}
+            contentContainerStyle={styles.modalContainer}
+        >
+          <ModuleForm
+              courseId={id}
+              initialData={selectedModule || undefined}
+              onSave={handleSaveModule}
+              onCancel={() => {
+                setShowModuleForm(false)
+                setSelectedModule(null)
+              }}
+          />
+        </Modal>
+
+        {isCreator && activeTab === "info" && (
+            <View style={styles.fabContainer}>
+              <FAB
+                  icon="delete"
+                  style={[styles.fab, styles.fabDelete]}
+                  onPress={handleDelete}
+                  color="#fff"
+                  loading={deleting}
+                  disabled={deleting}
+              />
+              <FAB icon="pencil" style={[styles.fab, styles.fabEdit]} onPress={handleEdit} color="#fff" />
+            </View>
         )}
       </View>
-
-      {activeTab === "info" && renderInfoTab()}
-      {activeTab === "modules" && renderModulesTab()}
-      {activeTab === "students" && renderStudentsTab()}
-
-      {isCreator && activeTab === "info" && (
-        <View style={styles.fabContainer}>
-          <FAB
-            icon="delete"
-            style={[styles.fab, styles.fabDelete]}
-            onPress={handleDelete}
-            color="#fff"
-            loading={deleting}
-            disabled={deleting}
-          />
-          <FAB
-            icon="pencil"
-            style={[styles.fab, styles.fabEdit]}
-            onPress={handleEdit}
-            color="#fff"
-          />
-        </View>
-      )}
-    </View>
-  );
+  )
 }
 
 const styles = StyleSheet.create({
@@ -593,11 +619,12 @@ const styles = StyleSheet.create({
 
   modalContainer: {
     backgroundColor: "white",
-    margin: 0,
-    padding: 0,
+    margin: 16,
+    padding: 16,
     flex: 1,
   },
   modulesContainer: {
+    padding: 15,
     flex: 1,
   },
   addModuleButton: {
@@ -629,4 +656,4 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
     paddingVertical: 8,
   },
-});
+})

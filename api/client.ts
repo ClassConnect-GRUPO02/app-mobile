@@ -73,7 +73,7 @@ const logNetworkResponse = (method: string, url: string, status: number, respons
 const handleNetworkError = async (error: any, method: string, endpoint: string) => {
   // Verificar conectividad primero
   const isConnected = await checkNetworkConnectivity();
-  
+
   console.error(`❌ Network Error (${method} ${endpoint}):`, {
     message: error.message,
     name: error.name,
@@ -82,7 +82,7 @@ const handleNetworkError = async (error: any, method: string, endpoint: string) 
     stack: error.stack?.substring(0, 300),
     cause: error.cause
   });
-  
+
   // En desarrollo, mostrar alert con el error
   if (__DEV__) {
     Alert.alert(
@@ -97,7 +97,7 @@ export const apiClient = {
   async post<T>(endpoint: string, data: any): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
     const headers = await getAuthHeaders();
-    
+
     logNetworkRequest('POST', url, headers, data);
 
     try {
@@ -119,7 +119,7 @@ export const apiClient = {
       return responseData;
     } catch (error: any) {
       await handleNetworkError(error, 'POST', endpoint);
-      
+
       // Verificar si es error de timeout o conexión
       if (error.name === 'TimeoutError') {
         throw new Error('Timeout: El servidor no responde. Verifica tu conexión.');
@@ -127,7 +127,7 @@ export const apiClient = {
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error('Error de conexión: No se puede conectar al servidor.');
       }
-      
+
       throw error instanceof Error ? error : new Error('Error desconocido');
     }
   },
@@ -135,7 +135,7 @@ export const apiClient = {
   async postWithoutAuth<T>(endpoint: string, data: any): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
     const headers = { 'Content-Type': 'application/json' };
-    
+
     logNetworkRequest('POST', url, headers, data);
 
     try {
@@ -156,14 +156,14 @@ export const apiClient = {
       return responseData;
     } catch (error: any) {
       handleNetworkError(error, 'POST', endpoint);
-      
+
       if (error.name === 'TimeoutError') {
         throw new Error('Timeout: El servidor no responde. Verifica tu conexión.');
       }
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error('Error de conexión: No se puede conectar al servidor.');
       }
-      
+
       throw error instanceof Error ? error : new Error('Error desconocido');
     }
   },
@@ -171,7 +171,7 @@ export const apiClient = {
   async get<T>(endpoint: string): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
     const headers = await getAuthHeaders();
-    
+
     logNetworkRequest('GET', url, headers);
 
     try {
@@ -196,14 +196,14 @@ export const apiClient = {
       return responseData;
     } catch (error: any) {
       handleNetworkError(error, 'GET', endpoint);
-      
+
       if (error.name === 'TimeoutError') {
         throw new Error('Timeout: El servidor no responde. Verifica tu conexión.');
       }
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error('Error de conexión: No se puede conectar al servidor.');
       }
-      
+
       throw error instanceof Error ? error : new Error('Error desconocido');
     }
   },
@@ -211,7 +211,7 @@ export const apiClient = {
   async getWithoutAuth<T>(endpoint: string): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
     const headers = { 'Content-Type': 'application/json' };
-    
+
     logNetworkRequest('GET', url, headers);
 
     try {
@@ -231,14 +231,14 @@ export const apiClient = {
       return responseData;
     } catch (error: any) {
       handleNetworkError(error, 'GET', endpoint);
-      
+
       if (error.name === 'TimeoutError') {
         throw new Error('Timeout: El servidor no responde. Verifica tu conexión.');
       }
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error('Error de conexión: No se puede conectar al servidor.');
       }
-      
+
       throw error instanceof Error ? error : new Error('Error desconocido');
     }
   },
@@ -246,7 +246,7 @@ export const apiClient = {
   async put<T>(endpoint: string, data: any): Promise<T> {
     const url = `${BASE_URL}${endpoint}`;
     const headers = await getAuthHeaders();
-    
+
     logNetworkRequest('PUT', url, headers, data);
 
     try {
@@ -265,7 +265,7 @@ export const apiClient = {
       if (contentType && contentType.includes('application/json')) {
         const responseData = await response.json();
         logNetworkResponse('PUT', url, response.status, responseData);
-        
+
         if (!response.ok) {
           throw new Error(responseData.message || `HTTP ${response.status}: ${response.statusText}`);
         }
@@ -278,14 +278,14 @@ export const apiClient = {
       }
     } catch (error: any) {
       handleNetworkError(error, 'PUT', endpoint);
-      
+
       if (error.name === 'TimeoutError') {
         throw new Error('Timeout: El servidor no responde. Verifica tu conexión.');
       }
       if (error.name === 'TypeError' && error.message.includes('fetch')) {
         throw new Error('Error de conexión: No se puede conectar al servidor.');
       }
-      
+
       throw error instanceof Error ? error : new Error('Error desconocido');
     }
   }

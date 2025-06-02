@@ -367,7 +367,6 @@ export const courseClient = {
         })
       },
 
-// En el archivo courseClient.ts
 
 getFeedbacksByStudentId: async (studentId: string) => {
     try {
@@ -392,4 +391,4 @@ getFeedbacksByStudentId: async (studentId: string) => {
             throw error;
         }
     },
-    }
+};
