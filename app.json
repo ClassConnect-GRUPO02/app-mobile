@@ -13,6 +13,7 @@
       "bundleIdentifier": "com.app.classconnect"
     },
     "android": {
+      "usesCleartextTraffic": true,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
