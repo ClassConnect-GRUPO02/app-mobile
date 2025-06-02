@@ -86,13 +86,13 @@ export default function ChatAsistenciaScreen() {
 
           // Mensaje inicial + historial
           setMessages([
+            ...loadedMessages,
             {
               id: "initial",
               text: "¡Hola! Soy tu asistente de ClassConnect. ¿En qué puedo ayudarte hoy?",
               createdAt: new Date(),
               isUser: false,
             },
-            ...loadedMessages,
           ]);
         } catch (error) {
           console.warn("Error cargando historial del chat:", error);
@@ -213,7 +213,7 @@ export default function ChatAsistenciaScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
+        <ActivityIndicator size="large" color="#6200ee" />
       </View>
     );
   }
@@ -268,25 +268,25 @@ export default function ChatAsistenciaScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#fff", // fondo blanco limpio
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: "#f5f5f5",
+    padding: 16,
+    backgroundColor: "#fff",
   },
   messagesList: {
     flex: 1,
+    paddingHorizontal: 16,
+    paddingTop: 12,
   },
   messagesContainer: {
-    paddingVertical: 12,
-    padding: 16,
-    paddingBottom: 8,
-    marginTop: 18,
+    paddingBottom: 20, // espacio para que no se corte el último mensaje al hacer scroll
   },
   messageContainer: {
-    marginVertical: 4,
+    marginVertical: 6,
     maxWidth: "80%",
   },
   userMessage: {
@@ -296,28 +296,27 @@ const styles = StyleSheet.create({
     alignSelf: "flex-start",
   },
   messageBubble: {
-    padding: 12,
-    borderRadius: 16,
+    paddingVertical: 12,
+    paddingHorizontal: 16,
+    borderRadius: 20,
     shadowColor: "#000",
-    shadowOffset: {
-      width: 0,
-      height: 1,
-    },
     shadowOpacity: 0.1,
-    shadowRadius: 2,
+    shadowRadius: 4,
+    shadowOffset: { width: 0, height: 1 },
     elevation: 2,
   },
   userBubble: {
-    backgroundColor: "#007AFF",
+    backgroundColor: "#6200ee", // Morado de tu app
     borderBottomRightRadius: 4,
   },
   botBubble: {
-    backgroundColor: "#fff",
+    backgroundColor: "#f5f5f5", // Gris muy claro para el bot
     borderBottomLeftRadius: 4,
   },
   messageText: {
     fontSize: 16,
-    lineHeight: 20,
+    lineHeight: 22,
+    color: "#333",
   },
   userText: {
     color: "#fff",
@@ -326,40 +325,48 @@ const styles = StyleSheet.create({
     color: "#333",
   },
   timeText: {
-    fontSize: 12,
-    marginTop: 4,
-    opacity: 0.7,
+    fontSize: 11,
     color: "#999",
+    marginTop: 4,
+    alignSelf: "flex-end",
   },
   inputContainer: {
     flexDirection: "row",
-    padding: 16,
-    backgroundColor: "#fff",
-    alignItems: "flex-end",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
     borderTopWidth: 1,
     borderTopColor: "#e0e0e0",
+    backgroundColor: "#fff",
+    alignItems: "flex-end",
   },
   textInput: {
     flex: 1,
     borderWidth: 1,
     borderColor: "#e0e0e0",
-    borderRadius: 20,
+    borderRadius: 25,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
     maxHeight: 100,
-    backgroundColor: "#f9f9f9",
+    backgroundColor: "#fafafa",
+    color: "#333",
   },
   sendButton: {
-    backgroundColor: "#007AFF",
-    borderRadius: 20,
-    width: 40,
-    height: 40,
+    marginLeft: 12,
+    backgroundColor: "#6200ee",
+    borderRadius: 25,
+    width: 44,
+    height: 44,
     justifyContent: "center",
     alignItems: "center",
-    marginLeft: 8,
+    shadowColor: "#6200ee",
+    shadowOpacity: 0.5,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
+    elevation: 3,
   },
   sendButtonDisabled: {
     backgroundColor: "#ccc",
+    shadowOpacity: 0,
   },
 });
