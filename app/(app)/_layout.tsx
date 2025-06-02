@@ -92,7 +92,7 @@ export default function AppLayout() {
 
         setupNotifications();
     }, []);
-
+  
     return (
         <PaperProvider>
             <Tabs
@@ -205,7 +205,14 @@ export default function AppLayout() {
                         href: null, // Esto evita que se muestre en la barra de pestañas
                     }}
                 />
+              <Tabs.Screen
+                name="chat-asistencia"
+                options={{
+                  href: null, // Esto evita que se muestre en la barra de pestañas
+                }}
+              />
             </Tabs>
         </PaperProvider>
     );
 }
+

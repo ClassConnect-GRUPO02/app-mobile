@@ -5,6 +5,7 @@ import {
   ScrollView,
   KeyboardAvoidingView,
   Platform,
+  TouchableOpacity,
 } from "react-native";
 import {
   Text,
@@ -21,6 +22,7 @@ import { getItemAsync } from "expo-secure-store";
 
 import type { UserInfo } from "../../api/userApi";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 // Tipo para almacenar la información del usuario
 interface UserData {
@@ -80,7 +82,7 @@ export default function HomeScreen() {
       <ScrollView contentContainerStyle={styles.scrollContainer}>
         <View style={styles.headerContainer}>
           <Title style={styles.title}>
-            ¡Bienvenido{userData?.name ? `, ${userData.name}` : ""}!
+            ¡Hola{userData?.name ? `, ${userData.name}` : ""}!
           </Title>
           <Text style={styles.subtitle}>¿Qué quieres hacer hoy?</Text>
         </View>
@@ -176,6 +178,13 @@ export default function HomeScreen() {
           </Card.Content>
         </Card>
       </ScrollView>
+
+      <TouchableOpacity
+        style={styles.floatingButton}
+        onPress={() => router.push("/chat-asistencia")}
+      >
+        <Ionicons name="chatbubble-ellipses" size={28} color="#fff" />
+      </TouchableOpacity>
     </KeyboardAvoidingView>
   );
 }
@@ -270,5 +279,21 @@ const styles = StyleSheet.create({
     marginBottom: 5,
     marginRight: 10,
     alignSelf: "flex-end",
+  },
+  floatingButton: {
+    position: "absolute",
+    bottom: 30,
+    right: 30,
+    backgroundColor: "#6200ee",
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    justifyContent: "center",
+    alignItems: "center",
+    shadowColor: "#6200ee",
+    shadowOpacity: 0.8,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 5 },
+    elevation: 6,
   },
 });
