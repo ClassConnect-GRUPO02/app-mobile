@@ -8,9 +8,22 @@ import {
   StyleSheet,
   KeyboardAvoidingView,
   Platform,
+  Alert,
 } from "react-native";
-import { addDoc, collection, serverTimestamp } from "firebase/firestore";
-import { query, where, getDocs, orderBy } from "firebase/firestore";
+import {
+  addDoc,
+  collection,
+  serverTimestamp,
+  updateDoc,
+} from "firebase/firestore";
+import {
+  query,
+  where,
+  getDocs,
+  orderBy,
+  doc,
+  getDoc,
+} from "firebase/firestore";
 import { db } from "../../firebase";
 import { getItemAsync } from "expo-secure-store";
 import { userApi } from "@/api/userApi";
@@ -24,6 +37,8 @@ interface ChatMessage {
   createdAt: Date;
   isUser: boolean;
   userName?: string;
+  useful?: boolean | null; // Para feedback de utilidad
+  escalated?: boolean; // Para saber si se ha escalado a soporte
 }
 
 export default function ChatAsistenciaScreen() {
@@ -75,12 +90,15 @@ export default function ChatAsistenciaScreen() {
               text: data.pregunta,
               createdAt: data.timestamp?.toDate?.() ?? new Date(),
               isUser: true,
+              escalated: data.escalated ?? false, // Añadir campo escalated si existe
             });
             loadedMessages.push({
               id: `${doc.id}-res`,
               text: data.respuesta,
               createdAt: data.timestamp?.toDate?.() ?? new Date(),
               isUser: false,
+              useful: data.useful ?? null,
+              escalated: data.escalated ?? false, // Añadir campo escalated si existe
             });
           });
 
@@ -113,8 +131,78 @@ export default function ChatAsistenciaScreen() {
       .map((msg) => ({
         role: msg.isUser ? ("user" as const) : ("assistant" as const),
         content: msg.text,
+        useful: msg.useful ?? null, // Añadir campo de utilidad si existe
       }));
   };
+
+  const handleFeedback = async (messageId: string, wasUseful: boolean) => {
+    const updatedMessages = messages.map((msg) =>
+      msg.id === messageId ? { ...msg, useful: wasUseful } : msg
+    );
+    setMessages(updatedMessages);
+
+    const messageID = messageId.replace("-res", ""); // Asegurarse de que el ID sea correcto
+    console.log(
+      "Actualizando feedback para el mensaje ID:",
+      messageID,
+      "con valor:",
+      wasUseful
+    );
+    try {
+      const docRef = doc(db, "chat", messageID);
+      const docSnap = await getDoc(docRef);
+
+      if (docSnap.exists()) {
+        await updateDoc(docRef, {
+          useful: wasUseful,
+        });
+      } else {
+        console.warn("No se encontró el mensaje en Firebase para actualizar");
+      }
+    } catch (error) {
+      console.error("Error actualizando feedback en Firebase:", error);
+    }
+  };
+
+const escalateToHuman = async (botMessage: ChatMessage) => {
+  const messageID = botMessage.id.replace("-res", "");
+
+  try {
+    const user = await userApi.getUserById(userId ?? "");
+    const userEmail = user?.user?.email || null;
+
+    // Actualizar el mensaje original con escalated = true
+    const docRef = doc(db, "chat", messageID);
+    await updateDoc(docRef, {
+      escalated: true,
+    });
+
+    // Buscar el mensaje del usuario anterior
+    const userMessage = messages.find((msg) => msg.id === messageID);
+
+    if (userMessage) {
+      // Guardar en colección aparte
+      await addDoc(collection(db, "escalados"), {
+        userId,
+        email: userEmail ?? "no-email",
+        consulta: userMessage.text,
+        respuestaBot: botMessage.text,
+        timestamp: new Date(),
+      });
+
+      Alert.alert(
+        "Consulta derivada",
+        "Soporte se contactará para responder su consulta."
+      );
+    }
+  } catch (error) {
+    console.error("Error escalando mensaje a soporte:", error);
+    Alert.alert(
+      "Error",
+      "Ocurrió un error al derivar la consulta. Inténtelo más tarde."
+    );
+  }
+};
 
   const sendMessage = useCallback(async () => {
     if (!inputText.trim() || sending) return;
@@ -140,30 +228,30 @@ export default function ChatAsistenciaScreen() {
     try {
       const history = buildHistory([...messages, userMessage].slice(-5));
 
-      // Descomenta esta línea cuando tengas el API funcionando
       const response = await chatClient.sendChatMessage({
         message: userMessage.text,
         history,
       });
 
-      const botMessage: ChatMessage = {
-        id: (Date.now() + Math.random()).toString(),
-        text: response.data,
-        createdAt: new Date(),
-        isUser: false,
-      };
-
-      setMessages((prev) => [...prev, botMessage]);
-
-      // Guardar en Firebase
-      await addDoc(collection(db, "chat"), {
+      // Guardar en Firebase y obtener docRef
+      const docRef = await addDoc(collection(db, "chat"), {
         userId,
         pregunta: userMessage.text,
         respuesta: response.data,
         timestamp: serverTimestamp(),
       });
 
-      // Scroll al final después de añadir mensaje
+      // Usamos el ID real de Firebase (para que funcione el feedback)
+      const botMessage: ChatMessage = {
+        id: `${docRef.id}-res`, // <- esto es lo importante
+        text: response.data,
+        createdAt: new Date(),
+        isUser: false,
+        useful: null,
+      };
+
+      setMessages((prev) => [...prev, botMessage]);
+
       setTimeout(() => {
         flatListRef.current?.scrollToEnd({ animated: true });
       }, 100);
@@ -178,37 +266,77 @@ export default function ChatAsistenciaScreen() {
   }, [inputText, messages, userId, userName, sending]);
 
   const renderMessage = ({ item }: { item: ChatMessage }) => {
-    return (
+  return (
+    <View
+      style={[
+        styles.messageContainer,
+        item.isUser ? styles.userMessage : styles.botMessage,
+      ]}
+    >
       <View
         style={[
-          styles.messageContainer,
-          item.isUser ? styles.userMessage : styles.botMessage,
+          styles.messageBubble,
+          item.isUser ? styles.userBubble : styles.botBubble,
         ]}
       >
-        <View
+        <Text
           style={[
-            styles.messageBubble,
-            item.isUser ? styles.userBubble : styles.botBubble,
+            styles.messageText,
+            item.isUser ? styles.userText : styles.botText,
           ]}
         >
-          <Text
-            style={[
-              styles.messageText,
-              item.isUser ? styles.userText : styles.botText,
-            ]}
-          >
-            {item.text}
-          </Text>
-          <Text style={styles.timeText}>
-            {item.createdAt.toLocaleTimeString([], {
-              hour: "2-digit",
-              minute: "2-digit",
-            })}
-          </Text>
-        </View>
+          {item.text}
+        </Text>
+        <Text style={styles.timeText}>
+          {item.createdAt.toLocaleTimeString([], {
+            hour: "2-digit",
+            minute: "2-digit",
+          })}
+        </Text>
       </View>
-    );
-  };
+
+      {!item.isUser && item.id !== "initial" && (
+        <>
+          {item.text.startsWith("Lo siento, no tengo") && !item.escalated ? (
+            <TouchableOpacity
+              onPress={() => escalateToHuman(item)}
+              style={{ marginTop: 6, marginLeft: 8 }}
+            >
+              <Text style={{ color: "#e53935", fontWeight: "bold" }}>
+                Derivar a soporte
+              </Text>
+            </TouchableOpacity>
+          ) : item.escalated ? (
+            <Text style={{ color: "#999", marginLeft: 8, fontStyle: "italic" }}>
+              Consulta derivada a soporte.
+            </Text>
+          ) : (
+            <View style={{ flexDirection: "row", marginTop: 4, marginLeft: 8 }}>
+              <TouchableOpacity
+                onPress={() => handleFeedback(item.id, true)}
+                style={{ marginRight: 8 }}
+              >
+                <Ionicons
+                  name="thumbs-up"
+                  size={20}
+                  color={item.useful === true ? "#6200ee" : "#999"}
+                />
+              </TouchableOpacity>
+              <TouchableOpacity onPress={() => handleFeedback(item.id, false)}>
+                <Ionicons
+                  name="thumbs-down"
+                  size={20}
+                  color={item.useful === false ? "#e53935" : "#999"}
+                />
+              </TouchableOpacity>
+            </View>
+          )}
+        </>
+      )}
+    </View>
+  );
+};
+
 
   if (loading) {
     return (
