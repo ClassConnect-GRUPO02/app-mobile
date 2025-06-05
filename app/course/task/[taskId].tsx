@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, StyleSheet, ScrollView, Alert, Linking } from "react-native";
+import { View, StyleSheet, ScrollView, Alert, Linking, SafeAreaView } from "react-native";
 import {
   Text,
   Button,
@@ -77,6 +77,7 @@ export default function TaskDetailScreen() {
               taskId,
               currentUserId
             );
+            console.log("Datos de envío:", submissionData);
             if (submissionData) {
               setHasSubmitted(true);
               setSubmission(submissionData);
@@ -251,7 +252,7 @@ export default function TaskDetailScreen() {
         )}
 
         {/* Solo mostrar calificación y feedback si NO es examen antes del due_date */}
-        {!isExamBeforeDue && submission?.grade !== null && (
+        {!isExamBeforeDue && submission?.feedback !== null && (
           <View style={styles.gradeContainer}>
             <Text variant="titleMedium" style={styles.gradeTitle}>
               Calificación:
@@ -263,7 +264,7 @@ export default function TaskDetailScreen() {
                 { color: submission.grade >= 6 ? "#2e7d32" : "#c62828" },
               ]}
             >
-              {submission.grade.toFixed(1)}
+              {submission.grade}
             </Text>
             {submission?.feedback && (
               <>
@@ -287,7 +288,8 @@ export default function TaskDetailScreen() {
   };
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeContainer}>
+
       <StatusBar style="dark" />
 
       <View style={styles.header}>
@@ -405,7 +407,7 @@ export default function TaskDetailScreen() {
           onSubmissionComplete={handleSubmissionComplete}
         />
       )}
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -414,6 +416,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
+  safeContainer: {
+  flex: 1,
+  backgroundColor: "#fff",
+  paddingTop: 16, // o más si necesitas más espacio
+},
+
   header: {
     flexDirection: "row",
     justifyContent: "space-between",
