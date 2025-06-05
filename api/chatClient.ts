@@ -66,7 +66,11 @@ export const chatClient = {
     history = [],
   }: {
     message: string;
-    history?: Array<{ role: 'user' | 'assistant' | 'system'; content: string }>;
+    history?: Array<{
+      role: "user" | "assistant" | "system";
+      content: string;
+      useful?: boolean | null;
+    }>;
   }) => {
     try {
       const response = await api.post("/chat", {
@@ -83,3 +87,4 @@ export const chatClient = {
     }
   },
 };
+
