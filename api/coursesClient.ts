@@ -457,4 +457,26 @@ getFeedbacksByStudentId: async (studentId: string) => {
             throw error
         }
     },
+    // Get all instructors for a course
+    getInstructorsByCourseId: async (courseId: string) => {
+        try {
+            const response = await api.get(`/courses/${courseId}/instructors`)
+            return response.data
+        } catch (error) {
+            console.error(`Error fetching instructors for course ${courseId}:`, error)
+            throw error
+        }
+    },
+
+    // Get course activity log
+    getCourseActivityLog: async (courseId: string) => {
+        try {
+            const response = await api.get(`/courses/${courseId}/activity-log`)
+            // Handle different possible response structures
+            return response.data.data || response.data || []
+        } catch (error) {
+            console.error(`Error fetching activity log for course ${courseId}:`, error)
+            return [] // Return empty array on error
+        }
+    },
 };

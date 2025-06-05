@@ -12,6 +12,7 @@ import { ModuleList } from "@/components/modules/ModuleList"
 import { ModuleForm } from "@/components/modules/ModuleForm"
 import { moduleClient } from "@/api/modulesClient"
 import { TasksTab } from "@/components/tasks/TasksTab"
+import { InstructorManagement } from "@/components/instructors/InstructorManagement"
 import React from "react"
 
 export default function CourseDetailScreen() {
@@ -29,7 +30,7 @@ export default function CourseDetailScreen() {
   const [students, setStudents] = useState<any[]>([])
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null)
   const [isModalVisible, setIsModalVisible] = useState(false) // Estado para controlar el modal
-  const [activeTab, setActiveTab] = useState<"info" | "students" | "modules" | "tasks">("info")
+  const [activeTab, setActiveTab] = useState<"info" | "students" | "modules" | "tasks" | "instructors">("info")
   const [modules, setModules] = useState<Module[]>([])
   const [showModuleForm, setShowModuleForm] = useState(false)
   const [selectedModule, setSelectedModule] = useState<Module | null>(null)
@@ -438,6 +439,16 @@ export default function CourseDetailScreen() {
       </ScrollView>
   )
 
+  const renderInstructorsTab = () => (
+      <InstructorManagement
+          courseId={id}
+          isCreator={isCreator}
+          onInstructorAdded={() => {
+            // Optionally refresh course data
+          }}
+      />
+  )
+
   return (
       <View style={styles.container}>
         <View style={styles.tabHeader}>
@@ -468,6 +479,16 @@ export default function CourseDetailScreen() {
               </>
           )}
 
+          {(isCreator || isInstructor) && (
+              <Button
+                  mode={activeTab === "instructors" ? "contained" : "outlined"}
+                  onPress={() => setActiveTab("instructors")}
+                  style={styles.tabButton}
+              >
+                Instructores
+              </Button>
+          )}
+
           {isInstructor && (
               <Button
                   mode={activeTab === "students" ? "contained" : "outlined"}
@@ -482,6 +503,7 @@ export default function CourseDetailScreen() {
         {activeTab === "info" && renderInfoTab()}
         {activeTab === "modules" && canViewModulesAndTasks && renderModulesTab()}
         {activeTab === "tasks" && canViewModulesAndTasks && renderTasksTab()}
+        {activeTab === "instructors" && (isCreator || isInstructor) && renderInstructorsTab()}
         {activeTab === "students" && renderStudentsTab()}
 
         <Modal
