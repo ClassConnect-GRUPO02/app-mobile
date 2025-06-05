@@ -7,6 +7,7 @@
         <domain includeSubdomains="false">10.0.2.2</domain>
     </domain-config>
     <base-config cleartextTrafficPermitted="false">
+
         <trust-anchors>
             <certificates src="system"/>
         </trust-anchors>
