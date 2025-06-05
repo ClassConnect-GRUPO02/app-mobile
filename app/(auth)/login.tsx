@@ -61,12 +61,15 @@ const LoginScreen = (): React.JSX.Element => {
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [canUseBiometric, setCanUseBiometric] = useState(false);
-  const [googleUserData, setGoogleUserData] = useState<GoogleUserData | null>(null);
+  const [googleUserData, setGoogleUserData] = useState<GoogleUserData | null>(
+    null
+  );
 
   useEffect(() => {
     // Configurar Google Sign-In
     GoogleSignin.configure({
-      webClientId: "120382293299-ds3j4ogbipqrb553mj4qj8rqt5ihgjo2.apps.googleusercontent.com",
+      webClientId:
+        "120382293299-ds3j4ogbipqrb553mj4qj8rqt5ihgjo2.apps.googleusercontent.com",
       offlineAccess: true,
     });
   }, []);
@@ -110,7 +113,7 @@ const LoginScreen = (): React.JSX.Element => {
 
   const handleLogin = async (): Promise<void> => {
     if (!validateForm()) return;
-  
+
     setLoading(true);
     try {
       const credentials = { email, password };
@@ -123,7 +126,7 @@ const LoginScreen = (): React.JSX.Element => {
       }
     } catch (error: any) {
       console.error("Error durante el inicio de sesión:", error);
-  
+
       if (error?.response?.status === 403) {
         // Usuario bloqueado
         setError("Tu cuenta está bloqueada. Por favor, contactá al soporte.");
@@ -197,8 +200,6 @@ const handleGoogleLogin = async () => {
   }
 };
 
-  
-  
 
   const handleBiometricLogin = async () => {
     const savedRefreshToken = await SecureStore.getItemAsync("refreshToken");
@@ -273,6 +274,13 @@ const handleGoogleLogin = async () => {
             secureTextEntry
             left={<TextInput.Icon icon="lock" />}
           />
+          <View style={{ alignItems: "flex-end", marginBottom: 12 }}>
+            <Link href={"/(auth)/forgot-password" as unknown as any} asChild>
+              <Button mode="text" compact>
+                ¿Olvidaste tu contraseña?
+              </Button>
+            </Link>
+          </View>
 
           <Button
             mode="contained"
@@ -316,7 +324,7 @@ const handleGoogleLogin = async () => {
       </ScrollView>
     </KeyboardAvoidingView>
   );
-}
+};
 const styles = StyleSheet.create({
   container: {
     flex: 1,
@@ -367,7 +375,7 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   modalContent: {
-    backgroundColor: 'white',
+    backgroundColor: "white",
     padding: 20,
     margin: 20,
     borderRadius: 10,

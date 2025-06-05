@@ -3,16 +3,16 @@ import { getItemAsync, setItemAsync } from 'expo-secure-store';
 import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 const getBaseUrl = (): string => {
-  const IP = '35.194.59.156:80';
-  return `http://${IP}/user-service`;
+  const IP = '35.194.59.156';
+  return `http://${IP}:80/user-service`;
 };
 
 // Configura la URL base de la API
 // En desarrollo con Expo, puedes usar la IP de tu máquina en lugar de localhost
 export const getBaseUrlCourses = (): string => {
   //const LOCAL_IP = "192.168.100.25";
-  const LOCAL_IP = "35.194.59.156:80";
-  return `http://${LOCAL_IP}/courses-service`;
+  const LOCAL_IP = "35.194.59.156";
+  return `http://${LOCAL_IP}:80/courses-service`;
 }
 
 const BASE_URL = getBaseUrl();
@@ -199,5 +199,41 @@ export const apiClient = {
       console.error(`Error en petición PUT a ${endpoint}:`, error);
       throw error instanceof Error ? error : new Error('Error desconocido');
     }
+  },
+
+async putWithoutAuth<T>(endpoint: string, data: any, customHeaders?: HeadersInit): Promise<T> {
+  const url = `${BASE_URL}${endpoint}`;
+  const headers: HeadersInit = {
+    'Content-Type': 'application/json',
+    ...(customHeaders || {})
+  };
+
+  try {
+    const response = await fetch(url, {
+      method: 'PUT',
+      headers,
+      body: JSON.stringify(data),
+    });
+
+    const contentType = response.headers.get('content-type');
+
+    if (contentType && contentType.includes('application/json')) {
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.message || 'Ocurrió un error en la petición');
+      }
+
+      return responseData;
+    } else {
+      const textResponse = await response.text();
+      throw new Error(`Respuesta no JSON del servidor: ${textResponse}`);
+    }
+  } catch (error) {
+    console.error(`Error en petición PUT sin auth a ${endpoint}:`, error);
+    throw error instanceof Error ? error : new Error('Error desconocido');
   }
+},
+
 };
+

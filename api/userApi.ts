@@ -231,4 +231,31 @@ export const userApi = {
             return false
         }
     },
+      async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await apiClient.postWithoutAuth<{ success: boolean; message: string }>(
+      '/users/forgot-password',
+      { email }
+    );
+    return response;
+  } catch (error) {
+    console.error('Error en forgotPassword:', error);
+    throw error;
+  }
+},
+
+async resetPassword(newPassword: string, token: string): Promise<{ success: boolean; message: string }> {
+  try {
+    const response = await apiClient.putWithoutAuth<{ success: boolean; message: string }>(
+      '/users/reset-password',
+      { newPassword },
+      { Authorization: `Bearer ${token}` }
+    );
+    
+    return response;
+  } catch (error) {
+    console.error('Error en resetPassword:', error);
+    throw error;
+  }
+},
 }
