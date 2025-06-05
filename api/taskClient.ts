@@ -195,4 +195,26 @@ export const taskClient = {
             throw error
         }
     },
+
+    // Obtener retroalimentación generada por IA para una entrega de tarea
+getAIFeedback: async (taskSubmissionId: string): Promise<any> => {
+    try {
+        const response = await apiClient.get(`/ia-feedback/${taskSubmissionId}`);
+        return response.data.data;
+    } catch (error) {
+        console.error("Error al obtener retroalimentación con IA:", error);
+        return null;
+    }
+},
+
+gradeTaskWithAI: async (taskId: string, studentId: string): Promise<any> => {
+    try {
+        const response = await apiClient.patch(`/tasks/${taskId}/submissions/${studentId}/grade`);
+        return response.data.data;
+    } catch (error) {
+        console.error("Error al calificar tarea con IA:", error);
+        return null;
+    }
+
+},
 }
