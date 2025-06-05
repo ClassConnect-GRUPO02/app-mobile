@@ -18,6 +18,7 @@ import {
 } from "react-native-paper";
 import { Link, useRouter } from "expo-router";
 import { userApi } from "../../api/userApi";
+import HttpTestModal from "../../components/HttpTestModal";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
 //import type { LoginRequest, ApiError } from "../../api/client";
@@ -308,6 +309,7 @@ const LoginScreen = (): React.JSX.Element => {
           >
             Iniciar sesión con Google
           </Button>
+          <HttpTestModal />
 
           <View style={styles.registerContainer}>
             <Text>¿No tienes una cuenta? </Text>
