@@ -1,18 +1,23 @@
 import { useState, useEffect } from "react"
 import { StyleSheet, View, FlatList, SafeAreaView } from "react-native"
-import { Text, ActivityIndicator, Snackbar, Button } from "react-native-paper"
+import { Text, ActivityIndicator, Snackbar, Button, Chip } from "react-native-paper"
 import { StatusBar } from "expo-status-bar"
 import { CourseCard } from "@/components/courses/CourseCard"
 import type { Course } from "@/types/Course"
 import { courseClient } from "@/api/coursesClient"
 import { router } from "expo-router"
 import { getItemAsync } from "expo-secure-store"
+import { userApi } from "@/api/userApi"
 import React from "react"
-import {userApi} from "@/api/userApi";
+
+interface CourseWithRole extends Course {
+    role?: "creator" | "titular" | "auxiliar"
+    instructorType?: string
+}
 
 export default function MyCoursesScreen() {
     const [loading, setLoading] = useState(true)
-    const [courses, setCourses] = useState<Course[]>([])
+    const [courses, setCourses] = useState<CourseWithRole[]>([])
     const [error, setError] = useState<string | null>(null)
     const [snackbarVisible, setSnackbarVisible] = useState(false)
     const [snackbarMessage, setSnackbarMessage] = useState("")
@@ -37,7 +42,7 @@ export default function MyCoursesScreen() {
             setUserType(userTypeValue)
             console.log("Tipo de usuario:", userTypeValue)
 
-            let userCourses: Course[] = []
+            let userCourses: CourseWithRole[] = []
 
             if (userTypeValue === "alumno") {
                 console.log("Obteniendo cursos inscritos para el estudiante")
@@ -47,13 +52,70 @@ export default function MyCoursesScreen() {
                     ...course,
                     isEnrolled: true,
                 }))
-                console.log("Obteniendo lista de cursos favoritos")
-
             } else if (userTypeValue === "docente") {
-                // para docentes obtener cursos que ha creado
-                console.log("Obteniendo cursos creados por el docente")
+                console.log("Obteniendo cursos para el docente")
+
+                // Obtener todos los cursos
                 const allCourses = await courseClient.getAllCourses()
-                userCourses = allCourses.filter((course: { creatorId: string }) => course.creatorId === currentUserId)
+
+                // Obtener cursos donde es instructor (titular o auxiliar)
+                let instructorCourseIds: string[] = []
+                try {
+                    const instructorCoursesResponse = await courseClient.getCoursesByInstructorId(currentUserId)
+                    // Verificar si la respuesta es un array o tiene una propiedad data
+                    if (Array.isArray(instructorCoursesResponse)) {
+                        instructorCourseIds = instructorCoursesResponse
+                    } else if (instructorCoursesResponse?.data && Array.isArray(instructorCoursesResponse.data)) {
+                        instructorCourseIds = instructorCoursesResponse.data
+                    } else {
+                        console.warn("Formato inesperado en respuesta de instructor courses:", instructorCoursesResponse)
+                        instructorCourseIds = []
+                    }
+                } catch (error) {
+                    console.error("Error obteniendo cursos como instructor:", error)
+                    instructorCourseIds = []
+                }
+
+                console.log("Instructor course IDs:", instructorCourseIds)
+
+                // Separar cursos creados vs cursos como instructor
+                const createdCourses = allCourses.filter((course: Course) => course.creatorId === currentUserId)
+                const instructorCourses = allCourses.filter(
+                    (course: Course) => instructorCourseIds.includes(course.id) && course.creatorId !== currentUserId,
+                )
+
+                console.log("Created courses:", createdCourses.length)
+                console.log("Instructor courses:", instructorCourses.length)
+
+                // Obtener información de permisos para cursos como instructor
+                const instructorCoursesWithPermissions = await Promise.all(
+                    instructorCourses.map(async (course: Course) => {
+                        try {
+                            const permissions = await courseClient.getInstructorPermissions(course.id, currentUserId)
+                            return {
+                                ...course,
+                                role: permissions.type === "TITULAR" ? "titular" : ("auxiliar" as const),
+                                instructorType: permissions.type,
+                            }
+                        } catch (error) {
+                            console.error(`Error getting permissions for course ${course.id}:`, error)
+                            return {
+                                ...course,
+                                role: "auxiliar" as const,
+                                instructorType: "AUXILIAR",
+                            }
+                        }
+                    }),
+                )
+
+                // Combinar todos los cursos
+                userCourses = [
+                    ...createdCourses.map((course: Course) => ({
+                        ...course,
+                        role: "creator" as const,
+                    })),
+                    ...instructorCoursesWithPermissions,
+                ]
             }
 
             console.log(`Se obtuvieron ${userCourses.length} cursos`)
@@ -79,6 +141,29 @@ export default function MyCoursesScreen() {
         fetchCourses()
     }
 
+    const renderCourseItem = ({ item }: { item: CourseWithRole }) => (
+        <View style={styles.courseItemContainer}>
+            <CourseCard course={item} isStudent={userType === "alumno"} />
+            {userType === "docente" && item.role && (
+                <View style={styles.roleChipContainer}>
+                    <Chip
+                        style={[
+                            styles.roleChip,
+                            item.role === "creator" && styles.creatorChip,
+                            item.role === "titular" && styles.titularChip,
+                            item.role === "auxiliar" && styles.auxiliarChip,
+                        ]}
+                        textStyle={styles.roleChipText}
+                    >
+                        {item.role === "creator" && "Creador"}
+                        {item.role === "titular" && "Titular"}
+                        {item.role === "auxiliar" && "Auxiliar"}
+                    </Chip>
+                </View>
+            )}
+        </View>
+    )
+
     if (loading && !refreshing) {
         return (
             <View style={styles.loadingContainer}>
@@ -97,7 +182,7 @@ export default function MyCoursesScreen() {
                     Mis Cursos
                 </Text>
                 <Text variant="titleMedium" style={styles.subtitle}>
-                    {userType === "alumno" ? "Cursos en los que estás inscrito" : "Cursos que has creado"}
+                    {userType === "alumno" ? "Cursos en los que estás inscrito" : "Cursos que has creado y donde eres instructor"}
                 </Text>
 
                 {error && (
@@ -122,7 +207,7 @@ export default function MyCoursesScreen() {
                 <FlatList
                     data={courses}
                     keyExtractor={(item) => item.id}
-                    renderItem={({ item }) => <CourseCard course={item} isStudent={userType === "alumno"}/>}
+                    renderItem={renderCourseItem}
                     contentContainerStyle={styles.coursesList}
                     showsVerticalScrollIndicator={false}
                     refreshing={refreshing}
@@ -135,7 +220,7 @@ export default function MyCoursesScreen() {
                             ? "No se pudieron cargar los cursos. Intenta actualizar."
                             : userType === "alumno"
                                 ? "No estás inscrito en ningún curso todavía."
-                                : "No has creado ningún curso todavía."}
+                                : "No has creado ningún curso ni eres instructor en ninguno todavía."}
                     </Text>
                     <Button mode="contained" onPress={() => router.push("/(courses)")} style={styles.exploreButton}>
                         {userType === "alumno" ? "Explorar cursos disponibles" : "Crear un curso"}
@@ -197,6 +282,33 @@ const styles = StyleSheet.create({
     },
     coursesList: {
         paddingBottom: 80,
+    },
+    courseItemContainer: {
+        position: "relative",
+        marginBottom: 16,
+    },
+    roleChipContainer: {
+        position: "absolute",
+        top: 10,
+        left: 10,
+        zIndex: 1,
+    },
+    roleChip: {
+        backgroundColor: "rgba(255, 255, 255, 0.9)",
+    },
+    creatorChip: {
+        backgroundColor: "rgba(76, 175, 80, 0.9)",
+    },
+    titularChip: {
+        backgroundColor: "rgba(33, 150, 243, 0.9)",
+    },
+    auxiliarChip: {
+        backgroundColor: "rgba(255, 152, 0, 0.9)",
+    },
+    roleChipText: {
+        color: "#fff",
+        fontWeight: "bold",
+        fontSize: 12,
     },
     noResultsContainer: {
         flex: 1,

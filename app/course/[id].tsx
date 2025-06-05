@@ -14,6 +14,7 @@ import { moduleClient } from "@/api/modulesClient"
 import { TasksTab } from "@/components/tasks/TasksTab"
 import { InstructorManagement } from "@/components/instructors/InstructorManagement"
 import React from "react"
+import {useInstructorPermissions} from "@/hooks/useInstructorPermissions";
 
 export default function CourseDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>()
@@ -24,18 +25,17 @@ export default function CourseDetailScreen() {
   const [enrolling, setEnrolling] = useState(false)
   const [instructorName, setInstructorName] = useState("No especificado")
   const [isEnrolled, setIsEnrolled] = useState(false)
-  const [isInstructor, setIsInstructor] = useState(false)
-  const [isCreator, setIsCreator] = useState(false)
   const [userType, setUserType] = useState<string | null>(null)
   const [students, setStudents] = useState<any[]>([])
   const [selectedStudent, setSelectedStudent] = useState<any | null>(null)
-  const [isModalVisible, setIsModalVisible] = useState(false) // Estado para controlar el modal
   const [activeTab, setActiveTab] = useState<"info" | "students" | "modules" | "tasks" | "instructors">("info")
   const [modules, setModules] = useState<Module[]>([])
   const [showModuleForm, setShowModuleForm] = useState(false)
   const [selectedModule, setSelectedModule] = useState<Module | null>(null)
 
-  const canViewModulesAndTasks = isEnrolled || isInstructor || isCreator
+  const { permissions, loading: permissionsLoading } = useInstructorPermissions(id)
+
+  const canViewModulesAndTasks = isEnrolled || permissions.isInstructor
 
   useEffect(() => {
     if (!id) return
@@ -61,20 +61,10 @@ export default function CourseDetailScreen() {
           setInstructorName(creatorInfo?.user?.name || "No especificado")
         }
 
-        setIsCreator(courseData.creatorId === userId)
-
-        const [instructorStatus, enrollmentStatus] = await Promise.all([
-          courseClient.isInstructorInCourse(id, userId),
-          courseClient.isEnrolledInCourse(id, userId),
-        ])
-
-        console.log("Instructor status:", instructorStatus)
-        console.log("Enrollment status:", enrollmentStatus)
-
-        setIsInstructor(instructorStatus)
+        const enrollmentStatus = await courseClient.isEnrolledInCourse(id, userId)
         setIsEnrolled(enrollmentStatus)
 
-        if (instructorStatus) {
+        if (permissions.isInstructor) {
           const studentList = await courseClient.getStudentsInCourse(id)
           setStudents(studentList)
         }
@@ -86,17 +76,20 @@ export default function CourseDetailScreen() {
         console.log("Final state:", {
           instructorName,
           isEnrolled,
-          isInstructor,
-          isCreator,
           userType,
         })
       }
     }
 
     fetchData()
-  }, [id])
+  }, [id, permissions.isInstructor])
 
   const handleDelete = () => {
+    if (!permissions.can_update_course) {
+      Alert.alert("Sin permisos", "No tienes permisos para eliminar este curso")
+      return
+    }
+
     Alert.alert("Eliminar curso", "¿Estás seguro de que deseas eliminar este curso?", [
       { text: "Cancelar", style: "cancel" },
       {
@@ -119,7 +112,13 @@ export default function CourseDetailScreen() {
 
   const handleFeedbackSubmitted = () => setSelectedStudent(null)
 
-  const handleEdit = () => router.push({ pathname: "/(courses)/edit", params: { id } })
+  const handleEdit = () => {
+    if (!permissions.can_update_course) {
+      Alert.alert("Sin permisos", "No tienes permisos para editar este curso")
+      return
+    }
+    router.push({ pathname: "/(courses)/edit", params: { id } })
+  }
 
   const handleEnroll = async () => {
     try {
@@ -149,16 +148,29 @@ export default function CourseDetailScreen() {
   }
 
   const handleAddModule = () => {
+    if (!permissions.can_create_content) {
+      Alert.alert("Sin permisos", "No tienes permisos para crear módulos en este curso")
+      return
+    }
     setSelectedModule(null)
     setShowModuleForm(true)
   }
 
   const handleEditModule = (module: Module) => {
+    if (!permissions.can_create_content) {
+      Alert.alert("Sin permisos", "No tienes permisos para editar módulos en este curso")
+      return
+    }
     setSelectedModule(module)
     setShowModuleForm(true)
   }
 
   const handleDeleteModule = async (moduleId: string) => {
+    if (!permissions.can_create_content) {
+      Alert.alert("Sin permisos", "No tienes permisos para eliminar módulos en este curso")
+      return
+    }
+
     try {
       const success = await moduleClient.deleteModule(id, moduleId)
       if (success) {
@@ -206,7 +218,7 @@ export default function CourseDetailScreen() {
     }
   }, [activeTab, id, canViewModulesAndTasks])
 
-  if (loading) {
+  if (loading || permissionsLoading) {
     return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6200ee" />
@@ -249,6 +261,26 @@ export default function CourseDetailScreen() {
             <Text variant="headlineSmall" style={styles.title}>
               {course.name}
             </Text>
+
+            {permissions.isInstructor && (
+                <View style={styles.roleIndicatorContainer}>
+                  <Chip
+                      style={[
+                        styles.roleIndicator,
+                        permissions.isCreator && styles.creatorIndicator,
+                        permissions.isTitular && !permissions.isCreator && styles.titularIndicator,
+                        permissions.isAuxiliar && styles.auxiliarIndicator,
+                      ]}
+                      textStyle={styles.roleIndicatorText}
+                  >
+                    {permissions.isCreator
+                        ? "Creador"
+                        : permissions.isTitular
+                            ? "Instructor Titular"
+                            : "Instructor Auxiliar"}
+                  </Chip>
+                </View>
+            )}
 
             <View style={styles.chipContainer}>
               <Chip style={styles.chip}>{course.category}</Chip>
@@ -312,7 +344,7 @@ export default function CourseDetailScreen() {
             <View style={styles.actionContainer}>
               {/* Mostrar botón de inscripción solo para estudiantes que no sean instructores y no estén inscritos */}
               {isStudent &&
-                  !isInstructor &&
+                  !permissions.isInstructor &&
                   (isEnrolled ? (
                       <>
                         <Button mode="contained" style={[styles.button, styles.enrolledButton]} disabled>
@@ -373,7 +405,7 @@ export default function CourseDetailScreen() {
 
   const renderModulesTab = () => (
       <View style={styles.modulesContainer}>
-        {isCreator && (
+        {permissions.can_create_content && (
             <Button mode="contained" icon="plus" onPress={handleAddModule} style={styles.addModuleButton}>
               Agregar módulo
             </Button>
@@ -382,10 +414,10 @@ export default function CourseDetailScreen() {
         <ModuleList
             courseId={id}
             modules={modules}
-            isCreator={isCreator}
+            isCreator={permissions.can_create_content}
             onModulePress={handleModulePress}
-            onEditModule={isCreator ? handleEditModule : undefined}
-            onDeleteModule={isCreator ? handleDeleteModule : undefined}
+            onEditModule={permissions.can_create_content ? handleEditModule : undefined}
+            onDeleteModule={permissions.can_create_content ? handleDeleteModule : undefined}
         />
       </View>
   )
@@ -410,25 +442,20 @@ export default function CourseDetailScreen() {
                   style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12 }}
               />
               <Text style={{ flex: 1 }}>{student.name}</Text>
-              <Button mode="outlined" onPress={() => setSelectedStudent(student)} compact>
-                Dar feedback
-              </Button>
+              {permissions.can_grade && (
+                  <Button mode="outlined" onPress={() => setSelectedStudent(student)} compact>
+                    Dar feedback
+                  </Button>
+              )}
             </View>
         ))}
 
-        {/* Aquí mostramos el formulario de feedback si hay un estudiante seleccionado */}
         {selectedStudent && (
             <View style={styles.feedbackFormContainer}>
-              {/* Botón de cierre fuera del formulario */}
-              <Button
-                  mode="text"
-                  onPress={() => setSelectedStudent(null)} // Cierra el formulario
-                  style={styles.closeButton}
-              >
+              <Button mode="text" onPress={() => setSelectedStudent(null)} style={styles.closeButton}>
                 <Text style={styles.closeButtonText}>X</Text>
               </Button>
 
-              {/* Formulario de feedback */}
               <FeedbackForm
                   studentId={selectedStudent.id}
                   courseId={course.id}
@@ -442,7 +469,7 @@ export default function CourseDetailScreen() {
   const renderInstructorsTab = () => (
       <InstructorManagement
           courseId={id}
-          isCreator={isCreator}
+          isCreator={permissions.isCreator}
           onInstructorAdded={() => {
             // Optionally refresh course data
           }}
@@ -479,7 +506,7 @@ export default function CourseDetailScreen() {
               </>
           )}
 
-          {(isCreator || isInstructor) && (
+          {permissions.isCreator && (
               <Button
                   mode={activeTab === "instructors" ? "contained" : "outlined"}
                   onPress={() => setActiveTab("instructors")}
@@ -489,7 +516,7 @@ export default function CourseDetailScreen() {
               </Button>
           )}
 
-          {isInstructor && (
+          {permissions.isInstructor && (
               <Button
                   mode={activeTab === "students" ? "contained" : "outlined"}
                   onPress={() => setActiveTab("students")}
@@ -503,7 +530,7 @@ export default function CourseDetailScreen() {
         {activeTab === "info" && renderInfoTab()}
         {activeTab === "modules" && canViewModulesAndTasks && renderModulesTab()}
         {activeTab === "tasks" && canViewModulesAndTasks && renderTasksTab()}
-        {activeTab === "instructors" && (isCreator || isInstructor) && renderInstructorsTab()}
+        {activeTab === "instructors" && permissions.isCreator && renderInstructorsTab()}
         {activeTab === "students" && renderStudentsTab()}
 
         <Modal
@@ -525,17 +552,21 @@ export default function CourseDetailScreen() {
           />
         </Modal>
 
-        {isCreator && activeTab === "info" && (
+        {(permissions.isCreator || permissions.can_update_course) && activeTab === "info" && (
             <View style={styles.fabContainer}>
-              <FAB
-                  icon="delete"
-                  style={[styles.fab, styles.fabDelete]}
-                  onPress={handleDelete}
-                  color="#fff"
-                  loading={deleting}
-                  disabled={deleting}
-              />
-              <FAB icon="pencil" style={[styles.fab, styles.fabEdit]} onPress={handleEdit} color="#fff" />
+              {permissions.can_update_course && (
+                  <FAB
+                      icon="delete"
+                      style={[styles.fab, styles.fabDelete]}
+                      onPress={handleDelete}
+                      color="#fff"
+                      loading={deleting}
+                      disabled={deleting}
+                  />
+              )}
+              {permissions.can_update_course && (
+                  <FAB icon="pencil" style={[styles.fab, styles.fabEdit]} onPress={handleEdit} color="#fff" />
+              )}
             </View>
         )}
       </View>
@@ -574,6 +605,25 @@ const styles = StyleSheet.create({
   title: {
     fontWeight: "bold",
     marginBottom: 12,
+  },
+  roleIndicatorContainer: {
+    marginBottom: 12,
+  },
+  roleIndicator: {
+    alignSelf: "flex-start",
+  },
+  creatorIndicator: {
+    backgroundColor: "#4caf50",
+  },
+  titularIndicator: {
+    backgroundColor: "#2196f3",
+  },
+  auxiliarIndicator: {
+    backgroundColor: "#ff9800",
+  },
+  roleIndicatorText: {
+    color: "#fff",
+    fontWeight: "bold",
   },
   chipContainer: {
     flexDirection: "row",
@@ -638,7 +688,6 @@ const styles = StyleSheet.create({
   fabDelete: {
     backgroundColor: "#f44336",
   },
-
   modalContainer: {
     backgroundColor: "white",
     margin: 16,
@@ -654,22 +703,20 @@ const styles = StyleSheet.create({
     backgroundColor: "#6200ee",
   },
   feedbackFormContainer: {
-    position: "relative", // Permite la posición flotante del botón de cierre
+    position: "relative",
     marginTop: 16,
-    paddingBottom: 80, // Espacio para que no se sobreponga el formulario
+    paddingBottom: 80,
   },
-
-  // Aquí definimos la "X" fuera del formulario, pero flotante sobre la vista
   closeButton: {
     position: "absolute",
-    top: 16, // Ajustamos para que esté un poco alejada de la parte superior
-    right: 16, // Colocamos la "X" en la esquina superior derecha
+    top: 16,
+    right: 16,
     backgroundColor: "transparent",
-    zIndex: 10, // Asegura que el botón esté encima del formulario
+    zIndex: 10,
   },
   closeButtonText: {
     fontSize: 24,
-    color: "#6200ee", // Puedes cambiar el color si lo prefieres
+    color: "#6200ee",
     fontWeight: "bold",
   },
   tabHeader: {

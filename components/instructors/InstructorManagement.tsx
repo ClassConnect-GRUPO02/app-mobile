@@ -14,12 +14,10 @@ import {
   Dialog,
   Portal,
   TextInput,
-  SegmentedButtons,
 } from "react-native-paper"
 import { courseClient } from "@/api/coursesClient"
 import { userApi } from "@/api/userApi"
-import type { Instructor } from "@/types/Instructor"
-import { ActivityLog } from "./ActivityLog"
+import type { InstructorInfo } from "@/types/Instructor"
 
 interface InstructorManagementProps {
   courseId: string
@@ -32,7 +30,7 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
                                                                             isCreator,
                                                                             onInstructorAdded,
                                                                           }) => {
-  const [instructors, setInstructors] = useState<(Instructor & { name: string; email: string })[]>([])
+  const [instructors, setInstructors] = useState<InstructorInfo[]>([])
   const [loading, setLoading] = useState(true)
   const [showAddDialog, setShowAddDialog] = useState(false)
   const [searchEmail, setSearchEmail] = useState("")
@@ -44,7 +42,6 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
     can_update_course: false,
   })
   const [currentUserId, setCurrentUserId] = useState<string>("")
-  const [activeView, setActiveView] = useState<"instructors" | "activity">("instructors")
 
   useEffect(() => {
     loadInstructors()
@@ -65,30 +62,38 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
   const loadInstructors = async () => {
     try {
       setLoading(true)
-      // Use the new endpoint to get all instructors
-      const instructorData = await courseClient.getInstructorsByCourseId(courseId)
+      // Use the specific endpoint for getting instructors
+      const instructorsData = await courseClient.getInstructorsByCourseId(courseId)
+      const instructorList: InstructorInfo[] = []
 
-      // Get user information for each instructor
-      const instructorsWithInfo = await Promise.all(
-          instructorData.map(async (instructor: Instructor) => {
-            try {
-              const userInfo = await userApi.getUserById(instructor.userId)
-              return {
-                ...instructor,
-                name: userInfo?.user?.name || "Usuario desconocido",
-                email: userInfo?.user?.email || "Email no disponible",
-              }
-            } catch (error) {
-              return {
-                ...instructor,
-                name: "Usuario desconocido",
-                email: "Email no disponible",
-              }
-            }
-          }),
-      )
+      // Process each instructor from the response
+      for (const instructorData of instructorsData) {
+        try {
+          // Get user details for each instructor
+          const userInfo = await userApi.getUserById(instructorData.userId)
+          if (userInfo?.user) {
+            instructorList.push({
+              id: userInfo.user.id,
+              name: userInfo.user.name,
+              email: userInfo.user.email,
+              userType: userInfo.user.userType,
+              permissions: {
+                id: instructorData.id,
+                userId: instructorData.userId,
+                courseId: instructorData.courseId,
+                type: instructorData.type,
+                can_create_content: instructorData.can_create_content,
+                can_grade: instructorData.can_grade,
+                can_update_course: instructorData.can_update_course,
+              },
+            })
+          }
+        } catch (error) {
+          console.error(`Error loading instructor details for user ${instructorData.userId}:`, error)
+        }
+      }
 
-      setInstructors(instructorsWithInfo)
+      setInstructors(instructorList)
     } catch (error) {
       console.error("Error loading instructors:", error)
       Alert.alert("Error", "No se pudieron cargar los instructores")
@@ -121,6 +126,7 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
     try {
       await courseClient.addAuxiliaryInstructor(courseId, selectedUser.id, currentUserId, permissions)
 
+      // Send notification to the new instructor
       await userApi.notifyUser(
           selectedUser.id,
           "Nuevo rol de instructor",
@@ -146,7 +152,12 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
     }
   }
 
-  const handleRemoveInstructor = (instructor: Instructor & { name: string; email: string }) => {
+  const handleRemoveInstructor = (instructor: InstructorInfo) => {
+    if (!instructor.permissions) {
+      Alert.alert("Error", "No se pudieron obtener los permisos del instructor")
+      return
+    }
+
     Alert.alert(
         "Remover instructor",
         `¿Estás seguro de que deseas remover a ${instructor.name} como instructor auxiliar?`,
@@ -157,10 +168,11 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
             style: "destructive",
             onPress: async () => {
               try {
-                await courseClient.removeAuxiliaryInstructor(courseId, instructor.userId, currentUserId)
+                await courseClient.removeAuxiliaryInstructor(courseId, instructor.id, currentUserId)
 
+                // Send notification about role revocation
                 await userApi.notifyUser(
-                    instructor.userId,
+                    instructor.id,
                     "Rol de instructor removido",
                     `Tu rol como instructor auxiliar ha sido revocado`,
                     "courseEnrollment",
@@ -178,9 +190,14 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
     )
   }
 
-  const handleUpdatePermissions = async (instructor: Instructor, newPermissions: any) => {
+  const handleUpdatePermissions = async (instructor: InstructorInfo, newPermissions: any) => {
+    if (!instructor.permissions) {
+      Alert.alert("Error", "No se pudieron obtener los permisos del instructor")
+      return
+    }
+
     try {
-      await courseClient.updateInstructorPermissions(courseId, instructor.userId, currentUserId, newPermissions)
+      await courseClient.updateInstructorPermissions(courseId, instructor.id, currentUserId, newPermissions)
 
       Alert.alert("Éxito", "Permisos actualizados correctamente")
       loadInstructors()
@@ -201,50 +218,36 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
 
   return (
       <View style={styles.container}>
-        <SegmentedButtons
-            value={activeView}
-            onValueChange={(value) => setActiveView(value as "instructors" | "activity")}
-            buttons={[
-              { value: "instructors", label: "Instructores" },
-              { value: "activity", label: "Actividad" },
-            ]}
-            style={styles.segmentedButtons}
-        />
+        <View style={styles.header}>
+          <Text variant="titleLarge">Gestión de Instructores</Text>
+          {isCreator && (
+              <Button mode="contained" icon="plus" onPress={() => setShowAddDialog(true)} style={styles.addButton}>
+                Agregar Instructor Auxiliar
+              </Button>
+          )}
+        </View>
 
-        {activeView === "instructors" ? (
-            <>
-              <View style={styles.header}>
-                <Text variant="titleLarge">Gestión de Instructores</Text>
-                {isCreator && (
-                    <Button mode="contained" icon="plus" onPress={() => setShowAddDialog(true)} style={styles.addButton}>
-                      Agregar Instructor Auxiliar
-                    </Button>
-                )}
-              </View>
+        <ScrollView style={styles.instructorsList}>
+          {instructors.map((instructor) => (
+              <Card key={instructor.id} style={styles.instructorCard}>
+                <Card.Content>
+                  <View style={styles.instructorHeader}>
+                    <View style={styles.instructorInfo}>
+                      <Text variant="titleMedium">{instructor.name}</Text>
+                      <Text variant="bodyMedium" style={styles.email}>
+                        {instructor.email}
+                      </Text>
+                      <Chip style={styles.typeChip} mode={instructor.permissions?.type === "TITULAR" ? "flat" : "outlined"}>
+                        {instructor.permissions?.type === "TITULAR" ? "Titular" : "Auxiliar"}
+                      </Chip>
+                    </View>
+                    {isCreator && instructor.permissions?.type === "AUXILIAR" && (
+                        <IconButton icon="delete" iconColor="#f44336" onPress={() => handleRemoveInstructor(instructor)} />
+                    )}
+                  </View>
 
-              <ScrollView style={styles.instructorsList}>
-                {instructors.map((instructor) => (
-                    <Card key={instructor.id} style={styles.instructorCard}>
-                      <Card.Content>
-                        <View style={styles.instructorHeader}>
-                          <View style={styles.instructorInfo}>
-                            <Text variant="titleMedium">{instructor.name}</Text>
-                            <Text variant="bodyMedium" style={styles.email}>
-                              {instructor.email}
-                            </Text>
-                            <Chip style={styles.typeChip} mode={instructor.type === "TITULAR" ? "flat" : "outlined"}>
-                              {instructor.type === "TITULAR" ? "Titular" : "Auxiliar"}
-                            </Chip>
-                          </View>
-                          {isCreator && instructor.type === "AUXILIAR" && (
-                              <IconButton
-                                  icon="delete"
-                                  iconColor="#f44336"
-                                  onPress={() => handleRemoveInstructor(instructor)}
-                              />
-                          )}
-                        </View>
-
+                  {instructor.permissions && (
+                      <>
                         <Divider style={styles.divider} />
                         <Text variant="titleSmall" style={styles.permissionsTitle}>
                           Permisos
@@ -255,37 +258,35 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
                             description="Puede crear módulos y recursos"
                             right={() => (
                                 <Switch
-                                    value={instructor.can_create_content}
+                                    value={instructor.permissions?.can_create_content || false}
                                     onValueChange={(value) => {
-                                      if (isCreator && instructor.type === "AUXILIAR") {
+                                      if (isCreator && instructor.permissions?.type === "AUXILIAR" && instructor.permissions) {
                                         handleUpdatePermissions(instructor, {
+                                          ...instructor.permissions,
                                           can_create_content: value,
-                                          can_grade: instructor.can_grade,
-                                          can_update_course: instructor.can_update_course,
                                         })
                                       }
                                     }}
-                                    disabled={!isCreator || instructor.type === "TITULAR"}
+                                    disabled={!isCreator || instructor.permissions?.type === "TITULAR"}
                                 />
                             )}
                         />
 
                         <List.Item
-                            title="Calificar tareas"
-                            description="Puede calificar entregas de estudiantes"
+                            title="Calificar estudiantes"
+                            description="Puede dar feedbacks para estudiantes"
                             right={() => (
                                 <Switch
-                                    value={instructor.can_grade}
+                                    value={instructor.permissions?.can_grade || false}
                                     onValueChange={(value) => {
-                                      if (isCreator && instructor.type === "AUXILIAR") {
+                                      if (isCreator && instructor.permissions?.type === "AUXILIAR" && instructor.permissions) {
                                         handleUpdatePermissions(instructor, {
-                                          can_create_content: instructor.can_create_content,
+                                          ...instructor.permissions,
                                           can_grade: value,
-                                          can_update_course: instructor.can_update_course,
                                         })
                                       }
                                     }}
-                                    disabled={!isCreator || instructor.type === "TITULAR"}
+                                    disabled={!isCreator || instructor.permissions?.type === "TITULAR"}
                                 />
                             )}
                         />
@@ -295,28 +296,25 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
                             description="Puede modificar información del curso"
                             right={() => (
                                 <Switch
-                                    value={instructor.can_update_course}
+                                    value={instructor.permissions?.can_update_course || false}
                                     onValueChange={(value) => {
-                                      if (isCreator && instructor.type === "AUXILIAR") {
+                                      if (isCreator && instructor.permissions?.type === "AUXILIAR" && instructor.permissions) {
                                         handleUpdatePermissions(instructor, {
-                                          can_create_content: instructor.can_create_content,
-                                          can_grade: instructor.can_grade,
+                                          ...instructor.permissions,
                                           can_update_course: value,
                                         })
                                       }
                                     }}
-                                    disabled={!isCreator || instructor.type === "TITULAR"}
+                                    disabled={!isCreator || instructor.permissions?.type === "TITULAR"}
                                 />
                             )}
                         />
-                      </Card.Content>
-                    </Card>
-                ))}
-              </ScrollView>
-            </>
-        ) : (
-            <ActivityLog courseId={courseId} />
-        )}
+                      </>
+                  )}
+                </Card.Content>
+              </Card>
+          ))}
+        </ScrollView>
 
         <Portal>
           <Dialog visible={showAddDialog} onDismiss={() => setShowAddDialog(false)}>
@@ -406,9 +404,6 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-  },
-  segmentedButtons: {
-    marginBottom: 16,
   },
   header: {
     marginBottom: 16,

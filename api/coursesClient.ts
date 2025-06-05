@@ -479,4 +479,28 @@ getFeedbacksByStudentId: async (studentId: string) => {
             return [] // Return empty array on error
         }
     },
+
+    // Obtener cursos donde el usuario es instructor (titular o auxiliar)
+    getCoursesByInstructorId: async (instructorId: string) => {
+        try {
+            const response = await api.get(`/instructors/${instructorId}/courses`)
+            console.log("Raw instructor courses response:", response.data)
+
+            // El backend debería devolver un array de course IDs
+            // Verificar el formato de la respuesta
+            if (Array.isArray(response.data)) {
+                return response.data
+            } else if (response.data?.data && Array.isArray(response.data.data)) {
+                return response.data.data
+            } else if (response.data?.courses && Array.isArray(response.data.courses)) {
+                return response.data.courses
+            } else {
+                console.warn("Unexpected response format for instructor courses:", response.data)
+                return []
+            }
+        } catch (error) {
+            console.error(`Error fetching instructor courses for user ${instructorId}:`, error)
+            return []
+        }
+    },
 };
