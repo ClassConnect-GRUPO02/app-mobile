@@ -391,4 +391,70 @@ getFeedbacksByStudentId: async (studentId: string) => {
             throw error;
         }
     },
+    // Instructor management methods
+    getInstructorPermissions: async (courseId: string, instructorId: string) => {
+        try {
+            const response = await api.get(`/courses/${courseId}/instructors/${instructorId}/permissions`)
+            return response.data
+        } catch (error) {
+            console.error(`Error fetching instructor permissions for ${instructorId} in course ${courseId}:`, error)
+            throw error
+        }
+    },
+
+    addAuxiliaryInstructor: async (
+        courseId: string,
+        auxiliarId: string,
+        titularId: string,
+        permissions: {
+            can_create_content: boolean
+            can_grade: boolean
+            can_update_course: boolean
+        },
+    ) => {
+        try {
+            const response = await api.post(`/courses/${courseId}/instructors/${auxiliarId}`, {
+                titularId,
+                ...permissions,
+            })
+            return response.data
+        } catch (error) {
+            console.error(`Error adding auxiliary instructor ${auxiliarId} to course ${courseId}:`, error)
+            throw error
+        }
+    },
+
+    removeAuxiliaryInstructor: async (courseId: string, auxiliarId: string, titularId: string) => {
+        try {
+            const response = await api.delete(`/courses/${courseId}/instructors/${auxiliarId}`, {
+                data: { titularId },
+            })
+            return response.data
+        } catch (error) {
+            console.error(`Error removing auxiliary instructor ${auxiliarId} from course ${courseId}:`, error)
+            throw error
+        }
+    },
+
+    updateInstructorPermissions: async (
+        courseId: string,
+        auxiliarId: string,
+        titularId: string,
+        permissions: {
+            can_create_content: boolean
+            can_grade: boolean
+            can_update_course: boolean
+        },
+    ) => {
+        try {
+            const response = await api.patch(`/courses/${courseId}/instructors/${auxiliarId}`, {
+                titularId,
+                ...permissions,
+            })
+            return response.data
+        } catch (error) {
+            console.error(`Error updating instructor permissions for ${auxiliarId} in course ${courseId}:`, error)
+            throw error
+        }
+    },
 };

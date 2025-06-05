@@ -205,6 +205,19 @@ export const userApi = {
         notificationType,
       });
     },
+    // Search users by email for instructor assignment
+    searchUserByEmail: async (email: string): Promise<{ user: UserInfo } | null> => {
+        try {
+            const { exists, id } = await userApi.checkEmailExists(email)
+            if (exists && id) {
+                return await userApi.getUserById(id)
+            }
+            return null
+        } catch (error) {
+            console.error("Error searching user by email:", error)
+            throw error
+        }
+    },
     isEnrolledInCourse: async (userId: string, courseId: string): Promise<boolean> => {
         try {
             const userInfo = await userApi.getUserById(userId)
