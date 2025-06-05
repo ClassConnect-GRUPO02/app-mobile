@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { View, StyleSheet, ScrollView, Alert, Linking } from "react-native";
+import { View, StyleSheet, ScrollView, Alert, Linking, SafeAreaView } from "react-native";
 import {
   Text,
   Card,
@@ -271,7 +271,8 @@ export default function TaskSubmissionsScreen() {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.safeContainer}>
+
       <StatusBar style="auto" />
 
       <View style={styles.header}>
@@ -464,7 +465,7 @@ export default function TaskSubmissionsScreen() {
           </View>
         )}
       </View>
-    </View>
+    </SafeAreaView>
   );
 }
 
@@ -473,6 +474,12 @@ const styles = StyleSheet.create({
     flex: 1,
     backgroundColor: "#fff",
   },
+  safeContainer: {
+  flex: 1,
+  backgroundColor: "#fff",
+  paddingTop: 16, // o más si necesitas más espacio
+},
+
   aiFeedbackLink: {
     color: "#6200ee",
     fontWeight: "bold",
