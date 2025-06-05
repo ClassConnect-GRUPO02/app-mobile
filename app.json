@@ -14,12 +14,14 @@
       "bundleIdentifier": "com.app.classconnect"
     },
     "android": {
+      "usesCleartextTraffic": true,
       "googleServicesFile": "./google-services.json",
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.app.classconnect"
+      "package": "com.app.classconnect",
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",
@@ -39,7 +41,16 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "networkSecurityConfig": "./network_security_config.xml"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true

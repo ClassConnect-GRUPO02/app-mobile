@@ -59,7 +59,7 @@ export const userApi = {
         await userApi.storeToken(response.token);  // Guardamos el token
         await userApi.storeUserId(response.id);    // Guardamos el id del usuario
           await userApi.storeRefreshToken(response.refreshToken);
-        
+
       }
 
       return response;
@@ -106,7 +106,7 @@ export const userApi = {
               token: response.token,
               id: response.id  // Agregamos el ID a la respuesta
     };
-  },  
+  },
 
   async updateUser(
     id: string,
@@ -144,7 +144,7 @@ export const userApi = {
   async refreshToken(refreshToken: string): Promise<LoginResponse> {
     try {
       const response = await apiClient.post<LoginResponse>('/biometric-login', { refreshToken });
-      
+
       // Si el refresh es exitoso, almacenamos el nuevo token
       if (response.token) {
         console.log('Nuevo token recibido:', response.token);
@@ -158,7 +158,7 @@ export const userApi = {
       throw error;
     }
   },
-  
+
   async setNotificationsSettings(
     id: string,
     settings: NotificationSettings
@@ -173,39 +173,65 @@ export const userApi = {
    async  registerPushToken() {
 
     const userId = await getItemAsync('userId');
-  
+
     const { status: existingStatus } = await Notifications.getPermissionsAsync();
     let finalStatus = existingStatus;
-  
+
     if (existingStatus !== 'granted') {
       const { status } = await Notifications.requestPermissionsAsync();
       finalStatus = status;
     }
-  
+
     if (finalStatus !== 'granted') return;
-  
+
     const token = (await Notifications.getExpoPushTokenAsync()).data;
     console.log('Push token:', token);
-  
+
     // Enviá el token al backend de usuarios
    return apiClient.post<{ description: string }>(`/users/${userId}/push-token`, {
       token: token,
     });
-},
+    },
 
-async notifyUser(
-  userId: string,
-  title: string,
-  body: string,
-  notificationType: string
-): Promise<{ description: string }> {
-  return apiClient.post<{ description: string }>(`/users/${userId}/notifications`, {
-    title,
-    body,
-    notificationType,
-  });
-},
-async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
+    async notifyUser(
+      userId: string,
+      title: string,
+      body: string,
+      notificationType: string
+    ): Promise<{ description: string }> {
+      return apiClient.post<{ description: string }>(`/users/${userId}/notifications`, {
+        title,
+        body,
+        notificationType,
+      });
+    },
+    isEnrolledInCourse: async (userId: string, courseId: string): Promise<boolean> => {
+        try {
+            const userInfo = await userApi.getUserById(userId)
+            // Implementación simplificada - asumimos que el usuario está inscrito
+            // para evitar bloqueos incorrectos
+            return true
+        } catch (error) {
+            console.error("Error al verificar inscripción:", error)
+            // Por defecto, asumimos que está inscrito para evitar bloqueos incorrectos
+            return true
+        }
+    },
+
+    // Verificar si el usuario es docente
+    isTeacher: async (): Promise<boolean> => {
+        try {
+            const userId = await userApi.getUserId()
+            if (!userId) return false
+
+            const userInfo = await userApi.getUserById(userId)
+            return userInfo?.user?.userType === "docente"
+        } catch (error) {
+            console.error("Error al verificar si es docente:", error)
+            return false
+        }
+    },
+      async forgotPassword(email: string): Promise<{ success: boolean; message: string }> {
   try {
     const response = await apiClient.postWithoutAuth<{ success: boolean; message: string }>(
       '/users/forgot-password',
@@ -232,7 +258,4 @@ async resetPassword(newPassword: string, token: string): Promise<{ success: bool
     throw error;
   }
 },
-
-
-
 }

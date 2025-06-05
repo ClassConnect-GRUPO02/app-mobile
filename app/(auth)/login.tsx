@@ -18,17 +18,19 @@ import {
 } from "react-native-paper";
 import { Link, useRouter } from "expo-router";
 import { userApi } from "../../api/userApi";
+import HttpTestModal from "../../components/HttpTestModal";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
+import auth, { getAuth, GoogleAuthProvider, signInWithCredential } from '@react-native-firebase/auth';
+
 //import type { LoginRequest, ApiError } from "../../api/client";
 import {
   GoogleSignin,
   isSuccessResponse,
   SignInSuccessResponse,
   statusCodes,
-  type User,
-} from "@react-native-google-signin/google-signin";
-import * as Location from "expo-location";
+  type User
+} from '@react-native-google-signin/google-signin';
 
 interface GoogleUserData {
   name: string;
@@ -138,80 +140,66 @@ const LoginScreen = (): React.JSX.Element => {
     }
   };
 
-  const handleGoogleLogin = async () => {
-    try {
-      // Verificar si Google Play Services está disponible
-      await GoogleSignin.hasPlayServices({
-        showPlayServicesUpdateDialog: true,
-      });
-      const response = await GoogleSignin.signIn();
+const handleGoogleLogin = async () => {
+  try {
+    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+    const response = await GoogleSignin.signIn();
 
-      console.log("✅ Respuesta de Google:", response);
+    console.log('✅ Respuesta de Google:', response);
 
-      if (isSuccessResponse(response)) {
-        try {
-          const googleInfo = response.data;
-          //const photo = googleInfo.user?.photo;
+    if (isSuccessResponse(response)) {
+      const idToken = response.data.idToken;
 
-          // Consultar a la API si ya está registrado
-          const check = await fetchWithTimeout(
-            userApi.checkEmailExists(googleInfo.user.email)
-          );
+      const auth = getAuth(); // nuevo estilo modular
+      const googleCredential = GoogleAuthProvider.credential(idToken);
 
-          console.log("Respuesta de verificación de correo:", check);
+      await signInWithCredential(auth, googleCredential); // modular method
 
-          if (check.exists) {
-            await userApi.storeToken(check.token);
-            await userApi.storeUserId(check.id);
-            console.log("Id de usuario:", check.id);
-            Alert.alert("Cuenta ya registrada", "Iniciando sesión...");
-            router.replace("/(app)/home");
-          } else {
-            // Guardamos los datos para registro
-            setGoogleUserData({
-              name:
-                googleInfo.user.givenName + " " + googleInfo.user.familyName ||
-                "Usuario",
+      const googleInfo = response.data;
+
+      const check = await fetchWithTimeout(
+        userApi.checkEmailExists(googleInfo.user.email)
+      );
+
+      if (check.exists) {
+        await userApi.storeToken(check.token);
+        await userApi.storeUserId(check.id);
+        Alert.alert("Cuenta ya registrada", "Iniciando sesión...");
+        router.replace("/(app)/home");
+      } else {
+        setGoogleUserData({
+          name: googleInfo.user.givenName + " " + googleInfo.user.familyName || "Usuario",
+          email: googleInfo.user.email,
+        });
+
+        router.push({
+          pathname: "/(auth)/register",
+          params: {
+            googleUserData: JSON.stringify({
+              name: googleInfo.user.givenName + " " + googleInfo.user.familyName || "Usuario",
               email: googleInfo.user.email,
-            });
-
-            router.push({
-              pathname: "/(auth)/register",
-              params: {
-                googleUserData: JSON.stringify({
-                  name:
-                    googleInfo.user.givenName +
-                      " " +
-                      googleInfo.user.familyName || "Usuario",
-                  email: googleInfo.user.email,
-                  password: googleInfo.user.id,
-                }),
-              },
-            });
-          }
-        } catch (error) {
-          console.error("Error checking email:", error);
-          Alert.alert("Error", "No se pudo verificar si el correo existe");
-        }
-      } else {
-        Alert.alert("Error", "No se pudo obtener la información de Google");
+              password: googleInfo.user.id,
+            }),
+          },
+        });
       }
-    } catch (error: any) {
-      console.error("Error Google Sign-In:", error);
-      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-        Alert.alert("Cancelado", "El inicio de sesión fue cancelado");
-      } else if (error.code === statusCodes.IN_PROGRESS) {
-        Alert.alert("En progreso", "El inicio de sesión está en curso");
-      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-        Alert.alert("Error", "Servicios de Google Play no disponibles");
-      } else {
-        Alert.alert(
-          "Error de inicio de sesión",
-          error.message || "Ocurrió un error inesperado"
-        );
-      }
+    } else {
+      Alert.alert("Error", "No se pudo obtener la información de Google");
     }
-  };
+  } catch (error: any) {
+    console.error('Error Google Sign-In:', error);
+    if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+      Alert.alert('Cancelado', 'El inicio de sesión fue cancelado');
+    } else if (error.code === statusCodes.IN_PROGRESS) {
+      Alert.alert('En progreso', 'El inicio de sesión está en curso');
+    } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+      Alert.alert('Error', 'Servicios de Google Play no disponibles');
+    } else {
+      Alert.alert('Error de inicio de sesión', error.message || 'Ocurrió un error inesperado');
+    }
+  }
+};
+
 
   const handleBiometricLogin = async () => {
     const savedRefreshToken = await SecureStore.getItemAsync("refreshToken");
@@ -322,6 +310,7 @@ const LoginScreen = (): React.JSX.Element => {
           >
             Iniciar sesión con Google
           </Button>
+          <HttpTestModal />
 
           <View style={styles.registerContainer}>
             <Text>¿No tienes una cuenta? </Text>
