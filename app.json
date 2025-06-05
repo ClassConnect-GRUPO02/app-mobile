@@ -18,7 +18,8 @@
         "foregroundImage": "./assets/images/adaptive-icon.png",
         "backgroundColor": "#ffffff"
       },
-      "package": "com.app.classconnect"
+      "package": "com.app.classconnect",
+      "usesCleartextTraffic": true
     },
     "web": {
       "bundler": "metro",
@@ -38,7 +39,16 @@
           "backgroundColor": "#ffffff"
         }
       ],
-      "expo-secure-store"
+      "expo-secure-store",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "usesCleartextTraffic": true,
+            "networkSecurityConfig": "./network_security_config.xml"
+          }
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true
@@ -48,8 +58,9 @@
         "origin": false
       },
       "eas": {
-        "projectId": "adf55b61-1d80-4a97-9a42-b626cc03d958"
+        "projectId": "5ec73cc6-61fc-4ef7-abee-e218fa01fc35"
       }
-    }
+    },
+    "owner": "educusihuaman"
   }
 }
