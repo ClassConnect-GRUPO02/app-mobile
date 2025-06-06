@@ -362,7 +362,7 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
                     />
 
                     <List.Item
-                        title="Calificar tareas"
+                        title="Calificar estudiantes"
                         right={() => (
                             <Switch
                                 value={permissions.can_grade}
