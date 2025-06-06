@@ -5,6 +5,7 @@ import { userApi } from "../../api/userApi";
 import { Button, TextInput } from "react-native-paper";
 import { useLocalSearchParams } from "expo-router";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import { colors, spacing, typography, shape, components, commonStyles } from "../../theme/theme";
 
 export default function VerifyPinScreen() {
   const [pin, setPin] = useState<string>("");
@@ -106,22 +107,29 @@ const handleRequestNewPin = async () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 20,
+    padding: spacing.lg,
     justifyContent: "center",
+    backgroundColor: colors.background.default,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
-    marginBottom: 20,
+    fontSize: typography.fontSize.xxl,
+    fontWeight: typography.fontWeight.bold,
+    marginBottom: spacing.lg,
+    color: colors.text.primary,
   },
   input: {
-    marginBottom: 15,
+    marginBottom: spacing.md,
+    backgroundColor: colors.background.default,
+    borderRadius: shape.borderRadius.md,
   },
   errorText: {
-    color: "red",
-    marginBottom: 15,
+    color: colors.status.error,
+    marginBottom: spacing.md,
+    fontSize: typography.fontSize.sm,
   },
   button: {
-    marginTop: 20,
+    marginTop: spacing.lg,
+    height: components.button.height.medium,
+    borderRadius: shape.borderRadius.md,
   },
 });

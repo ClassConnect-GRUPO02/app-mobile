@@ -22,6 +22,7 @@ import HttpTestModal from "../../components/HttpTestModal";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
 import auth, { getAuth, GoogleAuthProvider, signInWithCredential } from '@react-native-firebase/auth';
+import { colors, spacing, typography, shape, components, commonStyles } from "../../theme/theme";
 
 //import type { LoginRequest, ApiError } from "../../api/client";
 import {
@@ -310,7 +311,6 @@ const handleGoogleLogin = async () => {
           >
             Iniciar sesión con Google
           </Button>
-          <HttpTestModal />
 
           <View style={styles.registerContainer}>
             <Text>¿No tienes una cuenta? </Text>
@@ -328,65 +328,66 @@ const handleGoogleLogin = async () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.background.default,
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: 16,
+    padding: spacing.lg,
   },
   logoContainer: {
     alignItems: "center",
-    marginBottom: 24,
+    marginBottom: spacing.xl,
   },
   title: {
-    fontSize: 28,
-    marginBottom: 16,
-    fontWeight: "bold",
-    color: "#333",
+    fontSize: typography.fontSize.xxxl,
+    marginBottom: spacing.md,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
   },
   formContainer: {
     width: "100%",
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 8,
-    elevation: 2,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
+    backgroundColor: colors.background.paper,
+    padding: spacing.lg,
+    borderRadius: shape.borderRadius.lg,
+    ...shape.shadow.medium,
   },
   input: {
-    marginBottom: 12,
+    marginBottom: spacing.md,
+    backgroundColor: colors.background.default,
+    borderRadius: shape.borderRadius.md,
   },
   button: {
-    marginTop: 16,
-    paddingVertical: 8,
+    marginTop: spacing.md,
+    height: components.button.height.medium,
+    borderRadius: shape.borderRadius.md,
   },
   registerContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 16,
+    marginTop: spacing.lg,
   },
   errorText: {
-    color: "red",
-    marginBottom: 12,
+    color: colors.status.error,
+    marginBottom: spacing.md,
     textAlign: "center",
+    fontSize: typography.fontSize.sm,
   },
   modalContent: {
-    backgroundColor: "white",
-    padding: 20,
-    margin: 20,
-    borderRadius: 10,
+    backgroundColor: colors.background.paper,
+    padding: spacing.lg,
+    margin: spacing.lg,
+    borderRadius: shape.borderRadius.lg,
   },
   modalTitle: {
-    fontSize: 18,
-    marginBottom: 20,
+    fontSize: typography.fontSize.lg,
+    marginBottom: spacing.lg,
     textAlign: "center",
+    color: colors.text.primary,
   },
   modalButton: {
-    marginVertical: 5,
+    marginVertical: spacing.xs,
   },
 });
 

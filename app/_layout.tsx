@@ -1,5 +1,5 @@
 import { useFonts } from 'expo-font';
-import { router, Slot, SplashScreen } from 'expo-router';
+import { router, Slot, SplashScreen, Stack } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { getItemAsync } from 'expo-secure-store';
 import { ActivityIndicator, View } from 'react-native';
@@ -8,6 +8,7 @@ import {PaperProvider} from "react-native-paper";
 import {SafeAreaProvider} from "react-native-safe-area-context";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { ThemeProvider } from '../components/ThemeProvider';
 
 SplashScreen.preventAutoHideAsync();
 
@@ -64,12 +65,38 @@ useEffect(() => {
 
   // Debe devolver algo siempre: Slot maneja el resto de las rutas
   return (
-      <GestureHandlerRootView style={{ flex: 1 }}>
-        <SafeAreaProvider>
-          <PaperProvider>
-            <Slot />
-          </PaperProvider>
-        </SafeAreaProvider>
-      </GestureHandlerRootView>
+    <ThemeProvider>
+      <Stack
+        screenOptions={{
+          headerStyle: {
+            backgroundColor: '#FFFFFF',
+          },
+          headerTintColor: '#2B2B3C',
+          headerTitleStyle: {
+            fontWeight: 'bold',
+          },
+        }}
+      >
+        <Stack.Screen
+          name="(auth)"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
+          name="(app)"
+          options={{
+            headerShown: true,
+          }}
+        />
+        <GestureHandlerRootView style={{ flex: 1 }}>
+          <SafeAreaProvider>
+            <PaperProvider>
+              <Slot />
+            </PaperProvider>
+          </SafeAreaProvider>
+        </GestureHandlerRootView>
+      </Stack>
+    </ThemeProvider>
   )
 }

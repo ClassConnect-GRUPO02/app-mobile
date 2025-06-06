@@ -3,6 +3,7 @@ import { View, StyleSheet, Alert } from "react-native";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { TextInput, Button, Text, ActivityIndicator } from "react-native-paper";
 import { userApi } from "../../api/userApi";
+import { colors, spacing, typography, shape, components, commonStyles } from "../../theme/theme";
 
 const ResetPassword = () => {
   const { token } = useLocalSearchParams<{ token: string }>();
@@ -58,16 +59,20 @@ export default ResetPassword;
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    padding: 24,
+    padding: spacing.xl,
     justifyContent: "center",
-    backgroundColor: "#fff",
+    backgroundColor: colors.background.default,
   },
   title: {
-    fontSize: 22,
-    marginBottom: 24,
+    fontSize: typography.fontSize.xxl,
+    marginBottom: spacing.xl,
     textAlign: "center",
+    color: colors.text.primary,
+    fontWeight: typography.fontWeight.bold,
   },
   input: {
-    marginBottom: 16,
+    marginBottom: spacing.md,
+    backgroundColor: colors.background.default,
+    borderRadius: shape.borderRadius.md,
   },
 });

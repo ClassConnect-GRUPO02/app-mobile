@@ -5,6 +5,7 @@ import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } f
 import { TextInput, Button, Text, Title, RadioButton, ActivityIndicator } from "react-native-paper";
 import { Link, useLocalSearchParams, router } from "expo-router";
 import { userApi, UserRegisterData } from "../../api/userApi";
+import { colors, spacing, typography, shape, components, commonStyles } from "../../theme/theme";
 
 interface GoogleUserData {
   name: string;
@@ -207,63 +208,65 @@ export default function RegisterScreen(): React.JSX.Element {
   );
 }
 
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: colors.background.default,
   },
   scrollContainer: {
     flexGrow: 1,
     justifyContent: "center",
-    padding: 20,
+    padding: spacing.lg,
   },
   logoContainer: {
     alignItems: "center",
-    marginBottom: 30,
+    marginBottom: spacing.xl,
   },
   title: {
-    fontSize: 24,
-    fontWeight: "bold",
+    fontSize: typography.fontSize.xxl,
+    fontWeight: typography.fontWeight.bold,
+    color: colors.text.primary,
   },
   formContainer: {
-    backgroundColor: "white",
-    padding: 20,
-    borderRadius: 10,
-    elevation: 3,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
-    shadowRadius: 3,
+    backgroundColor: colors.background.paper,
+    padding: spacing.lg,
+    borderRadius: shape.borderRadius.lg,
+    ...shape.shadow.medium,
   },
   input: {
-    marginBottom: 15,
+    marginBottom: spacing.md,
+    backgroundColor: colors.background.default,
+    borderRadius: shape.borderRadius.md,
   },
   radioLabel: {
-    marginBottom: 8,
+    marginBottom: spacing.sm,
+    color: colors.text.primary,
+    fontSize: typography.fontSize.md,
   },
   radioContainer: {
     flexDirection: "row",
-    marginBottom: 15,
+    marginBottom: spacing.md,
   },
   radioOption: {
     flexDirection: "row",
     alignItems: "center",
-    marginRight: 20,
+    marginRight: spacing.lg,
   },
   button: {
-    marginTop: 10,
-    paddingVertical: 6,
+    marginTop: spacing.md,
+    height: components.button.height.medium,
+    borderRadius: shape.borderRadius.md,
   },
   loginContainer: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginTop: 20,
+    marginTop: spacing.lg,
   },
   errorText: {
-    color: 'red',
-    marginBottom: 10,
-    textAlign: 'center',
+    color: colors.status.error,
+    marginBottom: spacing.md,
+    textAlign: "center",
+    fontSize: typography.fontSize.sm,
   }
 });
