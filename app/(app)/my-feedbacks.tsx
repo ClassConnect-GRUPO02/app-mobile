@@ -24,6 +24,7 @@ interface Feedback {
 export default function MyFeedbacksScreen() {
   const [feedbacks, setFeedbacks] = useState<Feedback[]>([]);
   const [filteredFeedbacks, setFilteredFeedbacks] = useState<Feedback[]>([]);
+  const [displayedFeedbacks, setDisplayedFeedbacks] = useState<Feedback[]>([]); // Nueva: feedbacks de la página actual
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [page, setPage] = useState(1);
@@ -33,6 +34,7 @@ export default function MyFeedbacksScreen() {
   const [summary, setSummary] = useState<string | null>(null);
   const [showSummary, setShowSummary] = useState(true);
 
+  const ITEMS_PER_PAGE = 5; // Ajusta según necesites
   const theme = useTheme();
 
   useEffect(() => {
@@ -91,7 +93,7 @@ export default function MyFeedbacksScreen() {
     };
 
     fetchFeedbacks();
-  }, [page]); // Se actualiza cada vez que cambia la página
+  }, []); // Solo se ejecuta una vez al montar el componente
 
   useEffect(() => {
     // Filtrar los feedbacks cuando cambian los filtros
@@ -99,6 +101,11 @@ export default function MyFeedbacksScreen() {
       filterFeedbacks(feedbacks);
     }
   }, [searchQuery, selectedCourse, selectedScore, feedbacks]);
+
+  useEffect(() => {
+    // Actualizar feedbacks mostrados cuando cambia la página o los filtros
+    updateDisplayedFeedbacks();
+  }, [filteredFeedbacks, page]);
 
   const filterFeedbacks = (feedbackData: Feedback[]) => {
     let filtered = [...feedbackData];
@@ -122,10 +129,25 @@ export default function MyFeedbacksScreen() {
     }
 
     setFilteredFeedbacks(filtered);
+    setPage(1); // Resetear a página 1 cuando se filtran
+  };
+
+  const updateDisplayedFeedbacks = () => {
+    const startIndex = (page - 1) * ITEMS_PER_PAGE;
+    const endIndex = startIndex + ITEMS_PER_PAGE;
+    const paginatedFeedbacks = filteredFeedbacks.slice(startIndex, endIndex);
+    setDisplayedFeedbacks(paginatedFeedbacks);
+  };
+
+  const getTotalPages = () => {
+    return Math.ceil(filteredFeedbacks.length / ITEMS_PER_PAGE);
   };
 
   const handleNextPage = () => {
-    setPage(page + 1);
+    const totalPages = getTotalPages();
+    if (page < totalPages) {
+      setPage(page + 1);
+    }
   };
 
   const handlePrevPage = () => {
@@ -156,6 +178,8 @@ export default function MyFeedbacksScreen() {
     );
   }
 
+  const totalPages = getTotalPages();
+
   return (
     <View style={styles.container}>
       <ScrollView contentContainerStyle={styles.scrollContainer}>
@@ -183,12 +207,19 @@ export default function MyFeedbacksScreen() {
           refreshing={loading}
         />
 
-        {filteredFeedbacks.length === 0 ? (
+        {/* Mostrar info de paginación */}
+        {filteredFeedbacks.length > 0 && (
+          <Text style={styles.paginationInfo}>
+            Página {page} de {totalPages} • {filteredFeedbacks.length} feedbacks total
+          </Text>
+        )}
+
+        {displayedFeedbacks.length === 0 ? (
           <Text style={styles.noFeedbackText}>
             No tienes feedbacks para mostrar.
           </Text>
         ) : (
-          filteredFeedbacks.map((feedback) => (
+          displayedFeedbacks.map((feedback) => (
             <Card key={feedback.id} style={styles.feedbackCard}>
               <Card.Content>
                 <Title style={styles.feedbackTitle}>
@@ -201,23 +232,27 @@ export default function MyFeedbacksScreen() {
           ))
         )}
 
-        <View style={styles.pagination}>
-          <Button
-            mode="outlined"
-            onPress={handlePrevPage}
-            disabled={page === 1}
-            style={styles.paginationButton}
-          >
-            Anterior
-          </Button>
-          <Button
-            mode="outlined"
-            onPress={handleNextPage}
-            style={styles.paginationButton}
-          >
-            Siguiente
-          </Button>
-        </View>
+        {/* Solo mostrar paginación si hay más de una página */}
+        {totalPages > 1 && (
+          <View style={styles.pagination}>
+            <Button
+              mode="outlined"
+              onPress={handlePrevPage}
+              disabled={page === 1}
+              style={styles.paginationButton}
+            >
+              Anterior
+            </Button>
+            <Button
+              mode="outlined"
+              onPress={handleNextPage}
+              disabled={page >= totalPages}
+              style={styles.paginationButton}
+            >
+              Siguiente
+            </Button>
+          </View>
+        )}
 
         <View style={styles.summaryContainer}>
           <Button
@@ -297,6 +332,13 @@ const styles = StyleSheet.create({
   paginationButton: {
     width: "45%",
   },
+  paginationInfo: {
+    textAlign: "center",
+    fontSize: 14,
+    color: "#666",
+    marginHorizontal: 15,
+    marginBottom: 10,
+  },
   filterInput: {
     margin: 15,
   },
@@ -317,14 +359,13 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   summaryContainer: {
-  marginHorizontal: 15,
-  marginBottom: 30,
-  marginTop: 20,
-  flex: 1,
-  justifyContent: "flex-end",
-},
-summaryButton: {
-  width: "100%",
-},
-
+    marginHorizontal: 15,
+    marginBottom: 30,
+    marginTop: 20,
+    flex: 1,
+    justifyContent: "flex-end",
+  },
+  summaryButton: {
+    width: "100%",
+  },
 });
