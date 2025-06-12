@@ -17,6 +17,7 @@ import { StatusBar } from "expo-status-bar";
 import { userApi } from "@/api/userApi";
 import React from "react";
 import { courseClient } from "@/api/coursesClient";
+import { apiClient } from "@/api/client";
 
 interface Submission {
   id: string;
@@ -178,6 +179,20 @@ export default function TaskSubmissionsScreen() {
       setSubmissions(updatedSubmissions);
       setSelectedSubmission(null);
       Alert.alert("Éxito", "La retroalimentación se ha guardado correctamente");
+      //si es un examen de tipo archivo y ya paso la fecha de entrega se notifica al estudiante
+      if(task?.type === "tarea") {
+        await userApi.notifyUser(
+          selectedSubmission.student_id, "Retroalimentación de tarea",
+          `Tu retroalimentación para la tarea "${task.title}" ha sido enviada. Puedes revisarla en la aplicación.`, "grading_available"
+        );
+
+      }
+      else if (task?.type === "examen" && task.due_date < new Date().toISOString()) {
+        await userApi.notifyUser(
+          selectedSubmission.student_id, "Retroalimentación de examen",
+          `Tu retroalimentación para el examen "${task.title}" ha sido enviada. Puedes revisarla en la aplicación.`, "grading_available"
+        );
+      }
     } catch (error) {
       console.error("Error al guardar la retroalimentación:", error);
       Alert.alert(
