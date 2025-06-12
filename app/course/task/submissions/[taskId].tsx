@@ -445,17 +445,17 @@ export default function TaskSubmissionsScreen() {
               style={styles.feedbackInput}
             />
 
-            <Text
+            <Button
+              mode="outlined"
+              icon="robot"
               onPress={handleFetchAIFeedback}
-              style={[
-                styles.aiFeedbackLink,
-                loadingAIFeedback && { opacity: 0.5 },
-              ]}
+              loading={loadingAIFeedback}
+              disabled={loadingAIFeedback}
+              style={styles.aiButton}
+              contentStyle={styles.aiButtonContent}
             >
-              {loadingAIFeedback
-                ? "CARGANDO RESUMEN CON IA..."
-                : "OBTENER RESUMEN CON IA"}
-            </Text>
+              {loadingAIFeedback ? "OBTENIENDO RESUMEN..." : "OBTENER RESUMEN CON IA"}
+            </Button>
 
             <View style={styles.buttonContainer}>
               <Button
@@ -495,11 +495,12 @@ const styles = StyleSheet.create({
   paddingTop: 16, // o más si necesitas más espacio
 },
 
-  aiFeedbackLink: {
-    color: "#6200ee",
-    fontWeight: "bold",
-    marginBottom: 12,
-    textTransform: "uppercase",
+  aiButton: {
+    marginBottom: 16,
+    borderColor: "#6200ee",
+  },
+  aiButtonContent: {
+    height: 48,
   },
 
   loadingContainer: {
