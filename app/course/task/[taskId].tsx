@@ -252,7 +252,7 @@ export default function TaskDetailScreen() {
         )}
 
         {/* Solo mostrar calificación y feedback si NO es examen antes del due_date */}
-        {!isExamBeforeDue && submission?.feedback !== null && (
+        {!isExamBeforeDue && submission?.feedback !== null && !submission.revision &&(
           <View style={styles.gradeContainer}>
             <Text variant="titleMedium" style={styles.gradeTitle}>
               Calificación:
