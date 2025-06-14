@@ -93,6 +93,7 @@ export default function TaskSubmissionsScreen() {
 
         // Obtener la tarea
         const taskData = await taskClient.getTaskById(courseId, taskId);
+        console.log("Task data:", taskData);
         if (!taskData) {
           throw new Error("No se pudo cargar la tarea");
         }
@@ -209,8 +210,8 @@ export default function TaskSubmissionsScreen() {
         await userApi.notifyUser(
           selectedSubmission.student_id,
           "Retroalimentación de tarea",
-          `Tu retroalimentación para la tarea "${task.title}" ha sido enviada. Puedes revisarla en la aplicación.`,
-          "grading_available"
+          `Tu retroalimentación para la tarea "${task.title}" ha sido enviada.`,
+          "gradingAvailable"
         );
       } else if (
         task?.type === "examen" &&
@@ -219,8 +220,8 @@ export default function TaskSubmissionsScreen() {
         await userApi.notifyUser(
           selectedSubmission.student_id,
           "Retroalimentación de examen",
-          `Tu retroalimentación para el examen "${task.title}" ha sido enviada. Puedes revisarla en la aplicación.`,
-          "grading_available"
+          `Tu retroalimentación para el examen "${task.title}" ha sido enviada.`,
+          "gradingAvailable"
         );
       }
     } catch (error) {
