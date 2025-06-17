@@ -503,18 +503,8 @@ export default function StudentPerformanceStatsScreen() {
               {/* Acciones rápidas */}
               <Card style={styles.actionsCard}>
                 <Card.Content>
-                  <Text style={styles.actionsTitle}>Acciones rápidas</Text>
                   <View style={styles.actionsContainer}>
-                    <Button
-                      mode="contained"
-                      icon="account-group"
-                      onPress={() => {
-                        /* Navegar a vista de estudiantes */
-                      }}
-                      style={styles.actionButton}
-                    >
-                      Ver por estudiante
-                    </Button>
+                    
                     <Button
                       mode="outlined"
                       icon="download"
