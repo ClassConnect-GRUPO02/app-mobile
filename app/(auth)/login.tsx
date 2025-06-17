@@ -145,60 +145,68 @@ const handleGoogleLogin = async () => {
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     const response = await GoogleSignin.signIn();
 
-    console.log('✅ Respuesta de Google:', response);
+    if (!isSuccessResponse(response)) {
+      Alert.alert("Error", "No se pudo obtener la información de Google");
+      return;
+    }
 
-    if (isSuccessResponse(response)) {
-      const idToken = response.data.idToken;
+    const idToken = response.data.idToken;
 
-      const auth = getAuth(); // nuevo estilo modular
-      const googleCredential = GoogleAuthProvider.credential(idToken);
-
-      await signInWithCredential(auth, googleCredential); // modular method
-
-      const googleInfo = response.data;
-
-      const check = await fetchWithTimeout(
-        userApi.checkEmailExists(googleInfo.user.email)
+    // Intentar loguearse con la cuenta de Google
+    try {
+      const loginResponse = await fetchWithTimeout(
+        userApi.googleLogin(idToken ? idToken : "")
       );
 
-      if (check.exists) {
-        await userApi.storeToken(check.token);
-        await userApi.storeUserId(check.id);
-        Alert.alert("Cuenta ya registrada", "Iniciando sesión...");
-        router.replace("/(app)/home");
-      } else {
-        setGoogleUserData({
-          name: googleInfo.user.givenName + " " + googleInfo.user.familyName || "Usuario",
-          email: googleInfo.user.email,
-        });
+      await userApi.storeToken(loginResponse.token);
+      await userApi.storeUserId(loginResponse.id);
 
-        router.push({
-          pathname: "/(auth)/register",
-          params: {
-            googleUserData: JSON.stringify({
-              name: googleInfo.user.givenName + " " + googleInfo.user.familyName || "Usuario",
-              email: googleInfo.user.email,
-              password: googleInfo.user.id,
-            }),
-          },
-        });
+      Alert.alert("Inicio de sesión exitoso", "Cuenta: Google");
+      router.replace("/(app)/home");
+
+    } catch (err: any) {
+      if (err?.response?.status === 401) {
+        // El correo no está vinculado aún
+        Alert.alert(
+          "Cuenta no vinculada",
+          "¿Deseas vincular tu cuenta de Google con una cuenta existente?",
+          [
+            {
+              text: "No",
+              style: "cancel",
+              onPress: () => console.log("Vinculación cancelada"),
+            },
+            {
+              text: "Sí",
+              onPress: async () => {
+                try {
+                  await fetchWithTimeout(userApi.linkGoogleAccount(idToken ? idToken : ""));
+                  Alert.alert("Cuenta vinculada", "Ahora puedes iniciar sesión.");
+                } catch (linkError) {
+                  Alert.alert("Error", "No se pudo vincular la cuenta.");
+                }
+              },
+            },
+          ]
+        );
+      } else {
+        Alert.alert("Error", "No se pudo verificar la cuenta de Google.");
       }
-    } else {
-      Alert.alert("Error", "No se pudo obtener la información de Google");
     }
   } catch (error: any) {
-    console.error('Error Google Sign-In:', error);
+    console.error("Google Sign-In Error:", error);
     if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-      Alert.alert('Cancelado', 'El inicio de sesión fue cancelado');
+      Alert.alert("Cancelado", "El inicio de sesión fue cancelado.");
     } else if (error.code === statusCodes.IN_PROGRESS) {
-      Alert.alert('En progreso', 'El inicio de sesión está en curso');
+      Alert.alert("En progreso", "Ya hay una sesión en progreso.");
     } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-      Alert.alert('Error', 'Servicios de Google Play no disponibles');
+      Alert.alert("Servicios no disponibles", "Google Play Services no está disponible.");
     } else {
-      Alert.alert('Error de inicio de sesión', error.message || 'Ocurrió un error inesperado');
+      Alert.alert("Error", error.message || "Ocurrió un error inesperado.");
     }
   }
 };
+
 
 
   const handleBiometricLogin = async () => {

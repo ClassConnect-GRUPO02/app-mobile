@@ -258,4 +258,36 @@ async resetPassword(newPassword: string, token: string): Promise<{ success: bool
     throw error;
   }
 },
+// Login con cuenta de Google
+async googleLogin(idToken: string): Promise<LoginResponse> {
+  try {
+    const response = await apiClient.post<LoginResponse>('/auth/google', { idToken });
+    
+    // Al igual que con el login normal, guardamos tokens e ID si es exitoso
+    if (response.token && response.id && response.refreshToken) {
+      await userApi.storeToken(response.token);
+      await userApi.storeUserId(response.id);
+      await userApi.storeRefreshToken(response.refreshToken);
+    }
+
+    return response;
+  } catch (error) {
+    console.error('Error en login con Google:', error);
+    throw error;
+  }
+},
+
+// Vincular cuenta de Google con cuenta existente
+async linkGoogleAccount(idToken: string): Promise<{ success: boolean; message?: string }> {
+  try {
+    const response = await apiClient.post<{ success: boolean; message?: string }>(
+      '/auth/link-gmail',
+      { idToken }
+    );
+    return response;
+  } catch (error) {
+    console.error('Error al vincular cuenta de Google:', error);
+    throw error;
+  }
+},
 }
