@@ -18,6 +18,8 @@ import { LineChart, BarChart } from "react-native-chart-kit";
 import { Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { statisticsClient } from "@/api/statisticsClient";
+import * as Sharing from "expo-sharing";
+import RNHTMLtoPDF from "react-native-html-to-pdf";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -82,8 +84,10 @@ export default function StudentPerformanceStatsScreen() {
       }
 
       // Obtener cursos del docente
-       const allCourses = await courseClient.getAllCourses()
-        const instructorCourses = allCourses.filter((course: { creatorId: string }) => course.creatorId === userId);
+      const allCourses = await courseClient.getAllCourses();
+      const instructorCourses = allCourses.filter(
+        (course: { creatorId: string }) => course.creatorId === userId
+      );
       setCourses(instructorCourses);
 
       // Inicialmente cargar stats globales
@@ -168,17 +172,29 @@ export default function StudentPerformanceStatsScreen() {
 
     switch (period) {
       case "last_month":
-        fromDate = new Date(now.getFullYear(), now.getMonth() - 1, now.getDate())
+        fromDate = new Date(
+          now.getFullYear(),
+          now.getMonth() - 1,
+          now.getDate()
+        )
           .toISOString()
           .split("T")[0];
         break;
       case "last_3_months":
-        fromDate = new Date(now.getFullYear(), now.getMonth() - 3, now.getDate())
+        fromDate = new Date(
+          now.getFullYear(),
+          now.getMonth() - 3,
+          now.getDate()
+        )
           .toISOString()
           .split("T")[0];
         break;
       case "last_semester":
-        fromDate = new Date(now.getFullYear(), now.getMonth() - 6, now.getDate())
+        fromDate = new Date(
+          now.getFullYear(),
+          now.getMonth() - 6,
+          now.getDate()
+        )
           .toISOString()
           .split("T")[0];
         break;
@@ -191,15 +207,66 @@ export default function StudentPerformanceStatsScreen() {
     return { fromDate, toDate };
   };
 
-  const renderStatsCard = (title: string, value: number, suffix: string, icon: string, color: string) => (
-    <Card style={[styles.statsCard, { borderLeftColor: color, borderLeftWidth: 4 }]}>
+  const exportReportAsPDF = async () => {
+    if (!stats) return;
+
+    const htmlContent = `
+    <h1>Informe de Desempeño</h1>
+    <p><strong>Curso:</strong> ${
+      selectedCourse ? selectedCourse.name : "Todos los cursos"
+    }</p>
+    <p><strong>Periodo:</strong> ${
+      periodOptions.find((p) => p.value === selectedPeriod)?.label
+    }</p>
+
+    <h2>Estadísticas generales</h2>
+    <ul>
+      <li>Promedio de Tareas: ${stats.averageTaskGrade.toFixed(1)} pts</li>
+      <li>Promedio de Exámenes: ${stats.averageExamGrade.toFixed(1)} pts</li>
+      <li>Tasa de Entrega de Tareas: ${stats.taskSubmissionsRate.toFixed(
+        1
+      )}%</li>
+      <li>Tasa de Entrega de Exámenes: ${stats.examSubmissionsRate.toFixed(
+        1
+      )}%</li>
+    </ul>
+  `;
+
+    try {
+      const file = await RNHTMLtoPDF.convert({
+        html: htmlContent,
+        fileName: "informe-desempeno",
+        directory: "Download", // puedes probar también con "Download" o "Cache"
+      });
+
+      if (file.filePath && file.filePath.startsWith("file")) {
+        await Sharing.shareAsync(file.filePath);
+      } else {
+        console.warn("Ruta del archivo inválida o vacía:", file.filePath);
+      }
+    } catch (error) {
+      console.error("Error al generar o compartir el PDF:", error);
+    }
+  };
+
+  const renderStatsCard = (
+    title: string,
+    value: number,
+    suffix: string,
+    icon: string,
+    color: string
+  ) => (
+    <Card
+      style={[styles.statsCard, { borderLeftColor: color, borderLeftWidth: 4 }]}
+    >
       <Card.Content style={styles.statsCardContent}>
         <View style={styles.statsHeader}>
           <Ionicons name="stats-chart-outline" size={24} color={color} />
           <Text style={styles.statsTitle}>{title}</Text>
         </View>
         <Text style={[styles.statsValue, { color }]}>
-          {value.toFixed(1)}{suffix}
+          {value.toFixed(1)}
+          {suffix}
         </Text>
       </Card.Content>
     </Card>
@@ -209,18 +276,18 @@ export default function StudentPerformanceStatsScreen() {
     if (!stats?.trends || stats.trends.length === 0) return null;
 
     const chartData = {
-      labels: stats.trends.map(trend => {
+      labels: stats.trends.map((trend) => {
         const date = new Date(trend.date);
-        return date.toLocaleDateString('es-ES', { month: 'short' });
+        return date.toLocaleDateString("es-ES", { month: "short" });
       }),
       datasets: [
         {
-          data: stats.trends.map(trend => trend.averageTaskGrade),
+          data: stats.trends.map((trend) => trend.averageTaskGrade),
           color: (opacity = 1) => `rgba(98, 0, 238, ${opacity})`,
           strokeWidth: 2,
         },
         {
-          data: stats.trends.map(trend => trend.averageExamGrade),
+          data: stats.trends.map((trend) => trend.averageExamGrade),
           color: (opacity = 1) => `rgba(255, 99, 132, ${opacity})`,
           strokeWidth: 2,
         },
@@ -312,13 +379,15 @@ export default function StudentPerformanceStatsScreen() {
     <Provider>
       <SafeAreaView style={styles.container}>
         <StatusBar style="auto" />
-        
+
         <View style={styles.header}>
           <Text variant="headlineMedium" style={styles.title}>
             Estadísticas de Desempeño
           </Text>
           <Text variant="titleMedium" style={styles.subtitle}>
-            {selectedCourse ? `Curso: ${selectedCourse.name}` : "Vista general de todos tus cursos"}
+            {selectedCourse
+              ? `Curso: ${selectedCourse.name}`
+              : "Vista general de todos tus cursos"}
           </Text>
         </View>
 
@@ -373,7 +442,7 @@ export default function StudentPerformanceStatsScreen() {
                 icon="calendar"
                 style={styles.filterButton}
               >
-                {periodOptions.find(p => p.value === selectedPeriod)?.label}
+                {periodOptions.find((p) => p.value === selectedPeriod)?.label}
               </Button>
             }
           >
@@ -439,7 +508,9 @@ export default function StudentPerformanceStatsScreen() {
                     <Button
                       mode="contained"
                       icon="account-group"
-                      onPress={() => {/* Navegar a vista de estudiantes */}}
+                      onPress={() => {
+                        /* Navegar a vista de estudiantes */
+                      }}
                       style={styles.actionButton}
                     >
                       Ver por estudiante
@@ -447,7 +518,7 @@ export default function StudentPerformanceStatsScreen() {
                     <Button
                       mode="outlined"
                       icon="download"
-                      onPress={() => {/* Exportar informe */}}
+                      onPress={exportReportAsPDF}
                       style={styles.actionButton}
                     >
                       Exportar informe
@@ -503,25 +574,33 @@ const styles = StyleSheet.create({
   filtersContainer: {
     flexDirection: "row",
     gap: 10,
-    marginBottom: 16,
+    marginBottom: 40, // Aumentado de 16 a 24
+    paddingHorizontal: 4,
+    zIndex: 100, // Reducido de 1000 a 100
+    elevation: 8, // Reducido de 1000 a 8
   },
   filterButton: {
     flex: 1,
     borderColor: "#6200ee",
+    minHeight: 40,
+    justifyContent: "center",
   },
   content: {
     flex: 1,
+    zIndex: 1, // Añadido para asegurar que esté debajo de los filtros
   },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
     marginBottom: 16,
+    marginTop: 8, // Añadido para dar más espacio
   },
   statsCard: {
     width: (screenWidth - 44) / 2,
     backgroundColor: "#ffffff",
     elevation: 2,
+    zIndex: 1, // Añadido
   },
   statsCardContent: {
     padding: 12,
