@@ -19,7 +19,8 @@ import { Dimensions } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { statisticsClient } from "@/api/statisticsClient";
 import * as Sharing from "expo-sharing";
-import RNHTMLtoPDF from "react-native-html-to-pdf";
+import { printToFileAsync } from "expo-print";
+import { shareAsync } from "expo-sharing";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -233,17 +234,11 @@ export default function StudentPerformanceStatsScreen() {
   `;
 
     try {
-      const file = await RNHTMLtoPDF.convert({
+      const file = await printToFileAsync({
         html: htmlContent,
-        fileName: "informe-desempeno",
-        directory: "Download", // puedes probar también con "Download" o "Cache"
+        base64: false,
       });
-
-      if (file.filePath && file.filePath.startsWith("file")) {
-        await Sharing.shareAsync(file.filePath);
-      } else {
-        console.warn("Ruta del archivo inválida o vacía:", file.filePath);
-      }
+      await shareAsync(file.uri);
     } catch (error) {
       console.error("Error al generar o compartir el PDF:", error);
     }
