@@ -4,6 +4,9 @@ import NotificationSettings from '@/types/NotificationSettings';
 import * as Notifications from 'expo-notifications';
 import * as Device from 'expo-device';
 
+const IP = '34.172.17.210';
+const BASE_URL = `http://${IP}:80/user-service`;
+
 export interface UserRegisterData {
   name: string;
   email: string;
@@ -258,36 +261,43 @@ async resetPassword(newPassword: string, token: string): Promise<{ success: bool
     throw error;
   }
 },
-// Login con cuenta de Google
-async googleLogin(idToken: string): Promise<LoginResponse> {
-  try {
-    const response = await apiClient.post<LoginResponse>('/auth/google', { idToken });
-    
-    // Al igual que con el login normal, guardamos tokens e ID si es exitoso
-    if (response.token && response.id && response.refreshToken) {
-      await userApi.storeToken(response.token);
-      await userApi.storeUserId(response.id);
-      await userApi.storeRefreshToken(response.refreshToken);
-    }
 
-    return response;
+}
+
+export const googleLogin = async (idToken: string): Promise<{ status: number; data: LoginResponse }> => {
+  try {
+    const response = await fetch(`${BASE_URL}/auth/google`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ idToken }),
+    });
+
+    const data = await response.json();
+    return { status: response.status, data };
   } catch (error) {
     console.error('Error en login con Google:', error);
     throw error;
   }
-},
+};
 
-// Vincular cuenta de Google con cuenta existente
-async linkGoogleAccount(idToken: string): Promise<{ success: boolean; message?: string }> {
+export const linkGoogleAccount = async (
+  idToken: string
+): Promise<{ status: number; data: { success: boolean; message?: string } }> => {
   try {
-    const response = await apiClient.post<{ success: boolean; message?: string }>(
-      '/auth/link-gmail',
-      { idToken }
-    );
-    return response;
+    const response = await fetch(`${BASE_URL}/auth/link-gmail`, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({ idToken }),
+    });
+
+    const data = await response.json();
+    return { status: response.status, data };
   } catch (error) {
     console.error('Error al vincular cuenta de Google:', error);
     throw error;
   }
-},
-}
+};
