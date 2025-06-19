@@ -21,7 +21,11 @@ import { userApi } from "../../api/userApi";
 import HttpTestModal from "../../components/HttpTestModal";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
-import auth, { getAuth, GoogleAuthProvider, signInWithCredential } from '@react-native-firebase/auth';
+import auth, {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithCredential,
+} from "@react-native-firebase/auth";
 
 //import type { LoginRequest, ApiError } from "../../api/client";
 import {
@@ -29,8 +33,8 @@ import {
   isSuccessResponse,
   SignInSuccessResponse,
   statusCodes,
-  type User
-} from '@react-native-google-signin/google-signin';
+  type User,
+} from "@react-native-google-signin/google-signin";
 
 interface GoogleUserData {
   name: string;
@@ -140,74 +144,103 @@ const LoginScreen = (): React.JSX.Element => {
     }
   };
 
-const handleGoogleLogin = async () => {
-  try {
-    await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-    const response = await GoogleSignin.signIn();
-
-    if (!isSuccessResponse(response)) {
-      Alert.alert("Error", "No se pudo obtener la información de Google");
-      return;
-    }
-
-    const idToken = response.data.idToken;
-
-    // Intentar loguearse con la cuenta de Google
+  const handleGoogleLogin = async () => {
     try {
-      const loginResponse = await fetchWithTimeout(
-        userApi.googleLogin(idToken ? idToken : "")
-      );
+      await GoogleSignin.hasPlayServices({
+        showPlayServicesUpdateDialog: true,
+      });
+      const response = await GoogleSignin.signIn();
 
-      await userApi.storeToken(loginResponse.token);
-      await userApi.storeUserId(loginResponse.id);
+      if (!isSuccessResponse(response)) {
+        Alert.alert("Error", "No se pudo obtener la información de Google");
+        return;
+      }
 
-      Alert.alert("Inicio de sesión exitoso", "Cuenta: Google");
-      router.replace("/(app)/home");
+      const idToken = response.data.idToken;
 
-    } catch (err: any) {
-      if (err?.response?.status === 401) {
-        // El correo no está vinculado aún
-        Alert.alert(
-          "Cuenta no vinculada",
-          "¿Deseas vincular tu cuenta de Google con una cuenta existente?",
-          [
-            {
-              text: "No",
-              style: "cancel",
-              onPress: () => console.log("Vinculación cancelada"),
-            },
-            {
-              text: "Sí",
-              onPress: async () => {
-                try {
-                  await fetchWithTimeout(userApi.linkGoogleAccount(idToken ? idToken : ""));
-                  Alert.alert("Cuenta vinculada", "Ahora puedes iniciar sesión.");
-                } catch (linkError) {
-                  Alert.alert("Error", "No se pudo vincular la cuenta.");
-                }
+      try {
+        // Intento de login con Google
+        const loginResponse = await fetchWithTimeout(
+          userApi.googleLogin(idToken ? idToken : "")
+        );
+
+        await userApi.storeToken(loginResponse.token);
+        await userApi.storeUserId(loginResponse.id);
+
+        Alert.alert("Inicio de sesión exitoso", "Cuenta: Google");
+        router.replace("/(app)/home");
+      } catch (err: any) {
+        if (err?.response?.status === 401) {
+          // Cuenta existe pero no está vinculada a Google, preguntamos si vincular
+          Alert.alert(
+            "Cuenta no vinculada",
+            "¿Deseas vincular tu cuenta de Google con una cuenta existente?",
+            [
+              {
+                text: "No",
+                style: "cancel",
+                onPress: () => console.log("Vinculación cancelada"),
               },
-            },
-          ]
+              {
+                text: "Sí",
+                onPress: async () => {
+                  try {
+                    await fetchWithTimeout(
+                      userApi.linkGoogleAccount(idToken ? idToken : "")
+                    );
+                    Alert.alert(
+                      "Cuenta vinculada",
+                      "Ahora puedes iniciar sesión."
+                    );
+                  } catch (linkError) {
+                    Alert.alert("Error", "No se pudo vincular la cuenta.");
+                  }
+                },
+              },
+            ]
+          );
+        } else if (err?.response?.status === 404) {
+          // Cuenta no existe → redirigir a formulario de registro
+          const profile = response.data.user; // de GoogleSignin.signIn()
+
+          if (!profile?.email || !profile?.name) {
+            Alert.alert(
+              "Error",
+              "No se pudo obtener la información necesaria de Google."
+            );
+            return;
+          }
+
+          const googleUserData = JSON.stringify({
+            name: profile.name,
+            email: profile.email,
+            password: profile.id, // valor ficticio usado como password temporal para validaciones
+          });
+
+          router.push({
+            pathname: "/(auth)/register",
+            params: { googleUserData },
+          });
+        } else {
+          Alert.alert("Error", "No se pudo verificar la cuenta de Google.");
+        }
+      }
+    } catch (error: any) {
+      console.error("Google Sign-In Error:", error);
+      if (error.code === statusCodes.SIGN_IN_CANCELLED) {
+        Alert.alert("Cancelado", "El inicio de sesión fue cancelado.");
+      } else if (error.code === statusCodes.IN_PROGRESS) {
+        Alert.alert("En progreso", "Ya hay una sesión en progreso.");
+      } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
+        Alert.alert(
+          "Servicios no disponibles",
+          "Google Play Services no está disponible."
         );
       } else {
-        Alert.alert("Error", "No se pudo verificar la cuenta de Google.");
+        Alert.alert("Error", error.message || "Ocurrió un error inesperado.");
       }
     }
-  } catch (error: any) {
-    console.error("Google Sign-In Error:", error);
-    if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-      Alert.alert("Cancelado", "El inicio de sesión fue cancelado.");
-    } else if (error.code === statusCodes.IN_PROGRESS) {
-      Alert.alert("En progreso", "Ya hay una sesión en progreso.");
-    } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-      Alert.alert("Servicios no disponibles", "Google Play Services no está disponible.");
-    } else {
-      Alert.alert("Error", error.message || "Ocurrió un error inesperado.");
-    }
-  }
-};
-
-
+  };
 
   const handleBiometricLogin = async () => {
     const savedRefreshToken = await SecureStore.getItemAsync("refreshToken");
