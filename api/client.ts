@@ -3,7 +3,7 @@ import { getItemAsync, setItemAsync } from 'expo-secure-store';
 import { get } from 'react-native/Libraries/TurboModule/TurboModuleRegistry';
 
 const getBaseUrl = (): string => {
-  const IP = '35.194.59.156';
+  const IP = '34.172.17.210';
   return `http://${IP}:80/user-service`;
 };
 
@@ -11,7 +11,7 @@ const getBaseUrl = (): string => {
 // En desarrollo con Expo, puedes usar la IP de tu máquina en lugar de localhost
 export const getBaseUrlCourses = (): string => {
   //const LOCAL_IP = "192.168.100.25";
-  const LOCAL_IP = "35.194.59.156";
+  const LOCAL_IP = "34.172.17.210";
   return `http://${LOCAL_IP}:80/courses-service`;
 }
 
