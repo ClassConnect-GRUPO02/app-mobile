@@ -72,8 +72,14 @@ export default function StudentPerformanceStatsScreen() {
   useEffect(() => {
     if (courses.length > 0) {
       fetchStats();
+
+      const intervalId = setInterval(() => {
+        fetchStats();
+      }, 30000); // 30000 ms = 30 segundos
+
+      return () => clearInterval(intervalId); // limpiar intervalo al desmontar
     }
-  }, [selectedCourse, selectedPeriod]);
+  }, [selectedCourse, selectedPeriod, courses]);
 
   const fetchInitialData = async () => {
     try {
@@ -499,7 +505,6 @@ export default function StudentPerformanceStatsScreen() {
               <Card style={styles.actionsCard}>
                 <Card.Content>
                   <View style={styles.actionsContainer}>
-                    
                     <Button
                       mode="outlined"
                       icon="download"
