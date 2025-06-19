@@ -1,88 +1,112 @@
-import { useState, useEffect } from "react"
-import { StyleSheet, View, ScrollView, Image, Alert } from "react-native"
-import { Text, Button, Chip, Divider, List, ActivityIndicator, FAB, Modal } from "react-native-paper"
-import { useLocalSearchParams, router } from "expo-router"
-import { courseClient } from "@/api/coursesClient"
-import type { Course } from "@/types/Course"
-import { userApi } from "@/api/userApi"
-import FeedbackForm from "../(courses)/feedback-form"
-import { StatusBar } from "react-native"
-import type { Module } from "@/types/Module"
-import { ModuleList } from "@/components/modules/ModuleList"
-import { ModuleForm } from "@/components/modules/ModuleForm"
-import { moduleClient } from "@/api/modulesClient"
-import { TasksTab } from "@/components/tasks/TasksTab"
-import { InstructorManagement } from "@/components/instructors/InstructorManagement"
-import React from "react"
+import { useState, useEffect } from "react";
+import { StyleSheet, View, ScrollView, Image, Alert } from "react-native";
+import {
+    Text,
+    Button,
+    Chip,
+    Divider,
+    List,
+    ActivityIndicator,
+    FAB,
+    Modal,
+} from "react-native-paper";
+import { useLocalSearchParams, router } from "expo-router";
+import { courseClient } from "@/api/coursesClient";
+import type { Course } from "@/types/Course";
+import { userApi } from "@/api/userApi";
+import FeedbackForm from "../(courses)/feedback-form";
+import { StatusBar } from "react-native";
+import type { Module } from "@/types/Module";
+import { ModuleList } from "@/components/modules/ModuleList";
+import { ModuleForm } from "@/components/modules/ModuleForm";
+import { moduleClient } from "@/api/modulesClient";
+import { TasksTab } from "@/components/tasks/TasksTab";
+import { InstructorManagement } from "@/components/instructors/InstructorManagement";
+import React from "react";
 import {useInstructorPermissions} from "@/hooks/useInstructorPermissions";
 
 export default function CourseDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>()
-  const [course, setCourse] = useState<Course | null>(null)
-  const [loading, setLoading] = useState(true)
-  const [error, setError] = useState<string | null>(null)
-  const [deleting, setDeleting] = useState(false)
-  const [enrolling, setEnrolling] = useState(false)
-  const [instructorName, setInstructorName] = useState("No especificado")
-  const [isEnrolled, setIsEnrolled] = useState(false)
-  const [userType, setUserType] = useState<string | null>(null)
-  const [students, setStudents] = useState<any[]>([])
-  const [selectedStudent, setSelectedStudent] = useState<any | null>(null)
-  const [activeTab, setActiveTab] = useState<"info" | "students" | "modules" | "tasks" | "instructors">("info")
-  const [modules, setModules] = useState<Module[]>([])
-  const [showModuleForm, setShowModuleForm] = useState(false)
-  const [selectedModule, setSelectedModule] = useState<Module | null>(null)
+    const { id } = useLocalSearchParams<{ id: string }>();
+    const [course, setCourse] = useState<Course | null>(null);
+    const [loading, setLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
+    const [deleting, setDeleting] = useState(false);
+    const [enrolling, setEnrolling] = useState(false);
+    const [instructorName, setInstructorName] = useState("No especificado");
+    const [isEnrolled, setIsEnrolled] = useState(false);
+    const [isInstructor, setIsInstructor] = useState(false);
+    const [isCreator, setIsCreator] = useState(false);
+    const [userType, setUserType] = useState<string | null>(null);
+    const [students, setStudents] = useState<any[]>([]);
+    const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
+    const [isModalVisible, setIsModalVisible] = useState(false); // Estado para controlar el modal
+    const [activeTab, setActiveTab] = useState<
+        "info" | "students" | "modules" | "tasks" | "instructors"
+    >("info");
+    const [modules, setModules] = useState<Module[]>([]);
+    const [showModuleForm, setShowModuleForm] = useState(false);
+    const [selectedModule, setSelectedModule] = useState<Module | null>(null);
 
-  const { permissions, loading: permissionsLoading } = useInstructorPermissions(id)
+    const { permissions, loading: permissionsLoading } = useInstructorPermissions(id)
 
-  const canViewModulesAndTasks = isEnrolled || permissions.isInstructor
+    const canViewModulesAndTasks = isEnrolled || permissions.isInstructor || isCreator
 
   useEffect(() => {
-    if (!id) return
+    if (!id) return;
 
     const fetchData = async () => {
       try {
-        setLoading(true)
-        const userId = await userApi.getUserId()
-        if (!userId) throw new Error("No se pudo obtener el ID del usuario")
+        setLoading(true);
+        const userId = await userApi.getUserId();
+        if (!userId) throw new Error("No se pudo obtener el ID del usuario");
 
         const [userInfo, courseData, fetchedModules] = await Promise.all([
           userApi.getUserById(userId),
           courseClient.getCourseById(id),
           moduleClient.getModulesByCourseId(id),
-        ])
+        ]);
 
-        setUserType(userInfo?.user?.userType)
-        setCourse(courseData)
-        setModules(fetchedModules)
+        setUserType(userInfo?.user?.userType);
+        setCourse(courseData);
+        setModules(fetchedModules);
 
         if (courseData.creatorId) {
-          const creatorInfo = await userApi.getUserById(courseData.creatorId)
-          setInstructorName(creatorInfo?.user?.name || "No especificado")
+          const creatorInfo = await userApi.getUserById(courseData.creatorId);
+          setInstructorName(creatorInfo?.user?.name || "No especificado");
         }
 
-        const enrollmentStatus = await courseClient.isEnrolledInCourse(id, userId)
-        setIsEnrolled(enrollmentStatus)
+        setIsCreator(courseData.creatorId === userId);
+
+        const [instructorStatus, enrollmentStatus] = await Promise.all([
+          courseClient.isInstructorInCourse(id, userId),
+          courseClient.isEnrolledInCourse(id, userId),
+        ]);
+
+        console.log("Instructor status:", instructorStatus);
+        console.log("Enrollment status:", enrollmentStatus);
+
+        setIsInstructor(instructorStatus);
+        setIsEnrolled(enrollmentStatus);
 
         if (permissions.isInstructor) {
-          const studentList = await courseClient.getStudentsInCourse(id)
-          setStudents(studentList)
+          const studentList = await courseClient.getStudentsInCourse(id);
+          setStudents(studentList);
         }
       } catch (err) {
-        console.error("Error al cargar el curso:", err)
-        setError("No se pudo cargar la información del curso")
+        console.error("Error al cargar el curso:", err);
+        setError("No se pudo cargar la información del curso");
       } finally {
-        setLoading(false)
+        setLoading(false);
         console.log("Final state:", {
           instructorName,
           isEnrolled,
           userType,
-        })
+        });
       }
-    }
+    };
 
-    fetchData()
-  }, [id, permissions.isInstructor])
+    fetchData();
+  }, [id, permissions.isInstructor]);
 
   const handleDelete = () => {
     if (!permissions.can_update_course) {
@@ -90,80 +114,86 @@ export default function CourseDetailScreen() {
       return
     }
 
-    Alert.alert("Eliminar curso", "¿Estás seguro de que deseas eliminar este curso?", [
-      { text: "Cancelar", style: "cancel" },
-      {
-        text: "Eliminar",
-        style: "destructive",
-        onPress: async () => {
-          try {
-            setDeleting(true)
-            await courseClient.deleteCourse(id)
-            Alert.alert("Éxito", "Curso eliminado", [{ text: "OK", onPress: () => router.replace("/(courses)") }])
-          } catch (error) {
-            console.error("Error al eliminar el curso:", error)
-            Alert.alert("Error", "No se pudo eliminar el curso.")
-            setDeleting(false)
-          }
+    Alert.alert(
+      "Eliminar curso",
+      "¿Estás seguro de que deseas eliminar este curso?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Eliminar",
+          style: "destructive",
+          onPress: async () => {
+            try {
+              setDeleting(true);
+              await courseClient.deleteCourse(id);
+              Alert.alert("Éxito", "Curso eliminado", [
+                { text: "OK", onPress: () => router.replace("/(courses)") },
+              ]);
+            } catch (error) {
+              console.error("Error al eliminar el curso:", error);
+              Alert.alert("Error", "No se pudo eliminar el curso.");
+              setDeleting(false);
+            }
+          },
         },
-      },
-    ])
-  }
+      ]
+    );
+  };
 
-  const handleFeedbackSubmitted = () => setSelectedStudent(null)
+  const handleFeedbackSubmitted = () => setSelectedStudent(null);
 
-  const handleEdit = () => {
-    if (!permissions.can_update_course) {
-      Alert.alert("Sin permisos", "No tienes permisos para editar este curso")
-      return
+    const handleEdit = () => {
+        if (!permissions.can_update_course) {
+            Alert.alert("Sin permisos", "No tienes permisos para editar este curso")
+            return
+        }
+        router.push({pathname: "/(courses)/edit", params: {id} });
     }
-    router.push({ pathname: "/(courses)/edit", params: { id } })
-  }
 
   const handleEnroll = async () => {
     try {
-      setEnrolling(true)
-      const userId = await userApi.getUserId()
+      setEnrolling(true);
+      const userId = await userApi.getUserId();
       if (!userId) {
-        Alert.alert("Error", "Debes iniciar sesión para inscribirte")
-        return
+        Alert.alert("Error", "Debes iniciar sesión para inscribirte");
+        return;
       }
-      await courseClient.enrollStudentInCourse(id, userId)
-      setIsEnrolled(true)
+      await courseClient.enrollStudentInCourse(id, userId);
+      setIsEnrolled(true);
       if (course) {
-        setCourse({ ...course, enrolled: course.enrolled + 1 })
+        setCourse({ ...course, enrolled: course.enrolled + 1 });
       }
       await userApi.notifyUser(
-          userId,
-          "Inscripción exitosa",
-          `Te has inscrito en el curso ${course?.name}`,
-          "courseEnrollment",
-      )
+        userId,
+        "Inscripción exitosa",
+        `Te has inscrito en el curso ${course?.name}`,
+        "courseEnrollment"
+      );
     } catch (error) {
-      console.error("Error al inscribirse:", error)
-      Alert.alert("Error", "No se pudo completar la inscripción.")
+      console.error("Error al inscribirse:", error);
+      Alert.alert("Error", "No se pudo completar la inscripción.");
     } finally {
-      setEnrolling(false)
+      setEnrolling(false);
     }
-  }
+  };
 
   const handleAddModule = () => {
     if (!permissions.can_create_content) {
       Alert.alert("Sin permisos", "No tienes permisos para crear módulos en este curso")
       return
     }
-    setSelectedModule(null)
-    setShowModuleForm(true)
-  }
+    setSelectedModule(null);
+    setShowModuleForm(true);
+  };
 
   const handleEditModule = (module: Module) => {
     if (!permissions.can_create_content) {
       Alert.alert("Sin permisos", "No tienes permisos para editar módulos en este curso")
       return
     }
-    setSelectedModule(module)
-    setShowModuleForm(true)
-  }
+    setSelectedModule(module);
+    setShowModuleForm(true);
+  };
 
   const handleDeleteModule = async (moduleId: string) => {
     if (!permissions.can_create_content) {
@@ -172,97 +202,101 @@ export default function CourseDetailScreen() {
     }
 
     try {
-      const success = await moduleClient.deleteModule(id, moduleId)
+      const success = await moduleClient.deleteModule(id, moduleId);
       if (success) {
         // Actualizar la lista de módulos
-        setModules(modules.filter((module) => module.id !== moduleId))
-        Alert.alert("Éxito", "El módulo ha sido eliminado correctamente")
+        setModules(modules.filter((module) => module.id !== moduleId));
+        Alert.alert("Éxito", "El módulo ha sido eliminado correctamente");
       } else {
-        Alert.alert("Error", "No se pudo eliminar el módulo")
+        Alert.alert("Error", "No se pudo eliminar el módulo");
       }
     } catch (error) {
-      console.error("Error al eliminar el módulo:", error)
-      Alert.alert("Error", "Ocurrió un error al eliminar el módulo")
+      console.error("Error al eliminar el módulo:", error);
+      Alert.alert("Error", "Ocurrió un error al eliminar el módulo");
     }
-  }
+  };
 
   const handleModulePress = (moduleId: string) => {
     router.push({
       pathname: "/course/module/[moduleId]",
       params: { moduleId, courseId: id },
-    })
-  }
+    });
+  };
 
   const handleSaveModule = async (module: Module) => {
     try {
-      const updatedModules = await moduleClient.getModulesByCourseId(id)
-      setModules(updatedModules)
-      setShowModuleForm(false)
-      setSelectedModule(null)
+      const updatedModules = await moduleClient.getModulesByCourseId(id);
+      setModules(updatedModules);
+      setShowModuleForm(false);
+      setSelectedModule(null);
     } catch (error) {
-      console.error("Error al recargar módulos:", error)
+      console.error("Error al recargar módulos:", error);
     }
-  }
+  };
 
   useEffect(() => {
     if (activeTab === "modules" && canViewModulesAndTasks) {
       const reloadModules = async () => {
         try {
-          const updatedModules = await moduleClient.getModulesByCourseId(id)
-          setModules(updatedModules)
+          const updatedModules = await moduleClient.getModulesByCourseId(id);
+          setModules(updatedModules);
         } catch (error) {
-          console.error("Error al recargar módulos:", error)
+          console.error("Error al recargar módulos:", error);
         }
-      }
-      reloadModules()
+      };
+      reloadModules();
     }
-  }, [activeTab, id, canViewModulesAndTasks])
+  }, [activeTab, id, canViewModulesAndTasks]);
 
   if (loading || permissionsLoading) {
     return (
-        <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color="#6200ee" />
-          <Text style={styles.loadingText}>Cargando curso...</Text>
-        </View>
-    )
+      <View style={styles.loadingContainer}>
+        <ActivityIndicator size="large" color="#6200ee" />
+        <Text style={styles.loadingText}>Cargando curso...</Text>
+      </View>
+    );
   }
 
   if (error || !course) {
     return (
-        <View style={styles.notFoundContainer}>
-          <Text variant="headlineMedium">Curso no encontrado</Text>
-          <Button mode="contained" onPress={() => router.back()} style={styles.backButton}>
-            Volver
-          </Button>
-        </View>
-    )
+      <View style={styles.notFoundContainer}>
+        <Text variant="headlineMedium">Curso no encontrado</Text>
+        <Button
+          mode="contained"
+          onPress={() => router.back()}
+          style={styles.backButton}
+        >
+          Volver
+        </Button>
+      </View>
+    );
   }
 
-  const availableSpots = course.capacity - course.enrolled
-  const isFullyBooked = availableSpots === 0
-  const isStudent = userType === "alumno"
-  const isTeacher = userType === "docente"
+  const availableSpots = course.capacity - course.enrolled;
+  const isFullyBooked = availableSpots === 0;
+  const isStudent = userType === "alumno";
+  const isTeacher = userType === "docente";
 
   const renderInfoTab = () => (
-      <View style={styles.container}>
-        <ScrollView>
-          <StatusBar barStyle="light-content" />
+    <View style={styles.container}>
+      <ScrollView>
+        <StatusBar barStyle="light-content" />
 
-          <Image
-              source={{
-                uri:
-                    course.imageUrl ||
-                    "https://images.unsplash.com/photo-1587620962725-abab7fe55159?q=80&w=2062&auto=format&fit=crop",
-              }}
-              style={styles.courseImage}
-          />
+        <Image
+          source={{
+            uri:
+              course.imageUrl ||
+              "https://images.unsplash.com/photo-1587620962725-abab7fe55159?q=80&w=2062&auto=format&fit=crop",
+          }}
+          style={styles.courseImage}
+        />
 
-          <View style={styles.contentContainer}>
-            <Text variant="headlineSmall" style={styles.title}>
-              {course.name}
-            </Text>
+        <View style={styles.contentContainer}>
+          <Text variant="headlineSmall" style={styles.title}>
+            {course.name}
+          </Text>
 
-            {permissions.isInstructor && (
+          {permissions.isInstructor && (
                 <View style={styles.roleIndicatorContainer}>
                   <Chip
                       style={[
@@ -288,183 +322,220 @@ export default function CourseDetailScreen() {
               <Chip style={styles.chip}>{course.modality}</Chip>
             </View>
 
-            <Divider style={styles.divider} />
+          <Divider style={styles.divider} />
 
-            <View style={styles.section}>
-              <Text variant="bodyLarge" style={styles.description}>
-                {course.description}
-              </Text>
-            </View>
+          <View style={styles.section}>
+            <Text variant="bodyLarge" style={styles.description}>
+              {course.description}
+            </Text>
+          </View>
 
-            <Divider style={styles.divider} />
+          <Divider style={styles.divider} />
 
-            <View style={styles.section}>
-              <Text variant="titleMedium" style={styles.sectionTitle}>
-                Detalles del curso
-              </Text>
+          <View style={styles.section}>
+            <Text variant="titleMedium" style={styles.sectionTitle}>
+              Detalles del curso
+            </Text>
 
-              <List.Item
-                  title="Fechas"
-                  description={`${new Date(course.startDate).toLocaleDateString()} - ${new Date(course.endDate).toLocaleDateString()}`}
-                  left={(props) => <List.Icon {...props} icon="calendar" />}
-              />
+            <List.Item
+              title="Fechas"
+              description={`${new Date(course.startDate).toLocaleDateString()} - ${new Date(course.endDate).toLocaleDateString()}`}
+              left={(props) => <List.Icon {...props} icon="calendar" />}
+            />
 
-              <List.Item
-                  title="Instructor"
-                  description={instructorName}
-                  left={(props) => <List.Icon {...props} icon="account" />}
-              />
+            <List.Item
+              title="Instructor"
+              description={instructorName}
+              left={(props) => <List.Icon {...props} icon="account" />}
+            />
 
-              <List.Item
-                  title="Capacidad"
-                  description={`${course.enrolled} / ${course.capacity} estudiantes`}
-                  left={(props) => <List.Icon {...props} icon="account-group" />}
-              />
-            </View>
+            <List.Item
+              title="Capacidad"
+              description={`${course.enrolled} / ${course.capacity} estudiantes`}
+              left={(props) => <List.Icon {...props} icon="account-group" />}
+            />
+          </View>
 
-            {course.prerequisites.length > 0 && (
+          {course.prerequisites.length > 0 && (
+            <>
+              <Divider style={styles.divider} />
+
+              <View style={styles.section}>
+                <Text variant="titleMedium" style={styles.sectionTitle}>
+                  Requisitos previos
+                </Text>
+                {course.prerequisites.map((prerequisite, index) => (
+                  <List.Item
+                    key={index}
+                    title={prerequisite}
+                    left={(props) => (
+                      <List.Icon {...props} icon="check-circle" />
+                    )}
+                  />
+                ))}
+              </View>
+            </>
+          )}
+
+          <View style={styles.actionContainer}>
+            {/* Mostrar botón de inscripción solo para estudiantes que no sean instructores y no estén inscritos */}
+            {isStudent &&
+              !permissions.isInstructor &&
+              (isEnrolled ? (
                 <>
-                  <Divider style={styles.divider} />
-
-                  <View style={styles.section}>
-                    <Text variant="titleMedium" style={styles.sectionTitle}>
-                      Requisitos previos
-                    </Text>
-                    {course.prerequisites.map((prerequisite, index) => (
-                        <List.Item
-                            key={index}
-                            title={prerequisite}
-                            left={(props) => <List.Icon {...props} icon="check-circle" />}
-                        />
-                    ))}
-                  </View>
+                  <Button
+                    mode="contained"
+                    style={[styles.button, styles.enrolledButton]}
+                    disabled
+                  >
+                    Ya estás inscrito
+                  </Button>
+                  <Button
+                    mode="outlined"
+                    style={styles.button}
+                    onPress={() =>
+                      router.push({
+                        pathname: "/(courses)/feedback",
+                        params: { id: id },
+                      })
+                    }
+                  >
+                    Dejar Feedback
+                  </Button>
                 </>
+              ) : isFullyBooked ? (
+                <Button
+                  mode="contained"
+                  style={[styles.button, styles.fullyBookedButton]}
+                  disabled
+                >
+                  Sin cupos disponibles
+                </Button>
+              ) : (
+                <Button
+                  mode="contained"
+                  style={styles.button}
+                  onPress={handleEnroll}
+                  loading={enrolling}
+                  disabled={enrolling}
+                >
+                  Inscribirse
+                </Button>
+              ))}
+
+            {isTeacher && (
+              <Button
+                mode="outlined"
+                style={styles.button}
+                onPress={() =>
+                  router.push({
+                    pathname: "/(courses)/feedbacks",
+                    params: { id: id },
+                  })
+                }
+              >
+                Ver Feedbacks del Curso
+              </Button>
             )}
 
-            <View style={styles.actionContainer}>
-              {/* Mostrar botón de inscripción solo para estudiantes que no sean instructores y no estén inscritos */}
-              {isStudent &&
-                  !permissions.isInstructor &&
-                  (isEnrolled ? (
-                      <>
-                        <Button mode="contained" style={[styles.button, styles.enrolledButton]} disabled>
-                          Ya estás inscrito
-                        </Button>
-                        <Button
-                            mode="outlined"
-                            style={styles.button}
-                            onPress={() =>
-                                router.push({
-                                  pathname: "/(courses)/feedback",
-                                  params: { id: id },
-                                })
-                            }
-                        >
-                          Dejar Feedback
-                        </Button>
-                      </>
-                  ) : isFullyBooked ? (
-                      <Button mode="contained" style={[styles.button, styles.fullyBookedButton]} disabled>
-                        Sin cupos disponibles
-                      </Button>
-                  ) : (
-                      <Button
-                          mode="contained"
-                          style={styles.button}
-                          onPress={handleEnroll}
-                          loading={enrolling}
-                          disabled={enrolling}
-                      >
-                        Inscribirse
-                      </Button>
-                  ))}
-
-              {isTeacher && (
-                  <Button
-                      mode="outlined"
-                      style={styles.button}
-                      onPress={() =>
-                          router.push({
-                            pathname: "/(courses)/feedbacks",
-                            params: { id: id },
-                          })
-                      }
-                  >
-                    Ver Feedbacks del Curso
-                  </Button>
-              )}
-
-              <Button mode="outlined" style={styles.button} onPress={() => router.back()}>
-                Volver
-              </Button>
-            </View>
+            <Button
+              mode="outlined"
+              style={styles.button}
+              onPress={() => router.back()}
+            >
+              Volver
+            </Button>
           </View>
-        </ScrollView>
-      </View>
-  )
+        </View>
+      </ScrollView>
+    </View>
+  );
 
   const renderModulesTab = () => (
-      <View style={styles.modulesContainer}>
-        {permissions.can_create_content && (
-            <Button mode="contained" icon="plus" onPress={handleAddModule} style={styles.addModuleButton}>
-              Agregar módulo
-            </Button>
-        )}
+    <View style={styles.modulesContainer}>
+      {permissions.can_create_content && (
+        <Button
+          mode="contained"
+          icon="plus"
+          onPress={handleAddModule}
+          style={styles.addModuleButton}
+        >
+          Agregar módulo
+        </Button>
+      )}
 
-        <ModuleList
-            courseId={id}
-            modules={modules}
-            isCreator={permissions.can_create_content}
-            onModulePress={handleModulePress}
-            onEditModule={permissions.can_create_content ? handleEditModule : undefined}
-            onDeleteModule={permissions.can_create_content ? handleDeleteModule : undefined}
-        />
-      </View>
-  )
+      <ModuleList
+        courseId={id}
+        modules={modules}
+        isCreator={permissions.can_create_content}
+        onModulePress={handleModulePress}
+        onEditModule={permissions.can_create_content ? handleEditModule : undefined}
+        onDeleteModule={permissions.can_create_content ? handleDeleteModule : undefined}
+      />
+    </View>
+  );
 
-  const renderTasksTab = () => <TasksTab courseId={id} />
+  const renderTasksTab = () => <TasksTab courseId={id} />;
 
   const renderStudentsTab = () => (
-      <ScrollView contentContainerStyle={{ padding: 16 }}>
-        {students.map((student) => (
-            <View
-                key={student.id}
-                style={{
-                  flexDirection: "row",
-                  alignItems: "center",
-                  marginBottom: 12,
-                }}
+    <ScrollView contentContainerStyle={{ padding: 16 }}>
+      {students.map((student) => (
+        <View key={student.id} style={styles.studentRow}>
+          <Image
+            source={{
+              uri: student.avatarUrl || "https://via.placeholder.com/40",
+            }}
+            style={styles.avatar}
+          />
+          <Text style={styles.studentName}>{student.name}</Text>
+          {permissions.can_grade && (
+            <Button
+                mode="outlined"
+                compact
+                onPress={() => setSelectedStudent(student)}
             >
-              <Image
-                  source={{
-                    uri: student.avatarUrl || "https://via.placeholder.com/40",
-                  }}
-                  style={{ width: 40, height: 40, borderRadius: 20, marginRight: 12 }}
-              />
-              <Text style={{ flex: 1 }}>{student.name}</Text>
-              {permissions.can_grade && (
-                  <Button mode="outlined" onPress={() => setSelectedStudent(student)} compact>
-                    Dar feedback
-                  </Button>
-              )}
-            </View>
-        ))}
+            Dar feedback
+          </Button>
+          )}
 
-        {selectedStudent && (
-            <View style={styles.feedbackFormContainer}>
-              <Button mode="text" onPress={() => setSelectedStudent(null)} style={styles.closeButton}>
-                <Text style={styles.closeButtonText}>X</Text>
-              </Button>
+          <Button
+            mode="outlined"
+            compact
+            onPress={() =>
+              router.push({
+                pathname: "/course/students-stats",
+                params: { courseId: id, studentId: student.id },
+              })
+            }
+            style={styles.statsButton}
+          >
+            Estadísticas
+          </Button>
+        </View>
+      ))}
 
-              <FeedbackForm
-                  studentId={selectedStudent.id}
-                  courseId={course.id}
-                  onFeedbackSubmitted={handleFeedbackSubmitted}
-              />
-            </View>
-        )}
-      </ScrollView>
-  )
+      {/* Aquí mostramos el formulario de feedback si hay un estudiante seleccionado */}
+      {selectedStudent && (
+        <View style={styles.feedbackFormContainer}>
+          {/* Botón de cierre fuera del formulario */}
+          <Button
+            mode="text"
+            onPress={() => setSelectedStudent(null)} // Cierra el formulario
+            style={styles.closeButton}
+          >
+            <Text style={styles.closeButtonText}>X</Text>
+          </Button>
+
+          {/* Formulario de feedback */}
+          <FeedbackForm
+            studentId={selectedStudent.id}
+            courseId={course.id}
+            onFeedbackSubmitted={handleFeedbackSubmitted}
+          />
+        </View>
+      )}
+    </ScrollView>
+  );
 
   const renderInstructorsTab = () => (
       <InstructorManagement
@@ -477,34 +548,34 @@ export default function CourseDetailScreen() {
   )
 
   return (
-      <View style={styles.container}>
-        <View style={styles.tabHeader}>
-          <Button
-              mode={activeTab === "info" ? "contained" : "outlined"}
-              onPress={() => setActiveTab("info")}
-              style={styles.tabButton}
-          >
-            Información
-          </Button>
+    <View style={styles.container}>
+      <View style={styles.tabHeader}>
+        <Button
+          mode={activeTab === "info" ? "contained" : "outlined"}
+          onPress={() => setActiveTab("info")}
+          style={styles.tabButton}
+        >
+          Información
+        </Button>
 
-          {canViewModulesAndTasks && (
-              <>
-                <Button
-                    mode={activeTab === "modules" ? "contained" : "outlined"}
-                    onPress={() => setActiveTab("modules")}
-                    style={styles.tabButton}
-                >
-                  Módulos
-                </Button>
-                <Button
-                    mode={activeTab === "tasks" ? "contained" : "outlined"}
-                    onPress={() => setActiveTab("tasks")}
-                    style={styles.tabButton}
-                >
-                  Tareas
-                </Button>
-              </>
-          )}
+        {canViewModulesAndTasks && (
+          <>
+            <Button
+              mode={activeTab === "modules" ? "contained" : "outlined"}
+              onPress={() => setActiveTab("modules")}
+              style={styles.tabButton}
+            >
+              Módulos
+            </Button>
+            <Button
+              mode={activeTab === "tasks" ? "contained" : "outlined"}
+              onPress={() => setActiveTab("tasks")}
+              style={styles.tabButton}
+            >
+              Tareas
+            </Button>
+          </>
+        )}
 
           {permissions.isCreator && (
               <Button
@@ -512,47 +583,47 @@ export default function CourseDetailScreen() {
                   onPress={() => setActiveTab("instructors")}
                   style={styles.tabButton}
               >
-                Instructores
+                  Instructores
               </Button>
           )}
 
-          {permissions.isInstructor && (
-              <Button
-                  mode={activeTab === "students" ? "contained" : "outlined"}
-                  onPress={() => setActiveTab("students")}
-                  style={styles.tabButton}
-              >
-                Alumnos
-              </Button>
-          )}
-        </View>
+        {permissions.isInstructor && (
+          <Button
+            mode={activeTab === "students" ? "contained" : "outlined"}
+            onPress={() => setActiveTab("students")}
+            style={styles.tabButton}
+          >
+            Alumnos
+          </Button>
+        )}
+      </View>
 
-        {activeTab === "info" && renderInfoTab()}
-        {activeTab === "modules" && canViewModulesAndTasks && renderModulesTab()}
-        {activeTab === "tasks" && canViewModulesAndTasks && renderTasksTab()}
-        {activeTab === "instructors" && permissions.isCreator && renderInstructorsTab()}
-        {activeTab === "students" && renderStudentsTab()}
+      {activeTab === "info" && renderInfoTab()}
+      {activeTab === "modules" && canViewModulesAndTasks && renderModulesTab()}
+      {activeTab === "tasks" && canViewModulesAndTasks && renderTasksTab()}
+      {activeTab === "instructors" && permissions.isCreator && renderInstructorsTab()}
+      {activeTab === "students" && renderStudentsTab()}
 
-        <Modal
-            visible={showModuleForm}
-            onDismiss={() => {
-              setShowModuleForm(false)
-              setSelectedModule(null)
-            }}
-            contentContainerStyle={styles.modalContainer}
-        >
-          <ModuleForm
-              courseId={id}
-              initialData={selectedModule || undefined}
-              onSave={handleSaveModule}
-              onCancel={() => {
-                setShowModuleForm(false)
-                setSelectedModule(null)
-              }}
-          />
-        </Modal>
+      <Modal
+        visible={showModuleForm}
+        onDismiss={() => {
+          setShowModuleForm(false);
+          setSelectedModule(null);
+        }}
+        contentContainerStyle={styles.modalContainer}
+      >
+        <ModuleForm
+          courseId={id}
+          initialData={selectedModule || undefined}
+          onSave={handleSaveModule}
+          onCancel={() => {
+            setShowModuleForm(false);
+            setSelectedModule(null);
+          }}
+        />
+      </Modal>
 
-        {(permissions.isCreator || permissions.can_update_course) && activeTab === "info" && (
+      {(permissions.isCreator || permissions.can_update_course) && activeTab === "info" && (
             <View style={styles.fabContainer}>
               {permissions.can_update_course && (
                   <FAB
@@ -567,10 +638,10 @@ export default function CourseDetailScreen() {
               {permissions.can_update_course && (
                   <FAB icon="pencil" style={[styles.fab, styles.fabEdit]} onPress={handleEdit} color="#fff" />
               )}
-            </View>
-        )}
-      </View>
-  )
+        </View>
+      )}
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
@@ -725,4 +796,9 @@ const styles = StyleSheet.create({
     backgroundColor: "#f5f5f5",
     paddingVertical: 8,
   },
-})
+  studentRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
+avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
+studentName: { flex: 1 },
+statsButton: { marginLeft: 8 }
+
+});
