@@ -20,6 +20,8 @@ Notifications.setNotificationHandler({
 
 export default function AppLayout() {
     const theme = useTheme();
+    const [isTeacher, setIsTeacher] = React.useState<boolean | null>(null);
+    
 
     // Registro de token y listener de notificaciones
     useEffect(() => {
@@ -33,64 +35,71 @@ export default function AppLayout() {
             });
         }
 
+        // Encapsular la lógica async en una función
+        const setupAsync = async () => {
+            const isTeacherResult = await userApi.isTeacher();
+            setIsTeacher(isTeacherResult);
 
-        // Configurar listener de notificaciones global
-        const setupNotifications = async () => {
-            const { status } = await Notifications.requestPermissionsAsync();
-            if (status !== "granted") {
-                console.log("Permiso de notificaciones denegado");
-                return;
-            }
-
-            const jwt = await getItemAsync("userToken");
-            const userId = await getItemAsync("userId");
-
-            if (jwt && userId) {
-                try {
-                    // Registrar token para push notifications
-                    await userApi.registerPushToken();
-
-                    // Listener para notificaciones recibidas (cuando la app está abierta)
-                    const foregroundSubscription = Notifications.addNotificationReceivedListener(
-                        (notification) => {
-                            const { title, body } = notification.request.content;
-                            Toast.show({
-                                type: "info",
-                                text1: title ?? "Notificación",
-                                text2: body ?? "",
-                                visibilityTime: 4000,
-                                autoHide: true,
-                            });
-                        }
-                    );
-
-                    // Listener para cuando se toca una notificación
-                    const responseSubscription = Notifications.addNotificationResponseReceivedListener(
-                        (response) => {
-                            const { data } = response.notification.request.content;
-                            // Aquí puedes manejar la navegación basada en los datos de la notificación
-                            console.log("Notificación tocada:", data);
-
-                            // Ejemplo de navegación basada en el tipo de notificación
-                            // if (data && data.type === "course") {
-                            //     router.push(/(app)/my-courses/${data.courseId});
-                            // } else if (data && data.type === "message") {
-                            //     router.push("/(app)/messages");
-                            // }
-                        }
-                    );
-
-                    return () => {
-                        foregroundSubscription.remove();
-                        responseSubscription.remove();
-                    };
-                } catch (error) {
-                    console.error("Error al configurar notificaciones:", error);
+            // Configurar listener de notificaciones global
+            const setupNotifications = async () => {
+                const { status } = await Notifications.requestPermissionsAsync();
+                if (status !== "granted") {
+                    console.log("Permiso de notificaciones denegado");
+                    return;
                 }
-            }
+
+                const jwt = await getItemAsync("userToken");
+                const userId = await getItemAsync("userId");
+
+                if (jwt && userId) {
+                    try {
+                        // Registrar token para push notifications
+                        await userApi.registerPushToken();
+
+                        // Listener para notificaciones recibidas (cuando la app está abierta)
+                        const foregroundSubscription = Notifications.addNotificationReceivedListener(
+                            (notification) => {
+                                const { title, body } = notification.request.content;
+                                Toast.show({
+                                    type: "info",
+                                    text1: title ?? "Notificación",
+                                    text2: body ?? "",
+                                    visibilityTime: 4000,
+                                    autoHide: true,
+                                });
+                            }
+                        );
+
+                        // Listener para cuando se toca una notificación
+                        const responseSubscription = Notifications.addNotificationResponseReceivedListener(
+                            (response) => {
+                                const { data } = response.notification.request.content;
+                                // Aquí puedes manejar la navegación basada en los datos de la notificación
+                                console.log("Notificación tocada:", data);
+
+                                // Ejemplo de navegación basada en el tipo de notificación
+                                // if (data && data.type === "course") {
+                                //     router.push(/(app)/my-courses/${data.courseId});
+                                // } else if (data && data.type === "message") {
+                                //     router.push("/(app)/messages");
+                                // }
+                            }
+                        );
+
+                        return () => {
+                            foregroundSubscription.remove();
+                            responseSubscription.remove();
+                        };
+                    } catch (error) {
+                        console.error("Error al configurar notificaciones:", error);
+                    }
+                }
+            };
+
+            setupNotifications();
         };
 
-        setupNotifications();
+        setupAsync();
     }, []);
   
     return (
@@ -163,6 +172,27 @@ export default function AppLayout() {
                         tabBarIcon: ({ color }) => <MaterialCommunityIcons name="clipboard-text" size={24} color={color} />,
                     }}
                 />
+                 {isTeacher && (
+                <Tabs.Screen
+                name="statistics"
+                    options={{
+                        title: "Estadísticas",
+                        tabBarIcon: ({ color, size, focused }) => (
+                            <Ionicons
+                                name={focused ? "bar-chart" : "bar-chart-outline"}
+                                size={size}
+                                color={color}
+                            />
+                        ),
+                    }}
+              />)}
+              {!isTeacher && (
+                <Tabs.Screen
+                 name="statistics"
+                options={{
+                  href: null, // Esto evita que se muestre en la barra de pestañas
+                }}
+            />)}
 
                 <Tabs.Screen
                     name="me" // esta es la pantalla me.tsx, que redirige al perfil propio
@@ -211,7 +241,8 @@ export default function AppLayout() {
                   href: null, // Esto evita que se muestre en la barra de pestañas
                 }}
               />
-            </Tabs>
+             
+            </Tabs>      
         </PaperProvider>
     );
 }

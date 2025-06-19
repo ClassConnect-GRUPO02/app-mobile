@@ -391,4 +391,13 @@ getFeedbacksByStudentId: async (studentId: string) => {
             throw error;
         }
     },
+  getStudentStats: async (courseId: string, studentId: string) => {
+    try {
+      const response = await api.get(`/courses/${courseId}/stats/students/${studentId}`);
+      return response.data;
+    } catch (error) {
+      console.error(`Error fetching stats for student ${studentId} in course ${courseId}:`, error);
+      throw error;
+    }
+  }
 };
