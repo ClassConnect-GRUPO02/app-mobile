@@ -113,7 +113,9 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
       const activityData = await courseClient.getCourseActivityLog(courseId)
       console.log("Raw activity log response:", activityData)
       console.log("Activity log data array:", activityData)
-      setActivityLog(activityData || [])
+      setActivityLog(
+          (activityData || []).sort((a: { createdAt: string | number | Date }, b: { createdAt: string | number | Date }) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()),
+      )
     } catch (error) {
       console.error("Error loading activity log:", error)
       setActivityLog([])
@@ -129,7 +131,16 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
       const { exists, id } = await userApi.checkEmailExists(searchEmail)
       if (exists && id) {
         const userInfo = await userApi.getUserById(id)
-        setSearchResults([userInfo.user])
+
+        if (userInfo.user && userInfo.user.userType === "docente") {
+          setSearchResults([userInfo.user])
+        } else {
+          setSearchResults([])
+          Alert.alert(
+              "Usuario no válido",
+              "Solo se pueden agregar usuarios con rol de docente como instructores auxiliares",
+          )
+        }
       } else {
         setSearchResults([])
         Alert.alert("Usuario no encontrado", "No se encontró un usuario con ese email")
@@ -151,7 +162,7 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
           selectedUser.id,
           "Nuevo rol de instructor",
           `Has sido asignado como instructor auxiliar en un curso`,
-          "courseAssigned",
+          "courseEnrollment",
       )
 
       Alert.alert("Éxito", "Instructor auxiliar agregado correctamente")
@@ -195,7 +206,7 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
                     instructor.id,
                     "Rol de instructor removido",
                     `Tu rol como instructor auxiliar ha sido revocado`,
-                    "courseRevoked",
+                    "courseEnrollment",
                 )
 
                 Alert.alert("Éxito", "Instructor auxiliar removido correctamente")
@@ -226,6 +237,7 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
       )
 
       Alert.alert("Éxito", "Permisos actualizados correctamente")
+      // Reload activity log to show the permission change
       loadActivityLog()
     } catch (error) {
       console.error("Error updating permissions:", error)
