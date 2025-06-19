@@ -42,9 +42,12 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
     can_update_course: false,
   })
   const [currentUserId, setCurrentUserId] = useState<string>("")
+  const [activityLog, setActivityLog] = useState<any[]>([])
+  const [activityLoading, setActivityLoading] = useState(false)
 
   useEffect(() => {
     loadInstructors()
+    loadActivityLog()
     getCurrentUserId()
   }, [courseId])
 
@@ -99,6 +102,22 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
       Alert.alert("Error", "No se pudieron cargar los instructores")
     } finally {
       setLoading(false)
+    }
+  }
+
+  const loadActivityLog = async () => {
+    try {
+      setActivityLoading(true)
+      console.log("Loading activity log for course:", courseId)
+      const activityData = await courseClient.getCourseActivityLog(courseId)
+      console.log("Raw activity log response:", activityData)
+      console.log("Activity log data array:", activityData)
+      setActivityLog(activityData || [])
+    } catch (error) {
+      console.error("Error loading activity log:", error)
+      setActivityLog([])
+    } finally {
+      setActivityLoading(false)
     }
   }
 
@@ -199,12 +218,48 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
     try {
       await courseClient.updateInstructorPermissions(courseId, instructor.id, currentUserId, newPermissions)
 
+      setInstructors((prevInstructors) =>
+          prevInstructors.map((inst) =>
+              inst.id === instructor.id ? { ...inst, permissions: { ...inst.permissions!, ...newPermissions } } : inst,
+          ),
+      )
+
       Alert.alert("Éxito", "Permisos actualizados correctamente")
-      loadInstructors()
+      loadActivityLog()
     } catch (error) {
       console.error("Error updating permissions:", error)
       Alert.alert("Error", "No se pudieron actualizar los permisos")
     }
+  }
+
+  const formatActivityAction = (action: string, metadata: any) => {
+    switch (action) {
+      case "add_module_to_course":
+        return `Módulo agregado: ${metadata.module_name}`
+      case "task_created":
+        return `Tarea creada: ${metadata.title}`
+      case "update_course":
+        return `Curso actualizado: ${metadata.course_name}`
+      case "instructor_added":
+        return `Instructor auxiliar agregado`
+      case "instructor_removed":
+        return `Instructor auxiliar removido`
+      case "permissions_updated":
+        return `Permisos de instructor actualizados`
+      default:
+        return `Acción: ${action}`
+    }
+  }
+
+  const formatDate = (dateString: string) => {
+    const date = new Date(dateString)
+    return date.toLocaleString("es-ES", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+      hour: "2-digit",
+      minute: "2-digit",
+    })
   }
 
   if (loading) {
@@ -315,6 +370,43 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
               </Card>
           ))}
         </ScrollView>
+
+        <Divider style={styles.sectionDivider} />
+
+        <View style={styles.activitySection}>
+          <Text variant="titleLarge" style={styles.activityTitle}>
+            Registro de Actividad
+          </Text>
+
+          {activityLoading ? (
+              <View style={styles.activityLoadingContainer}>
+                <ActivityIndicator size="small" />
+                <Text>Cargando actividad...</Text>
+              </View>
+          ) : (
+              <ScrollView style={styles.activityList} nestedScrollEnabled>
+                {activityLog.length === 0 ? (
+                    <Text style={styles.noActivityText}>No hay actividad registrada</Text>
+                ) : (
+                    activityLog.map((activity) => (
+                        <Card key={activity.id} style={styles.activityCard}>
+                          <Card.Content>
+                            <Text variant="bodyMedium" style={styles.activityAction}>
+                              {formatActivityAction(activity.action, activity.metadata)}
+                            </Text>
+                            <Text variant="bodySmall" style={styles.activityDate}>
+                              {formatDate(activity.createdAt)}
+                            </Text>
+                            <Text variant="bodySmall" style={styles.activityUser}>
+                              Usuario ID: {activity.userId}
+                            </Text>
+                          </Card.Content>
+                        </Card>
+                    ))
+                )}
+              </ScrollView>
+          )}
+        </View>
 
         <Portal>
           <Dialog visible={showAddDialog} onDismiss={() => setShowAddDialog(false)}>
@@ -451,5 +543,47 @@ const styles = StyleSheet.create({
   },
   selectedUserCard: {
     backgroundColor: "#e3f2fd",
+  },
+  sectionDivider: {
+    marginVertical: 20,
+    height: 2,
+  },
+  activitySection: {
+    flex: 1,
+    maxHeight: 300,
+  },
+  activityTitle: {
+    marginBottom: 12,
+  },
+  activityLoadingContainer: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    padding: 20,
+  },
+  activityList: {
+    flex: 1,
+  },
+  activityCard: {
+    marginBottom: 8,
+    backgroundColor: "#f8f9fa",
+  },
+  activityAction: {
+    fontWeight: "500",
+    marginBottom: 4,
+  },
+  activityDate: {
+    color: "#666",
+    marginBottom: 2,
+  },
+  activityUser: {
+    color: "#888",
+    fontSize: 12,
+  },
+  noActivityText: {
+    textAlign: "center",
+    color: "#666",
+    padding: 20,
+    fontStyle: "italic",
   },
 })
