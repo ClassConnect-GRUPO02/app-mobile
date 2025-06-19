@@ -1,5 +1,12 @@
 import { useState, useEffect } from "react";
-import { View, StyleSheet, ScrollView, Alert, Linking, SafeAreaView } from "react-native";
+import {
+  View,
+  StyleSheet,
+  ScrollView,
+  Alert,
+  Linking,
+  SafeAreaView,
+} from "react-native";
 import {
   Text,
   Card,
@@ -17,6 +24,7 @@ import { StatusBar } from "expo-status-bar";
 import { userApi } from "@/api/userApi";
 import React from "react";
 import { courseClient } from "@/api/coursesClient";
+import { apiClient } from "@/api/client";
 
 interface Submission {
   id: string;
@@ -32,6 +40,7 @@ interface Submission {
   created_at: string;
   updated_at: string;
   student_name?: string; // Añadido para mostrar el nombre del estudiante
+  revision: boolean;
 }
 
 export default function TaskSubmissionsScreen() {
@@ -52,6 +61,9 @@ export default function TaskSubmissionsScreen() {
   const [submitting, setSubmitting] = useState(false);
   const [aiFeedback, setAIFeedback] = useState<string | null>(null);
   const [loadingAIFeedback, setLoadingAIFeedback] = useState(false);
+  const [expandedFeedbackIds, setExpandedFeedbackIds] = useState<Set<string>>(
+    new Set()
+  );
 
   useEffect(() => {
     const fetchTaskAndSubmissions = async () => {
@@ -81,6 +93,7 @@ export default function TaskSubmissionsScreen() {
 
         // Obtener la tarea
         const taskData = await taskClient.getTaskById(courseId, taskId);
+        console.log("Task data:", taskData);
         if (!taskData) {
           throw new Error("No se pudo cargar la tarea");
         }
@@ -118,6 +131,8 @@ export default function TaskSubmissionsScreen() {
           })
         );
 
+        console.log("Submissions with names:", submissionsWithNames);
+
         setSubmissions(submissionsWithNames);
       } catch (err) {
         console.error("Error al cargar las entregas:", err);
@@ -140,6 +155,18 @@ export default function TaskSubmissionsScreen() {
     setSelectedSubmission(submission);
     setGrade(submission.grade !== null ? submission.grade.toString() : "");
     setFeedback(submission.feedback || "");
+  };
+
+  const toggleFeedbackExpanded = (id: string) => {
+    setExpandedFeedbackIds((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(id)) {
+        newSet.delete(id);
+      } else {
+        newSet.add(id);
+      }
+      return newSet;
+    });
   };
 
   const handleSaveFeedback = async () => {
@@ -178,6 +205,25 @@ export default function TaskSubmissionsScreen() {
       setSubmissions(updatedSubmissions);
       setSelectedSubmission(null);
       Alert.alert("Éxito", "La retroalimentación se ha guardado correctamente");
+      //si es un examen de tipo archivo y ya paso la fecha de entrega se notifica al estudiante
+      if (task?.type === "tarea") {
+        await userApi.notifyUser(
+          selectedSubmission.student_id,
+          "Retroalimentación de tarea",
+          `Tu retroalimentación para la tarea "${task.title}" ha sido enviada.`,
+          "gradingAvailable"
+        );
+      } else if (
+        task?.type === "examen" &&
+        task.due_date < new Date().toISOString()
+      ) {
+        await userApi.notifyUser(
+          selectedSubmission.student_id,
+          "Retroalimentación de examen",
+          `Tu retroalimentación para el examen "${task.title}" ha sido enviada.`,
+          "gradingAvailable"
+        );
+      }
     } catch (error) {
       console.error("Error al guardar la retroalimentación:", error);
       Alert.alert(
@@ -225,8 +271,6 @@ export default function TaskSubmissionsScreen() {
     }
   };
 
-  
-
   const handleBack = () => {
     router.back();
   };
@@ -272,7 +316,6 @@ export default function TaskSubmissionsScreen() {
 
   return (
     <SafeAreaView style={styles.safeContainer}>
-
       <StatusBar style="auto" />
 
       <View style={styles.header}>
@@ -344,6 +387,9 @@ export default function TaskSubmissionsScreen() {
                       textStyle={{
                         color:
                           submission.status === "late" ? "#c62828" : "#2e7d32",
+                        height: 20,
+                        alignContent: "center",
+                        justifyContent: "center",
                       }}
                     >
                       {submission.status === "late"
@@ -374,18 +420,25 @@ export default function TaskSubmissionsScreen() {
 
                   <View style={styles.gradeContainer}>
                     <Text style={styles.gradeLabel}>Calificación:</Text>
-                    <Text
-                      style={[
-                        styles.gradeValue,
-                        submission.grade !== null && {
-                          color: submission.grade >= 6 ? "#2e7d32" : "#c62828",
-                        },
-                      ]}
-                    >
-                      {submission.grade !== null
-                        ? submission.grade.toFixed(1)
-                        : "Sin calificar"}
-                    </Text>
+                    {submission.revision ? (
+                      <Text style={{ color: "#ff9800", fontWeight: "bold" }}>
+                        🕒 Pendiente de revisión
+                      </Text>
+                    ) : (
+                      <Text
+                        style={[
+                          styles.gradeValue,
+                          submission.grade !== null && {
+                            color:
+                              submission.grade >= 6 ? "#2e7d32" : "#c62828",
+                          },
+                        ]}
+                      >
+                        {submission.grade !== null
+                          ? submission.grade.toFixed(1)
+                          : "Sin calificar"}
+                      </Text>
+                    )}
                   </View>
 
                   {submission.feedback && (
@@ -393,9 +446,27 @@ export default function TaskSubmissionsScreen() {
                       <Text style={styles.feedbackLabel}>
                         Retroalimentación:
                       </Text>
+
                       <Text style={styles.feedbackText}>
-                        {submission.feedback}
+                        {expandedFeedbackIds.has(submission.id)
+                          ? submission.feedback
+                          : submission.feedback.length > 200
+                          ? `${submission.feedback.slice(0, 200)}...`
+                          : submission.feedback}
                       </Text>
+
+                      {submission.feedback.length > 200 && (
+                        <Button
+                          onPress={() => toggleFeedbackExpanded(submission.id)}
+                          compact
+                          mode="text"
+                          style={{ alignSelf: "flex-start", marginTop: 4 }}
+                        >
+                          {expandedFeedbackIds.has(submission.id)
+                            ? "Mostrar menos"
+                            : "Mostrar más"}
+                        </Button>
+                      )}
                     </View>
                   )}
                 </Card.Content>
@@ -430,17 +501,19 @@ export default function TaskSubmissionsScreen() {
               style={styles.feedbackInput}
             />
 
-            <Text
+            <Button
+              mode="outlined"
+              icon="robot"
               onPress={handleFetchAIFeedback}
-              style={[
-                styles.aiFeedbackLink,
-                loadingAIFeedback && { opacity: 0.5 },
-              ]}
+              loading={loadingAIFeedback}
+              disabled={loadingAIFeedback}
+              style={styles.aiButton}
+              contentStyle={styles.aiButtonContent}
             >
               {loadingAIFeedback
-                ? "CARGANDO RESUMEN CON IA..."
+                ? "OBTENIENDO RESUMEN..."
                 : "OBTENER RESUMEN CON IA"}
-            </Text>
+            </Button>
 
             <View style={styles.buttonContainer}>
               <Button
@@ -461,7 +534,6 @@ export default function TaskSubmissionsScreen() {
                 Cancelar
               </Button>
             </View>
-            
           </View>
         )}
       </View>
@@ -475,16 +547,17 @@ const styles = StyleSheet.create({
     backgroundColor: "#fff",
   },
   safeContainer: {
-  flex: 1,
-  backgroundColor: "#fff",
-  paddingTop: 16, // o más si necesitas más espacio
-},
+    flex: 1,
+    backgroundColor: "#fff",
+    paddingTop: 16, // o más si necesitas más espacio
+  },
 
-  aiFeedbackLink: {
-    color: "#6200ee",
-    fontWeight: "bold",
-    marginBottom: 12,
-    textTransform: "uppercase",
+  aiButton: {
+    marginBottom: 16,
+    borderColor: "#6200ee",
+  },
+  aiButtonContent: {
+    height: 48,
   },
 
   loadingContainer: {

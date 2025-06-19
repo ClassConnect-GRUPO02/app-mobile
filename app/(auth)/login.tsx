@@ -310,7 +310,6 @@ const handleGoogleLogin = async () => {
           >
             Iniciar sesión con Google
           </Button>
-          <HttpTestModal />
 
           <View style={styles.registerContainer}>
             <Text>¿No tienes una cuenta? </Text>
