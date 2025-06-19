@@ -44,6 +44,7 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
   const [currentUserId, setCurrentUserId] = useState<string>("")
   const [activityLog, setActivityLog] = useState<any[]>([])
   const [activityLoading, setActivityLoading] = useState(false)
+  const [activeTab, setActiveTab] = useState<"instructors" | "activity">("instructors")
 
   useEffect(() => {
     loadInstructors()
@@ -150,7 +151,7 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
           selectedUser.id,
           "Nuevo rol de instructor",
           `Has sido asignado como instructor auxiliar en un curso`,
-          "courseEnrollment",
+          "courseAssigned",
       )
 
       Alert.alert("Éxito", "Instructor auxiliar agregado correctamente")
@@ -194,7 +195,7 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
                     instructor.id,
                     "Rol de instructor removido",
                     `Tu rol como instructor auxiliar ha sido revocado`,
-                    "courseEnrollment",
+                    "courseRevoked",
                 )
 
                 Alert.alert("Éxito", "Instructor auxiliar removido correctamente")
@@ -274,139 +275,166 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
   return (
       <View style={styles.container}>
         <View style={styles.header}>
-          <Text variant="titleLarge">Gestión de Instructores</Text>
-          {isCreator && (
-              <Button mode="contained" icon="plus" onPress={() => setShowAddDialog(true)} style={styles.addButton}>
-                Agregar Instructor Auxiliar
-              </Button>
-          )}
+          <Text variant="titleLarge">Docentes Auxiliares</Text>
         </View>
 
-        <ScrollView style={styles.instructorsList}>
-          {instructors.map((instructor) => (
-              <Card key={instructor.id} style={styles.instructorCard}>
-                <Card.Content>
-                  <View style={styles.instructorHeader}>
-                    <View style={styles.instructorInfo}>
-                      <Text variant="titleMedium">{instructor.name}</Text>
-                      <Text variant="bodyMedium" style={styles.email}>
-                        {instructor.email}
-                      </Text>
-                      <Chip style={styles.typeChip} mode={instructor.permissions?.type === "TITULAR" ? "flat" : "outlined"}>
-                        {instructor.permissions?.type === "TITULAR" ? "Titular" : "Auxiliar"}
-                      </Chip>
-                    </View>
-                    {isCreator && instructor.permissions?.type === "AUXILIAR" && (
-                        <IconButton icon="delete" iconColor="#f44336" onPress={() => handleRemoveInstructor(instructor)} />
-                    )}
-                  </View>
-
-                  {instructor.permissions && (
-                      <>
-                        <Divider style={styles.divider} />
-                        <Text variant="titleSmall" style={styles.permissionsTitle}>
-                          Permisos
-                        </Text>
-
-                        <List.Item
-                            title="Crear contenido"
-                            description="Puede crear módulos y recursos"
-                            right={() => (
-                                <Switch
-                                    value={instructor.permissions?.can_create_content || false}
-                                    onValueChange={(value) => {
-                                      if (isCreator && instructor.permissions?.type === "AUXILIAR" && instructor.permissions) {
-                                        handleUpdatePermissions(instructor, {
-                                          ...instructor.permissions,
-                                          can_create_content: value,
-                                        })
-                                      }
-                                    }}
-                                    disabled={!isCreator || instructor.permissions?.type === "TITULAR"}
-                                />
-                            )}
-                        />
-
-                        <List.Item
-                            title="Calificar estudiantes"
-                            description="Puede dar feedbacks para estudiantes"
-                            right={() => (
-                                <Switch
-                                    value={instructor.permissions?.can_grade || false}
-                                    onValueChange={(value) => {
-                                      if (isCreator && instructor.permissions?.type === "AUXILIAR" && instructor.permissions) {
-                                        handleUpdatePermissions(instructor, {
-                                          ...instructor.permissions,
-                                          can_grade: value,
-                                        })
-                                      }
-                                    }}
-                                    disabled={!isCreator || instructor.permissions?.type === "TITULAR"}
-                                />
-                            )}
-                        />
-
-                        <List.Item
-                            title="Actualizar curso"
-                            description="Puede modificar información del curso"
-                            right={() => (
-                                <Switch
-                                    value={instructor.permissions?.can_update_course || false}
-                                    onValueChange={(value) => {
-                                      if (isCreator && instructor.permissions?.type === "AUXILIAR" && instructor.permissions) {
-                                        handleUpdatePermissions(instructor, {
-                                          ...instructor.permissions,
-                                          can_update_course: value,
-                                        })
-                                      }
-                                    }}
-                                    disabled={!isCreator || instructor.permissions?.type === "TITULAR"}
-                                />
-                            )}
-                        />
-                      </>
-                  )}
-                </Card.Content>
-              </Card>
-          ))}
-        </ScrollView>
-
-        <Divider style={styles.sectionDivider} />
-
-        <View style={styles.activitySection}>
-          <Text variant="titleLarge" style={styles.activityTitle}>
+        <View style={styles.tabContainer}>
+          <Button
+              mode={activeTab === "instructors" ? "contained" : "outlined"}
+              onPress={() => setActiveTab("instructors")}
+              style={[styles.tabButton, activeTab === "instructors" && styles.activeTabButton]}
+          >
+            Gestión de Instructores
+          </Button>
+          <Button
+              mode={activeTab === "activity" ? "contained" : "outlined"}
+              onPress={() => setActiveTab("activity")}
+              style={[styles.tabButton, activeTab === "activity" && styles.activeTabButton]}
+          >
             Registro de Actividad
-          </Text>
-
-          {activityLoading ? (
-              <View style={styles.activityLoadingContainer}>
-                <ActivityIndicator size="small" />
-                <Text>Cargando actividad...</Text>
-              </View>
-          ) : (
-              <ScrollView style={styles.activityList} nestedScrollEnabled>
-                {activityLog.length === 0 ? (
-                    <Text style={styles.noActivityText}>No hay actividad registrada</Text>
-                ) : (
-                    activityLog.map((activity) => (
-                        <Card key={activity.id} style={styles.activityCard}>
-                          <Card.Content>
-                            <Text variant="bodyMedium" style={styles.activityAction}>
-                              {formatActivityAction(activity.action, activity.metadata)}
-                            </Text>
-                            <Text variant="bodySmall" style={styles.activityDate}>
-                              {formatDate(activity.createdAt)}
-                            </Text>
-                            <Text variant="bodySmall" style={styles.activityUser}>
-                              Usuario ID: {activity.userId}
-                            </Text>
-                          </Card.Content>
-                        </Card>
-                    ))
-                )}
-              </ScrollView>
-          )}
+          </Button>
         </View>
+
+        {activeTab === "instructors" ? (
+            <View style={styles.tabContent}>
+              {isCreator && (
+                  <Button mode="contained" icon="plus" onPress={() => setShowAddDialog(true)} style={styles.addButton}>
+                    Agregar Instructor Auxiliar
+                  </Button>
+              )}
+
+              <ScrollView style={styles.instructorsList}>
+                {instructors.map((instructor) => (
+                    <Card key={instructor.id} style={styles.instructorCard}>
+                      <Card.Content>
+                        <View style={styles.instructorHeader}>
+                          <View style={styles.instructorInfo}>
+                            <Text variant="titleMedium">{instructor.name}</Text>
+                            <Text variant="bodyMedium" style={styles.email}>
+                              {instructor.email}
+                            </Text>
+                            <Chip
+                                style={styles.typeChip}
+                                mode={instructor.permissions?.type === "TITULAR" ? "flat" : "outlined"}
+                            >
+                              {instructor.permissions?.type === "TITULAR" ? "Titular" : "Auxiliar"}
+                            </Chip>
+                          </View>
+                          {isCreator && instructor.permissions?.type === "AUXILIAR" && (
+                              <IconButton
+                                  icon="delete"
+                                  iconColor="#f44336"
+                                  onPress={() => handleRemoveInstructor(instructor)}
+                              />
+                          )}
+                        </View>
+
+                        {instructor.permissions && (
+                            <>
+                              <Divider style={styles.divider} />
+                              <Text variant="titleSmall" style={styles.permissionsTitle}>
+                                Permisos
+                              </Text>
+
+                              <List.Item
+                                  title="Crear contenido"
+                                  description="Puede crear módulos y recursos"
+                                  right={() => (
+                                      <Switch
+                                          value={instructor.permissions?.can_create_content || false}
+                                          onValueChange={(value) => {
+                                            if (isCreator && instructor.permissions?.type === "AUXILIAR" && instructor.permissions) {
+                                              handleUpdatePermissions(instructor, {
+                                                ...instructor.permissions,
+                                                can_create_content: value,
+                                              })
+                                            }
+                                          }}
+                                          disabled={!isCreator || instructor.permissions?.type === "TITULAR"}
+                                      />
+                                  )}
+                              />
+
+                              <List.Item
+                                  title="Calificar estudiantes"
+                                  description="Puede dar feedbacks para estudiantes"
+                                  right={() => (
+                                      <Switch
+                                          value={instructor.permissions?.can_grade || false}
+                                          onValueChange={(value) => {
+                                            if (isCreator && instructor.permissions?.type === "AUXILIAR" && instructor.permissions) {
+                                              handleUpdatePermissions(instructor, {
+                                                ...instructor.permissions,
+                                                can_grade: value,
+                                              })
+                                            }
+                                          }}
+                                          disabled={!isCreator || instructor.permissions?.type === "TITULAR"}
+                                      />
+                                  )}
+                              />
+
+                              <List.Item
+                                  title="Actualizar curso"
+                                  description="Puede modificar información del curso"
+                                  right={() => (
+                                      <Switch
+                                          value={instructor.permissions?.can_update_course || false}
+                                          onValueChange={(value) => {
+                                            if (isCreator && instructor.permissions?.type === "AUXILIAR" && instructor.permissions) {
+                                              handleUpdatePermissions(instructor, {
+                                                ...instructor.permissions,
+                                                can_update_course: value,
+                                              })
+                                            }
+                                          }}
+                                          disabled={!isCreator || instructor.permissions?.type === "TITULAR"}
+                                      />
+                                  )}
+                              />
+                            </>
+                        )}
+                      </Card.Content>
+                    </Card>
+                ))}
+              </ScrollView>
+            </View>
+        ) : (
+            <View style={styles.tabContent}>
+              <Text variant="titleMedium" style={styles.activityTitle}>
+                Registro de Actividad del Curso
+              </Text>
+
+              {activityLoading ? (
+                  <View style={styles.activityLoadingContainer}>
+                    <ActivityIndicator size="small" />
+                    <Text>Cargando actividad...</Text>
+                  </View>
+              ) : (
+                  <ScrollView style={styles.activityList}>
+                    {activityLog.length === 0 ? (
+                        <Text style={styles.noActivityText}>No hay actividad registrada</Text>
+                    ) : (
+                        activityLog.map((activity) => (
+                            <Card key={activity.id} style={styles.activityCard}>
+                              <Card.Content>
+                                <Text variant="bodyMedium" style={styles.activityAction}>
+                                  {formatActivityAction(activity.action, activity.metadata)}
+                                </Text>
+                                <Text variant="bodySmall" style={styles.activityDate}>
+                                  {formatDate(activity.createdAt)}
+                                </Text>
+                                <Text variant="bodySmall" style={styles.activityUser}>
+                                  Usuario ID: {activity.userId}
+                                </Text>
+                              </Card.Content>
+                            </Card>
+                        ))
+                    )}
+                  </ScrollView>
+              )}
+            </View>
+        )}
 
         <Portal>
           <Dialog visible={showAddDialog} onDismiss={() => setShowAddDialog(false)}>
@@ -500,8 +528,21 @@ const styles = StyleSheet.create({
   header: {
     marginBottom: 16,
   },
+  tabContainer: {
+    flexDirection: "row",
+    marginBottom: 16,
+    gap: 8,
+  },
+  tabButton: {
+    flex: 1,
+  },
+  activeTabButton: {
+  },
+  tabContent: {
+    flex: 1,
+  },
   addButton: {
-    marginTop: 8,
+    marginBottom: 16,
   },
   instructorsList: {
     flex: 1,
@@ -543,14 +584,6 @@ const styles = StyleSheet.create({
   },
   selectedUserCard: {
     backgroundColor: "#e3f2fd",
-  },
-  sectionDivider: {
-    marginVertical: 20,
-    height: 2,
-  },
-  activitySection: {
-    flex: 1,
-    maxHeight: 300,
   },
   activityTitle: {
     marginBottom: 12,
