@@ -162,7 +162,7 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
           selectedUser.id,
           "Nuevo rol de instructor",
           `Has sido asignado como instructor auxiliar en un curso`,
-          "courseEnrollment",
+          "courseAssigned",
       )
 
       Alert.alert("Éxito", "Instructor auxiliar agregado correctamente")
@@ -206,7 +206,7 @@ export const InstructorManagement: React.FC<InstructorManagementProps> = ({
                     instructor.id,
                     "Rol de instructor removido",
                     `Tu rol como instructor auxiliar ha sido revocado`,
-                    "courseEnrollment",
+                    "courseRevoked",
                 )
 
                 Alert.alert("Éxito", "Instructor auxiliar removido correctamente")
