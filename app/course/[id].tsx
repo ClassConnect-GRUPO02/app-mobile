@@ -554,8 +554,10 @@ export default function CourseDetailScreen() {
           mode={activeTab === "info" ? "contained" : "outlined"}
           onPress={() => setActiveTab("info")}
           style={styles.tabButton}
+          icon="information"
+          contentStyle={styles.tabButtonContent}
         >
-          Información
+          {""}
         </Button>
 
         {canViewModulesAndTasks && (
@@ -564,36 +566,44 @@ export default function CourseDetailScreen() {
               mode={activeTab === "modules" ? "contained" : "outlined"}
               onPress={() => setActiveTab("modules")}
               style={styles.tabButton}
-            >
-              Módulos
+                  icon="book-open-variant"
+                  contentStyle={styles.tabButtonContent}
+              >
+                {""}
             </Button>
             <Button
               mode={activeTab === "tasks" ? "contained" : "outlined"}
               onPress={() => setActiveTab("tasks")}
               style={styles.tabButton}
-            >
-              Tareas
+                  icon="clipboard-list"
+                  contentStyle={styles.tabButtonContent}
+              >
+                {""}
             </Button>
           </>
         )}
 
-          {permissions.isCreator && (
-              <Button
-                  mode={activeTab === "instructors" ? "contained" : "outlined"}
-                  onPress={() => setActiveTab("instructors")}
-                  style={styles.tabButton}
-              >
-                  Instructores
-              </Button>
-          )}
+        {permissions.isCreator && (
+            <Button
+                mode={activeTab === "instructors" ? "contained" : "outlined"}
+                onPress={() => setActiveTab("instructors")}
+                style={styles.tabButton}
+                icon="account-tie"
+                contentStyle={styles.tabButtonContent}
+            >
+              {""}
+            </Button>
+        )}
 
         {permissions.isInstructor && (
           <Button
             mode={activeTab === "students" ? "contained" : "outlined"}
             onPress={() => setActiveTab("students")}
             style={styles.tabButton}
-          >
-            Alumnos
+                icon="school"
+                contentStyle={styles.tabButtonContent}
+            >
+              {""}
           </Button>
         )}
       </View>
@@ -797,8 +807,12 @@ const styles = StyleSheet.create({
     paddingVertical: 8,
   },
   studentRow: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
-studentName: { flex: 1 },
-statsButton: { marginLeft: 8 }
-
+  avatar: { width: 40, height: 40, borderRadius: 20, marginRight: 12 },
+  studentName: { flex: 1 },
+  statsButton: { marginLeft: 8 },
+  tabButtonContent: {
+    justifyContent: "center",
+    alignItems: "center",
+    paddingHorizontal: 0,
+  },
 });
