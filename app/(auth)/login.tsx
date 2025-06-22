@@ -162,7 +162,7 @@ const handleGoogleLogin = async () => {
 
     console.log("Google Sign-In Response:", res);
 
-    if (res.status === 200) {
+    if (res.status === 202) {
       const data = res.data;
       await userApi.storeToken(data.token);
       await userApi.storeUserId(data.id);
