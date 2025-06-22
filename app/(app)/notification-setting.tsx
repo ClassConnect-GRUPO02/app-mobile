@@ -42,6 +42,8 @@ interface TeacherSettings {
   emailEnabled: boolean;
   assignmentSubmission: number;
   studentFeedback: number;
+  courseAssigned: number;
+  courseRevoked: number;
 }
 
 export default function NotificationSettingsScreen() {
@@ -73,9 +75,8 @@ export default function NotificationSettingsScreen() {
         setUserType(response.user.userType);
 
         // Cargar configuraciones desde la API
-        const notificationSettings = await userApi.getNotificationSettings(
-          userId
-        );
+        const notificationSettings =
+          await userApi.getNotificationSettings(userId);
         if (notificationSettings) {
           console.log(
             "Configuraciones de notificaciones:",
@@ -100,6 +101,8 @@ export default function NotificationSettingsScreen() {
                   emailEnabled: true,
                   assignmentSubmission: BOTH,
                   studentFeedback: BOTH,
+                  courseAssigned: BOTH,
+                  courseRevoked: BOTH,
                 };
 
           setSettings(defaultSettings);
@@ -326,7 +329,7 @@ export default function NotificationSettingsScreen() {
                   </>
                 )}
 
-                {(hasSettingOption("courseEnrollment")) && (
+                {hasSettingOption("courseEnrollment") && (
                   <>
                     <Text style={styles.categoryTitle}>Cursos</Text>
 
@@ -403,6 +406,37 @@ export default function NotificationSettingsScreen() {
                       )}
                     />
                     {renderNotificationTypeSelector("studentFeedback")}
+                  </>
+                )}
+                {hasSettingOption("courseAssigned") && (
+                  <>
+                    <Text style={styles.categoryTitle}>Cursos</Text>
+                    <List.Item
+                      title="Asignación a cursos"
+                      description={getNotificationTypeDescription(
+                        "courseAssigned"
+                      )}
+                      left={(props) => (
+                        <List.Icon {...props} icon="account-plus" />
+                      )}
+                    />
+                    {renderNotificationTypeSelector("courseAssigned")}
+                    <Divider style={styles.divider} />
+                  </>
+                )}
+
+                {hasSettingOption("courseRevoked") && (
+                  <>
+                    <List.Item
+                      title="Remoción de cursos"
+                      description={getNotificationTypeDescription(
+                        "courseRevoked"
+                      )}
+                      left={(props) => (
+                        <List.Icon {...props} icon="account-off" />
+                      )}
+                    />
+                    {renderNotificationTypeSelector("courseRevoked")}
                   </>
                 )}
               </List.Section>
