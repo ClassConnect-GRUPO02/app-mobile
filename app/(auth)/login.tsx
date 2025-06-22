@@ -21,7 +21,12 @@ import { userApi } from "../../api/userApi";
 import HttpTestModal from "../../components/HttpTestModal";
 import * as LocalAuthentication from "expo-local-authentication";
 import * as SecureStore from "expo-secure-store";
-import auth, { getAuth, GoogleAuthProvider, signInWithCredential } from '@react-native-firebase/auth';
+import auth, {
+  getAuth,
+  GoogleAuthProvider,
+  signInWithCredential,
+} from "@react-native-firebase/auth";
+import { googleLogin, linkGoogleAccount } from "../../api/userApi"; // Asegúrate de tener esta función en tu API
 
 //import type { LoginRequest, ApiError } from "../../api/client";
 import {
@@ -29,8 +34,8 @@ import {
   isSuccessResponse,
   SignInSuccessResponse,
   statusCodes,
-  type User
-} from '@react-native-google-signin/google-signin';
+  type User,
+} from "@react-native-google-signin/google-signin";
 
 interface GoogleUserData {
   name: string;
@@ -145,57 +150,91 @@ const handleGoogleLogin = async () => {
     await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
     const response = await GoogleSignin.signIn();
 
-    console.log('✅ Respuesta de Google:', response);
-
-    if (isSuccessResponse(response)) {
-      const idToken = response.data.idToken;
-
-      const auth = getAuth(); // nuevo estilo modular
-      const googleCredential = GoogleAuthProvider.credential(idToken);
-
-      await signInWithCredential(auth, googleCredential); // modular method
-
-      const googleInfo = response.data;
-
-      const check = await fetchWithTimeout(
-        userApi.checkEmailExists(googleInfo.user.email)
-      );
-
-      if (check.exists) {
-        await userApi.storeToken(check.token);
-        await userApi.storeUserId(check.id);
-        Alert.alert("Cuenta ya registrada", "Iniciando sesión...");
-        router.replace("/(app)/home");
-      } else {
-        setGoogleUserData({
-          name: googleInfo.user.givenName + " " + googleInfo.user.familyName || "Usuario",
-          email: googleInfo.user.email,
-        });
-
-        router.push({
-          pathname: "/(auth)/register",
-          params: {
-            googleUserData: JSON.stringify({
-              name: googleInfo.user.givenName + " " + googleInfo.user.familyName || "Usuario",
-              email: googleInfo.user.email,
-              password: googleInfo.user.id,
-            }),
-          },
-        });
-      }
-    } else {
+    if (!isSuccessResponse(response)) {
       Alert.alert("Error", "No se pudo obtener la información de Google");
+      return;
+    }
+
+    const idToken = response.data.idToken;
+
+    // Petición manual con control de status
+    const res = await googleLogin(idToken || "");
+
+    console.log("Google Sign-In Response:", res);
+
+    if (res.status === 202) {
+      const data = res.data;
+      await userApi.storeToken(data.token);
+      await userApi.storeUserId(data.id);
+
+      Alert.alert("Inicio de sesión exitoso", "Cuenta: Google");
+      router.replace("/(app)/home");
+    } else if (res.status === 401) {
+      Alert.alert(
+        "Cuenta no vinculada",
+        "¿Deseas vincular tu cuenta de Google con una cuenta existente?",
+        [
+          {
+            text: "No",
+            style: "cancel",
+            onPress: () => console.log("Vinculación cancelada"),
+          },
+          {
+            text: "Sí",
+            onPress: async () => {
+              try {
+                const linkRes = await linkGoogleAccount(idToken || "");
+                if (linkRes.status === 200) {
+                  Alert.alert(
+                    "Cuenta vinculada",
+                    "Ahora puedes iniciar sesión."
+                  );
+                } else {
+                  Alert.alert("Error", "No se pudo vincular la cuenta.");
+                }
+              } catch (linkError) {
+                Alert.alert("Error", "No se pudo vincular la cuenta.");
+              }
+            },
+          },
+        ]
+      );
+    } else if (res.status === 404) {
+      const profile = response.data.user;
+      if (!profile?.email || !profile?.name) {
+        Alert.alert(
+          "Error",
+          "No se pudo obtener la información necesaria de Google."
+        );
+        return;
+      }
+
+      const googleUserData = JSON.stringify({
+        name: profile.name,
+        email: profile.email,
+        password: profile.id,
+      });
+
+      router.push({
+        pathname: "/(auth)/register",
+        params: { googleUserData },
+      });
+    } else {
+      Alert.alert("Error", "No se pudo verificar la cuenta de Google.");
     }
   } catch (error: any) {
-    console.error('Error Google Sign-In:', error);
+    console.error("Google Sign-In Error:", error);
     if (error.code === statusCodes.SIGN_IN_CANCELLED) {
-      Alert.alert('Cancelado', 'El inicio de sesión fue cancelado');
+      Alert.alert("Cancelado", "El inicio de sesión fue cancelado.");
     } else if (error.code === statusCodes.IN_PROGRESS) {
-      Alert.alert('En progreso', 'El inicio de sesión está en curso');
+      Alert.alert("En progreso", "Ya hay una sesión en progreso.");
     } else if (error.code === statusCodes.PLAY_SERVICES_NOT_AVAILABLE) {
-      Alert.alert('Error', 'Servicios de Google Play no disponibles');
+      Alert.alert(
+        "Servicios no disponibles",
+        "Google Play Services no está disponible."
+      );
     } else {
-      Alert.alert('Error de inicio de sesión', error.message || 'Ocurrió un error inesperado');
+      Alert.alert("Error", error.message || "Ocurrió un error inesperado.");
     }
   }
 };
