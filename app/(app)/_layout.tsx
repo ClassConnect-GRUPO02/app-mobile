@@ -1,6 +1,6 @@
 import React, { useEffect } from "react";
 import { Tabs } from "expo-router";
-import {PaperProvider, useTheme} from "react-native-paper";
+import {PaperProvider, MD3LightTheme} from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
 import * as Notifications from "expo-notifications";
 import Toast from "react-native-toast-message";
@@ -8,6 +8,7 @@ import { getItemAsync } from "expo-secure-store";
 import { userApi } from "../../api/userApi";
 import { Platform, View } from "react-native";
 import { MaterialCommunityIcons } from "@expo/vector-icons";
+import { AppColors } from '@/constants/Colors';
 
 // Configurar el comportamiento de las notificaciones
 Notifications.setNotificationHandler({
@@ -18,8 +19,23 @@ Notifications.setNotificationHandler({
     }),
 });
 
+// Tema personalizado con paleta violeta para este layout
+const customTheme = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: AppColors.primary,
+    primaryContainer: AppColors.primarySoft,
+    secondary: AppColors.primaryLight,
+    surface: AppColors.surface,
+    background: AppColors.background,
+    onPrimary: AppColors.textOnPrimary,
+    onSurface: AppColors.text,
+    onBackground: AppColors.text,
+  },
+};
+
 export default function AppLayout() {
-    const theme = useTheme();
     const [isTeacher, setIsTeacher] = React.useState<boolean | null>(null);
     
 
@@ -31,7 +47,7 @@ export default function AppLayout() {
                 name: "default",
                 importance: Notifications.AndroidImportance.MAX,
                 vibrationPattern: [0, 250, 250, 250],
-                lightColor: "#FF231F7C",
+                lightColor: AppColors.primary,
             });
         }
 
@@ -103,14 +119,14 @@ export default function AppLayout() {
     }, []);
   
     return (
-        <PaperProvider>
+        <PaperProvider theme={customTheme}>
             <Tabs
                 screenOptions={{
-                    tabBarActiveTintColor: theme.colors.primary,
-                    tabBarInactiveTintColor: "gray",
+                    tabBarActiveTintColor: AppColors.primary,
+                    tabBarInactiveTintColor: AppColors.icon,
                     tabBarStyle: {
-                        backgroundColor: "#FFFFFF",
-                        borderTopColor: "#EEEEEE",
+                        backgroundColor: AppColors.tabBackground,
+                        borderTopColor: AppColors.tabBorder,
                         elevation: 8,
                         shadowColor: "#000",
                         shadowOffset: { width: 0, height: -2 },

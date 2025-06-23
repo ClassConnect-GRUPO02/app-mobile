@@ -19,6 +19,7 @@ import {
 import { StatusBar } from "expo-status-bar";
 import { userApi, UserInfo } from "../../api/userApi";
 import { useRouter } from "expo-router";
+import { AppColors } from "@/constants/Colors";
 
 export default function SearchScreen() {
   const [searchQuery, setSearchQuery] = useState("");
@@ -71,12 +72,12 @@ export default function SearchScreen() {
         <Avatar.Text
           size={50}
           label={item.name.substring(0, 2).toUpperCase()}
-          style={{ backgroundColor: theme.colors.primary }}
+          style={{ backgroundColor: AppColors.primary }}
         />
         <View style={styles.userInfo}>
           <Text style={styles.userName}>{item.name}</Text>
           <Text style={styles.userEmail}>{item.email}</Text>
-          <Chip style={styles.userTypeChip} textStyle={{ fontSize: 12 }}>
+          <Chip style={styles.userTypeChip} textStyle={{ fontSize: 12, color: AppColors.primary }}>
             {item.userType === "alumno" ? "Alumno" : "Docente"}
           </Chip>
         </View>
@@ -102,7 +103,7 @@ export default function SearchScreen() {
           value={searchQuery}
           onSubmitEditing={handleSearch}
           style={styles.searchBar}
-          iconColor={theme.colors.primary}
+          iconColor={AppColors.primary}
         />
       </View>
 
@@ -110,7 +111,7 @@ export default function SearchScreen() {
 
       {loading ? (
         <View style={styles.loadingContainer}>
-          <ActivityIndicator size="large" color={theme.colors.primary} />
+          <ActivityIndicator size="large" color={AppColors.primary} />
           <Text style={styles.loadingText}>Buscando usuarios...</Text>
         </View>
       ) : searched ? (
@@ -142,46 +143,56 @@ export default function SearchScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: AppColors.background,
   },
   headerContainer: {
     padding: 20,
     paddingTop: 60,
     paddingBottom: 15,
-    backgroundColor: "#fff",
+    backgroundColor: AppColors.surface,
+    borderBottomColor: AppColors.border,
+    borderBottomWidth: 1,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
+    color: AppColors.text,
   },
   searchContainer: {
     padding: 15,
-    backgroundColor: "#fff",
+    backgroundColor: AppColors.surface,
     borderBottomWidth: 1,
-    borderBottomColor: "#eee",
+    borderBottomColor: AppColors.border,
   },
   searchBar: {
     elevation: 0,
     borderWidth: 1,
-    borderColor: "#eee",
+    borderColor: AppColors.border,
+    backgroundColor: AppColors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: AppColors.background,
   },
   loadingText: {
     marginTop: 15,
     fontSize: 16,
-    color: "#666",
+    color: AppColors.textSecondary,
   },
   resultsContainer: {
     padding: 15,
   },
   userCard: {
     marginBottom: 12,
-    borderRadius: 10,
+    borderRadius: 12,
     elevation: 2,
+    backgroundColor: AppColors.surface,
+    shadowColor: AppColors.primary,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 1 },
   },
   userCardContent: {
     flexDirection: "row",
@@ -195,15 +206,17 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 4,
+    color: AppColors.text,
   },
   userEmail: {
     fontSize: 14,
-    color: "#666",
+    color: AppColors.textSecondary,
     marginBottom: 8,
   },
   userTypeChip: {
     alignSelf: "flex-start",
     height: 24,
+    backgroundColor: AppColors.primarySoft,
   },
   emptyContainer: {
     flex: 1,
@@ -213,7 +226,7 @@ const styles = StyleSheet.create({
   },
   emptyText: {
     fontSize: 16,
-    color: "#666",
+    color: AppColors.textSecondary,
     textAlign: "center",
   },
   instructionsContainer: {
@@ -224,12 +237,13 @@ const styles = StyleSheet.create({
   },
   instructionsText: {
     fontSize: 16,
-    color: "#666",
+    color: AppColors.textSecondary,
     textAlign: "center",
   },
   errorText: {
-    color: "red",
+    color: AppColors.error,
     margin: 15,
     textAlign: "center",
+    fontSize: 14,
   },
 });

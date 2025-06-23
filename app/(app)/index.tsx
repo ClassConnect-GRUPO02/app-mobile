@@ -23,6 +23,7 @@ import { getItemAsync } from "expo-secure-store";
 import type { UserInfo } from "../../api/userApi";
 import { router } from "expo-router";
 import { Ionicons } from "@expo/vector-icons";
+import { AppColors } from "@/constants/Colors";
 
 // Tipo para almacenar la información del usuario
 interface UserData {
@@ -192,12 +193,13 @@ export default function HomeScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: AppColors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: AppColors.background,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -211,37 +213,53 @@ const styles = StyleSheet.create({
     fontSize: 26,
     fontWeight: "bold",
     marginBottom: 8,
+    color: AppColors.text,
   },
   subtitle: {
     fontSize: 16,
-    color: "#666",
+    color: AppColors.textSecondary,
   },
   card: {
     marginBottom: 20,
     elevation: 3,
-    borderRadius: 10,
+    borderRadius: 12,
+    backgroundColor: AppColors.surface,
+    shadowColor: AppColors.primary,
+    shadowOpacity: 0.1,
+    shadowRadius: 8,
+    shadowOffset: { width: 0, height: 2 },
   },
   cardTitle: {
     fontSize: 18,
     marginBottom: 10,
+    color: AppColors.text,
+    fontWeight: '600',
   },
   cardText: {
     fontSize: 14,
     lineHeight: 20,
-    color: "#555",
+    color: AppColors.textSecondary,
   },
   divider: {
     marginVertical: 20,
     height: 1,
+    backgroundColor: AppColors.divider,
   },
   sectionTitle: {
     fontSize: 20,
     marginBottom: 15,
+    color: AppColors.text,
+    fontWeight: 'bold',
   },
   featureCard: {
     marginBottom: 15,
     elevation: 2,
-    borderRadius: 10,
+    borderRadius: 12,
+    backgroundColor: AppColors.surface,
+    shadowColor: AppColors.primary,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 1 },
   },
   featureItem: {
     flexDirection: "row",
@@ -258,42 +276,45 @@ const styles = StyleSheet.create({
     fontSize: 16,
     fontWeight: "bold",
     marginBottom: 5,
+    color: AppColors.text,
   },
   featureDescription: {
     fontSize: 14,
-    color: "#666",
+    color: AppColors.textSecondary,
     lineHeight: 20,
   },
   errorText: {
-    color: "red",
+    color: AppColors.error,
     marginBottom: 20,
     textAlign: "center",
+    fontSize: 14,
   },
   cardCover: {
     height: 150,
-    borderTopLeftRadius: 10,
-    borderTopRightRadius: 10,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   courseButton: {
     marginTop: 10,
     marginBottom: 5,
     marginRight: 10,
     alignSelf: "flex-end",
+    backgroundColor: AppColors.primary,
   },
   floatingButton: {
     position: "absolute",
     bottom: 30,
     right: 30,
-    backgroundColor: "#6200ee",
+    backgroundColor: AppColors.primary,
     width: 60,
     height: 60,
     borderRadius: 30,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#6200ee",
-    shadowOpacity: 0.8,
+    shadowColor: AppColors.primary,
+    shadowOpacity: 0.3,
     shadowRadius: 10,
     shadowOffset: { width: 0, height: 5 },
-    elevation: 6,
+    elevation: 8,
   },
 });

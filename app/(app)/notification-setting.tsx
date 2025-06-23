@@ -19,6 +19,7 @@ import { getItemAsync } from "expo-secure-store";
 import { setAuthToken } from "../../api/client";
 import { userApi } from "../../api/userApi";
 import React from "react";
+import { AppColors } from "@/constants/Colors";
 
 // Constantes para los tipos de notificación
 
@@ -468,12 +469,13 @@ export default function NotificationSettingsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: AppColors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: AppColors.background,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -483,31 +485,36 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
     paddingBottom: 15,
-    backgroundColor: "#fff",
+    backgroundColor: AppColors.surface,
+    borderBottomColor: AppColors.border,
+    borderBottomWidth: 1,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
+    color: AppColors.text,
   },
   card: {
     margin: 15,
     marginTop: 10,
-    borderRadius: 10,
+    borderRadius: 12,
     elevation: 3,
-    shadowColor: "#000",
+    backgroundColor: AppColors.surface,
+    shadowColor: AppColors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowRadius: 6,
   },
   categoryTitle: {
     fontSize: 16,
     fontWeight: "bold",
     marginTop: 10,
     marginBottom: 5,
-    color: "#555",
+    color: AppColors.text,
   },
   divider: {
     marginVertical: 15,
+    backgroundColor: AppColors.divider,
   },
   buttonContainer: {
     margin: 15,
@@ -516,15 +523,17 @@ const styles = StyleSheet.create({
   saveButton: {
     marginBottom: 10,
     paddingVertical: 6,
+    backgroundColor: AppColors.primary,
   },
   cancelButton: {
     paddingVertical: 6,
+    borderColor: AppColors.primary,
   },
   chipContainer: {
     flexDirection: "row",
     flexWrap: "wrap",
     marginVertical: 8,
-    marginLeft: 54, // Alineado con el contenido del List.Item
+    marginLeft: 54,
     gap: 8,
   },
   chip: {

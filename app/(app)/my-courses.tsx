@@ -9,6 +9,7 @@ import { router } from "expo-router"
 import { getItemAsync } from "expo-secure-store"
 import { userApi } from "@/api/userApi"
 import React from "react"
+import { AppColors } from "@/constants/Colors"
 
 interface CourseWithRole extends Course {
     role?: "creator" | "titular" | "auxiliar"
@@ -167,7 +168,7 @@ export default function MyCoursesScreen() {
     if (loading && !refreshing) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6200ee" />
+                <ActivityIndicator size="large" color={AppColors.primary} />
                 <Text style={styles.loadingText}>Cargando tus cursos...</Text>
             </View>
         )
@@ -246,26 +247,30 @@ export default function MyCoursesScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f5f5f5",
+        backgroundColor: AppColors.background,
         padding: 16,
     },
     loadingContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        backgroundColor: AppColors.background,
     },
     loadingText: {
         marginTop: 16,
         fontSize: 16,
+        color: AppColors.textSecondary,
     },
     errorContainer: {
         padding: 12,
-        backgroundColor: "#ffebee",
+        backgroundColor: `${AppColors.error}15`,
         borderRadius: 8,
         marginTop: 12,
+        borderWidth: 1,
+        borderColor: `${AppColors.error}30`,
     },
     errorText: {
-        color: "#d32f2f",
+        color: AppColors.error,
         fontSize: 14,
     },
     header: {
@@ -274,10 +279,10 @@ const styles = StyleSheet.create({
     },
     title: {
         fontWeight: "bold",
-        color: "#6200ee",
+        color: AppColors.primary,
     },
     subtitle: {
-        color: "#666",
+        color: AppColors.textSecondary,
         marginTop: 4,
     },
     coursesList: {
@@ -294,19 +299,19 @@ const styles = StyleSheet.create({
         zIndex: 1,
     },
     roleChip: {
-        backgroundColor: "rgba(255, 255, 255, 0.9)",
+        backgroundColor: `${AppColors.surface}E6`,
     },
     creatorChip: {
-        backgroundColor: "rgba(76, 175, 80, 0.9)",
+        backgroundColor: `${AppColors.success}E6`,
     },
     titularChip: {
-        backgroundColor: "rgba(33, 150, 243, 0.9)",
+        backgroundColor: `${AppColors.info}E6`,
     },
     auxiliarChip: {
-        backgroundColor: "rgba(255, 152, 0, 0.9)",
+        backgroundColor: `${AppColors.warning}E6`,
     },
     roleChipText: {
-        color: "#fff",
+        color: AppColors.textOnPrimary,
         fontWeight: "bold",
         fontSize: 12,
     },
@@ -318,15 +323,16 @@ const styles = StyleSheet.create({
     },
     noResultsText: {
         textAlign: "center",
-        color: "#666",
+        color: AppColors.textSecondary,
         marginBottom: 24,
     },
     exploreButton: {
         paddingHorizontal: 16,
+        backgroundColor: AppColors.primary,
     },
     goToFavoritesButton: {
         marginTop: 10,
-        borderColor: "#6200ee",
+        borderColor: AppColors.primary,
         borderWidth: 1,
     },
 })

@@ -12,6 +12,7 @@ import {
 import { getItemAsync } from "expo-secure-store";
 import { courseClient } from "../../api/coursesClient"; // Asegúrate de importar el cliente correcto
 import { FeedbacksFilter } from "../../components/students/FeedbacksFilter";
+import { AppColors } from "@/constants/Colors";
 
 interface Feedback {
   id: string;
@@ -173,7 +174,7 @@ export default function MyFeedbacksScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={AppColors.primary} />
       </View>
     );
   }
@@ -289,7 +290,7 @@ export default function MyFeedbacksScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: AppColors.background,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -299,29 +300,40 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
     paddingBottom: 15,
-    backgroundColor: "#fff",
+    backgroundColor: AppColors.surface,
+    borderBottomColor: AppColors.border,
+    borderBottomWidth: 1,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
+    color: AppColors.text,
   },
   feedbackCard: {
     margin: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     elevation: 3,
+    backgroundColor: AppColors.surface,
+    shadowColor: AppColors.primary,
+    shadowOpacity: 0.1,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
   feedbackTitle: {
     fontSize: 18,
     fontWeight: "bold",
+    color: AppColors.text,
   },
   feedbackDate: {
     fontSize: 14,
-    color: "#666",
+    color: AppColors.textSecondary,
     marginBottom: 10,
+    fontWeight: '600',
   },
   feedbackText: {
     fontSize: 16,
-    color: "#333",
+    color: AppColors.text,
+    lineHeight: 22,
   },
   pagination: {
     flexDirection: "row",
@@ -331,32 +343,38 @@ const styles = StyleSheet.create({
   },
   paginationButton: {
     width: "45%",
+    borderColor: AppColors.primary,
   },
   paginationInfo: {
     textAlign: "center",
     fontSize: 14,
-    color: "#666",
+    color: AppColors.textSecondary,
     marginHorizontal: 15,
     marginBottom: 10,
+    fontWeight: '500',
   },
   filterInput: {
     margin: 15,
+    backgroundColor: AppColors.background,
   },
   noFeedbackText: {
     textAlign: "center",
     fontSize: 16,
-    color: "#666",
+    color: AppColors.textSecondary,
     marginTop: 20,
+    fontStyle: 'italic',
   },
   errorText: {
-    color: "red",
+    color: AppColors.error,
     textAlign: "center",
     margin: 20,
+    fontSize: 14,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: AppColors.background,
   },
   summaryContainer: {
     marginHorizontal: 15,
@@ -367,5 +385,7 @@ const styles = StyleSheet.create({
   },
   summaryButton: {
     width: "100%",
+    backgroundColor: AppColors.primary,
+    paddingVertical: 8,
   },
 });

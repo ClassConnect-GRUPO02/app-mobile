@@ -24,6 +24,7 @@ import {
   type User,
 } from "@react-native-google-signin/google-signin";
 import EditProfileScreen from "@/components/EditProfileScreen";
+import { AppColors } from "@/constants/Colors";
 
 interface UserProfile {
   id: string;
@@ -147,7 +148,7 @@ export default function ProfileScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color={theme.colors.primary} />
+        <ActivityIndicator size="large" color={AppColors.primary} />
       </View>
     );
   }
@@ -186,7 +187,7 @@ export default function ProfileScreen() {
             <Avatar.Text
               size={80}
               label={profile?.name.substring(0, 2).toUpperCase() || "U"}
-              style={{ backgroundColor: theme.colors.primary }}
+              style={{ backgroundColor: AppColors.primary }}
             />
           </View>
           <Card.Content style={styles.profileInfo}>
@@ -267,12 +268,13 @@ export default function ProfileScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: AppColors.background,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: AppColors.background,
   },
   scrollContainer: {
     flexGrow: 1,
@@ -282,20 +284,24 @@ const styles = StyleSheet.create({
     padding: 20,
     paddingTop: 60,
     paddingBottom: 15,
-    backgroundColor: "#fff",
+    backgroundColor: AppColors.surface,
+    borderBottomColor: AppColors.border,
+    borderBottomWidth: 1,
   },
   title: {
     fontSize: 24,
     fontWeight: "bold",
+    color: AppColors.text,
   },
   profileCard: {
     margin: 15,
-    borderRadius: 10,
+    borderRadius: 12,
     elevation: 3,
-    shadowColor: "#000",
+    backgroundColor: AppColors.surface,
+    shadowColor: AppColors.primary,
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.1,
-    shadowRadius: 3,
+    shadowRadius: 6,
   },
   avatarContainer: {
     alignItems: "center",
@@ -310,39 +316,54 @@ const styles = StyleSheet.create({
     fontSize: 22,
     marginTop: 10,
     textAlign: "center",
+    color: AppColors.text,
+    fontWeight: 'bold',
   },
   profileEmail: {
     fontSize: 16,
-    color: "#666",
+    color: AppColors.textSecondary,
     marginTop: 5,
     marginBottom: 10,
   },
   profileTypeContainer: {
     marginTop: 5,
+    backgroundColor: AppColors.primarySoft,
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
   },
   profileTypeLabel: {
     fontSize: 16,
     fontWeight: "500",
+    color: AppColors.primary,
   },
   infoCard: {
     margin: 15,
     marginTop: 0,
-    borderRadius: 10,
+    borderRadius: 12,
     elevation: 2,
+    backgroundColor: AppColors.surface,
+    shadowColor: AppColors.primary,
+    shadowOpacity: 0.08,
   },
   actionsCard: {
     margin: 15,
     marginTop: 0,
-    borderRadius: 10,
+    borderRadius: 12,
     elevation: 2,
+    backgroundColor: AppColors.surface,
+    shadowColor: AppColors.primary,
+    shadowOpacity: 0.08,
   },
   logoutButton: {
     margin: 15,
     paddingVertical: 6,
+    backgroundColor: AppColors.error,
   },
   errorText: {
-    color: "red",
+    color: AppColors.error,
     margin: 15,
     textAlign: "center",
+    fontSize: 14,
   },
 });

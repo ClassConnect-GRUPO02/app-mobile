@@ -21,6 +21,7 @@ import { statisticsClient } from "@/api/statisticsClient";
 import * as Sharing from "expo-sharing";
 import { printToFileAsync } from "expo-print";
 import { shareAsync } from "expo-sharing";
+import { AppColors } from "@/constants/Colors";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -305,9 +306,9 @@ export default function StudentPerformanceStatsScreen() {
             width={screenWidth - 64}
             height={220}
             chartConfig={{
-              backgroundColor: "#ffffff",
-              backgroundGradientFrom: "#ffffff",
-              backgroundGradientTo: "#ffffff",
+              backgroundColor: AppColors.surface,
+              backgroundGradientFrom: AppColors.surface,
+              backgroundGradientTo: AppColors.surface,
               decimalPlaces: 1,
               color: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
               labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
@@ -350,9 +351,9 @@ export default function StudentPerformanceStatsScreen() {
             yAxisLabel=""
             yAxisSuffix="%"
             chartConfig={{
-              backgroundColor: "#ffffff",
-              backgroundGradientFrom: "#ffffff",
-              backgroundGradientTo: "#ffffff",
+              backgroundColor: AppColors.surface,
+              backgroundGradientFrom: AppColors.surface,
+              backgroundGradientTo: AppColors.surface,
               decimalPlaces: 1,
               color: (opacity = 1) => `rgba(98, 0, 238, ${opacity})`,
               labelColor: (opacity = 1) => `rgba(0, 0, 0, ${opacity})`,
@@ -370,7 +371,7 @@ export default function StudentPerformanceStatsScreen() {
   if (loading) {
     return (
       <View style={styles.loadingContainer}>
-        <ActivityIndicator size="large" color="#6200ee" />
+        <ActivityIndicator size="large" color={AppColors.primary} />
         <Text style={styles.loadingText}>Cargando estadísticas...</Text>
       </View>
     );
@@ -470,7 +471,7 @@ export default function StudentPerformanceStatsScreen() {
                   stats.averageTaskGrade,
                   " pts",
                   "clipboard-text",
-                  "#6200ee"
+                  AppColors.primary
                 )}
                 {renderStatsCard(
                   "Promedio Exámenes",
@@ -527,17 +528,19 @@ export default function StudentPerformanceStatsScreen() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: AppColors.background,
     padding: 16,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
+    backgroundColor: AppColors.background,
   },
   loadingText: {
     marginTop: 16,
     fontSize: 16,
+    color: AppColors.textSecondary,
   },
   header: {
     marginBottom: 16,
@@ -545,52 +548,59 @@ const styles = StyleSheet.create({
   },
   title: {
     fontWeight: "bold",
-    color: "#6200ee",
+    color: AppColors.primary,
   },
   subtitle: {
-    color: "#666",
+    color: AppColors.textSecondary,
     marginTop: 4,
   },
   errorContainer: {
     padding: 12,
-    backgroundColor: "#ffebee",
+    backgroundColor: `${AppColors.error}15`,
     borderRadius: 8,
     marginBottom: 12,
+    borderWidth: 1,
+    borderColor: `${AppColors.error}30`,
   },
   errorText: {
-    color: "#d32f2f",
+    color: AppColors.error,
     fontSize: 14,
   },
   filtersContainer: {
     flexDirection: "row",
     gap: 10,
-    marginBottom: 40, // Aumentado de 16 a 24
+    marginBottom: 40,
     paddingHorizontal: 4,
-    zIndex: 100, // Reducido de 1000 a 100
-    elevation: 8, // Reducido de 1000 a 8
+    zIndex: 100,
+    elevation: 8,
   },
   filterButton: {
     flex: 1,
-    borderColor: "#6200ee",
+    borderColor: AppColors.primary,
     minHeight: 40,
     justifyContent: "center",
   },
   content: {
     flex: 1,
-    zIndex: 1, // Añadido para asegurar que esté debajo de los filtros
+    zIndex: 1,
   },
   statsGrid: {
     flexDirection: "row",
     flexWrap: "wrap",
     gap: 12,
     marginBottom: 16,
-    marginTop: 8, // Añadido para dar más espacio
+    marginTop: 8,
   },
   statsCard: {
     width: (screenWidth - 44) / 2,
-    backgroundColor: "#ffffff",
+    backgroundColor: AppColors.surface,
     elevation: 2,
-    zIndex: 1, // Añadido
+    zIndex: 1,
+    borderRadius: 12,
+    shadowColor: AppColors.primary,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 1 },
   },
   statsCardContent: {
     padding: 12,
@@ -604,40 +614,52 @@ const styles = StyleSheet.create({
     fontSize: 12,
     fontWeight: "500",
     marginLeft: 8,
-    color: "#666",
+    color: AppColors.textSecondary,
   },
   statsValue: {
     fontSize: 24,
     fontWeight: "bold",
+    color: AppColors.text,
   },
   divider: {
     marginVertical: 16,
+    backgroundColor: AppColors.divider,
   },
   chartCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: AppColors.surface,
     elevation: 2,
     marginBottom: 16,
+    borderRadius: 12,
+    shadowColor: AppColors.primary,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 1 },
   },
   chartTitle: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 12,
-    color: "#333",
+    color: AppColors.text,
   },
   chart: {
     marginVertical: 8,
     borderRadius: 16,
   },
   actionsCard: {
-    backgroundColor: "#ffffff",
+    backgroundColor: AppColors.surface,
     elevation: 2,
     marginBottom: 16,
+    borderRadius: 12,
+    shadowColor: AppColors.primary,
+    shadowOpacity: 0.08,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 1 },
   },
   actionsTitle: {
     fontSize: 18,
     fontWeight: "bold",
     marginBottom: 12,
-    color: "#333",
+    color: AppColors.text,
   },
   actionsContainer: {
     flexDirection: "row",

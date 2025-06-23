@@ -4,10 +4,33 @@ import { useEffect, useState } from 'react';
 import { getItemAsync } from 'expo-secure-store';
 import { ActivityIndicator, View } from 'react-native';
 import React from 'react';
-import {PaperProvider} from "react-native-paper";
+import {PaperProvider, MD3LightTheme} from "react-native-paper";
 import {SafeAreaProvider} from "react-native-safe-area-context";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { AppColors } from '@/constants/Colors';
+
+// Tema personalizado con paleta violeta
+const customTheme = {
+  ...MD3LightTheme,
+  colors: {
+    ...MD3LightTheme.colors,
+    primary: AppColors.primary,
+    primaryContainer: AppColors.primarySoft,
+    secondary: AppColors.primaryLight,
+    secondaryContainer: AppColors.primarySoft,
+    tertiary: AppColors.primaryDark,
+    surface: AppColors.surface,
+    surfaceVariant: AppColors.backgroundSecondary,
+    background: AppColors.background,
+    onPrimary: AppColors.textOnPrimary,
+    onSecondary: AppColors.textOnPrimary,
+    onSurface: AppColors.text,
+    onBackground: AppColors.text,
+    outline: AppColors.border,
+    outlineVariant: AppColors.divider,
+  },
+};
 
 SplashScreen.preventAutoHideAsync();
 
@@ -66,7 +89,7 @@ useEffect(() => {
   return (
       <GestureHandlerRootView style={{ flex: 1 }}>
         <SafeAreaProvider>
-          <PaperProvider>
+          <PaperProvider theme={customTheme}>
             <Slot />
           </PaperProvider>
         </SafeAreaProvider>

@@ -7,6 +7,7 @@ import type { Task } from "@/types/Task"
 import { GestureHandlerRootView } from "react-native-gesture-handler"
 import { userApi } from "@/api/userApi"
 import React from "react"
+import { AppColors } from "@/constants/Colors"
 
 type StatusFilter = "pending" | "overdue" | "completed" | "draft"
 
@@ -257,7 +258,7 @@ export default function MyTasksScreen() {
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
-                <ActivityIndicator size="large" color="#6200ee" />
+                <ActivityIndicator size="large" color={AppColors.primary} />
                 <Text style={styles.loadingText}>Cargando tareas...</Text>
             </View>
         )
@@ -358,19 +359,25 @@ export default function MyTasksScreen() {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: "#f5f5f5",
+        backgroundColor: AppColors.background,
     },
     header: {
         padding: 16,
-        backgroundColor: "#fff",
+        backgroundColor: AppColors.surface,
+        borderBottomColor: AppColors.border,
+        borderBottomWidth: 1,
     },
     title: {
         fontWeight: "bold",
         marginBottom: 16,
+        color: AppColors.text,
     },
     searchBar: {
         marginBottom: 16,
         elevation: 0,
+        backgroundColor: AppColors.background,
+        borderWidth: 1,
+        borderColor: AppColors.border,
     },
     segmentedButtons: {
         marginBottom: 16,
@@ -383,7 +390,7 @@ const styles = StyleSheet.create({
     },
     filterLabel: {
         marginRight: 8,
-        color: "#666",
+        color: AppColors.textSecondary,
         minWidth: 50,
     },
     filterButton: {
@@ -394,24 +401,28 @@ const styles = StyleSheet.create({
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
+        backgroundColor: AppColors.background,
     },
     loadingText: {
         marginTop: 16,
         fontSize: 16,
+        color: AppColors.textSecondary,
     },
     errorContainer: {
         flex: 1,
         justifyContent: "center",
         alignItems: "center",
         padding: 16,
+        backgroundColor: AppColors.background,
     },
     errorText: {
-        color: "#d32f2f",
+        color: AppColors.error,
         marginBottom: 16,
         textAlign: "center",
     },
     retryButton: {
         marginTop: 8,
+        backgroundColor: AppColors.primary,
     },
     emptyContainer: {
         flex: 1,
@@ -421,7 +432,7 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         textAlign: "center",
-        color: "#666",
+        color: AppColors.textSecondary,
     },
     listContent: {
         padding: 16,
@@ -429,7 +440,12 @@ const styles = StyleSheet.create({
     taskCard: {
         marginBottom: 16,
         elevation: 2,
-        backgroundColor: "#fff",
+        backgroundColor: AppColors.surface,
+        borderRadius: 12,
+        shadowColor: AppColors.primary,
+        shadowOpacity: 0.08,
+        shadowRadius: 6,
+        shadowOffset: { width: 0, height: 1 },
     },
     taskHeader: {
         flexDirection: "row",
@@ -440,21 +456,23 @@ const styles = StyleSheet.create({
     taskTitle: {
         flex: 1,
         marginRight: 8,
+        color: AppColors.text,
     },
     draftBadge: {
-        backgroundColor: "#f5f5f5",
-        color: "#666",
+        backgroundColor: AppColors.backgroundSecondary,
+        color: AppColors.textSecondary,
         paddingHorizontal: 8,
         paddingVertical: 4,
         borderRadius: 12,
         fontSize: 12,
     },
     taskDescription: {
-        color: "#666",
+        color: AppColors.textSecondary,
         marginBottom: 8,
     },
     divider: {
         marginVertical: 8,
+        backgroundColor: AppColors.divider,
     },
     taskFooter: {
         flexDirection: "row",
@@ -463,17 +481,21 @@ const styles = StyleSheet.create({
     },
     dueDate: {
         fontSize: 12,
-        color: "#666",
+        color: AppColors.textSecondary,
     },
     overdue: {
-        color: "#d32f2f",
+        color: AppColors.error,
     },
     paginationContainer: {
-        backgroundColor: "#fff",
+        backgroundColor: AppColors.surface,
         padding: 16,
         marginTop: 16,
-        borderRadius: 8,
+        borderRadius: 12,
         elevation: 1,
+        shadowColor: AppColors.primary,
+        shadowOpacity: 0.05,
+        shadowRadius: 4,
+        shadowOffset: { width: 0, height: 1 },
     },
     paginationInfo: {
         alignItems: "center",
@@ -481,7 +503,7 @@ const styles = StyleSheet.create({
     },
     paginationText: {
         fontSize: 14,
-        color: "#666",
+        color: AppColors.textSecondary,
     },
     paginationControls: {
         flexDirection: "row",
