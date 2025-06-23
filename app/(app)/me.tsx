@@ -201,32 +201,6 @@ export default function ProfileScreen() {
           </Card.Content>
         </Card>
 
-          <Card style={styles.infoCard}>
-            <Card.Content>
-              <List.Section>
-                <List.Subheader>Información personal</List.Subheader>
-                <List.Item
-                    title="Correo electrónico"
-                    description={profile?.email}
-                    left={(props) => <List.Icon {...props} icon="email" />}
-                />
-                <List.Item
-                    title="Tipo de cuenta"
-                    description={profile?.userType === "alumno" ? "Alumno" : "Docente"}
-                    left={(props) => <List.Icon {...props} icon="account" />}
-                />
-              </List.Section>
-            </Card.Content>
-          </Card>
-          <List.Item
-              title="Ubicación actual"
-              description={
-                profile && profile.lat !== undefined && profile.lng !== undefined
-                    ? `Lat: ${profile.lat.toFixed(5)}, Lng: ${profile.lng.toFixed(5)}`
-                    : "Ubicación no disponible"
-              }
-              left={(props) => <List.Icon {...props} icon="map-marker" />}
-          />
           <Card style={styles.actionsCard}>
             <Card.Content>
               <List.Section>
