@@ -21,10 +21,9 @@ import {
   isSuccessResponse,
   SignInSuccessResponse,
   statusCodes,
-  type User
-} from '@react-native-google-signin/google-signin';
+  type User,
+} from "@react-native-google-signin/google-signin";
 import EditProfileScreen from "@/components/EditProfileScreen";
-
 
 interface UserProfile {
   id: string;
@@ -42,6 +41,7 @@ export default function ProfileScreen() {
   const theme = useTheme();
   const [showEditModal, setShowEditModal] = useState(false);
   const { id } = useLocalSearchParams(); // ID del perfil a ver, si se pasa
+  const isStudent = profile?.userType === "alumno";
 
   useEffect(() => {
     const fetchProfile = async () => {
@@ -108,7 +108,6 @@ export default function ProfileScreen() {
         text: "Sí, salir",
         onPress: async () => {
           try {
-            
             await deleteItemAsync("userToken");
             await deleteItemAsync("userId");
             GoogleSignin.signOut();
@@ -201,37 +200,47 @@ export default function ProfileScreen() {
           </Card.Content>
         </Card>
 
-          <Card style={styles.actionsCard}>
-            <Card.Content>
-              <List.Section>
-                <List.Subheader>Acciones</List.Subheader>
-                <List.Item
-                    title="Mis Cursos"
-                    description={
-                      profile?.userType === "alumno" ? "Cursos en los que estás inscripto" : "Cursos que has creado"
-                    }
-                    left={(props) => <List.Icon {...props} icon="book-open-variant" />}
-                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                    onPress={navigateToMyCourses}
-                />
-                <Divider />
+        <Card style={styles.actionsCard}>
+          <Card.Content>
+            <List.Section>
+              <List.Subheader>Acciones</List.Subheader>
               <List.Item
-                title="Mis Feedbacks"
-                description="Revisa los comentarios y sugerencias de tus docentes"
-                left={(props) => <List.Icon {...props} icon="comment" />}
+                title="Mis Cursos"
+                description={
+                  profile?.userType === "alumno"
+                    ? "Cursos en los que estás inscripto"
+                    : "Cursos que has creado"
+                }
+                left={(props) => (
+                  <List.Icon {...props} icon="book-open-variant" />
+                )}
                 right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                onPress={() => router.push("/(app)/my-feedbacks")} // Aquí agregamos la navegación
+                onPress={navigateToMyCourses}
               />
-                <Divider />
-                <List.Item
-                    title="Editar perfil"
-                    description="Actualiza tu información personal"
-                    left={(props) => <List.Icon {...props} icon="account-edit" />}
-                    right={(props) => <List.Icon {...props} icon="chevron-right" />}
-                    onPress={handleEditProfile}
-                />
-                <Divider />
-                
+              <Divider />
+              {isStudent && (
+                <>
+                  <List.Item
+                    title="Mis Feedbacks"
+                    description="Revisa los comentarios y sugerencias de tus docentes"
+                    left={(props) => <List.Icon {...props} icon="comment" />}
+                    right={(props) => (
+                      <List.Icon {...props} icon="chevron-right" />
+                    )}
+                    onPress={() => router.push("/(app)/my-feedbacks")} // Aquí agregamos la navegación
+                  />
+                  <Divider />
+                </>
+              )}
+              <List.Item
+                title="Editar perfil"
+                description="Actualiza tu información personal"
+                left={(props) => <List.Icon {...props} icon="account-edit" />}
+                right={(props) => <List.Icon {...props} icon="chevron-right" />}
+                onPress={handleEditProfile}
+              />
+              <Divider />
+
               <List.Item
                 title="Configurar notificaciones"
                 description="Personaliza tus preferencias de notificaciones"
@@ -239,15 +248,20 @@ export default function ProfileScreen() {
                 right={(props) => <List.Icon {...props} icon="chevron-right" />}
                 onPress={() => router.push("/(app)/notification-setting")}
               />
-              </List.Section>
-            </Card.Content>
-          </Card>
-          <Button mode="contained" icon="logout" style={styles.logoutButton} onPress={handleLogout}>
-            Cerrar sesión
-          </Button>
-        </ScrollView>
-      </View>
-  )
+            </List.Section>
+          </Card.Content>
+        </Card>
+        <Button
+          mode="contained"
+          icon="logout"
+          style={styles.logoutButton}
+          onPress={handleLogout}
+        >
+          Cerrar sesión
+        </Button>
+      </ScrollView>
+    </View>
+  );
 }
 
 const styles = StyleSheet.create({
