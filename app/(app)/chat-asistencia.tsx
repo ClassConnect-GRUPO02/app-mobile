@@ -9,6 +9,7 @@ import {
   KeyboardAvoidingView,
   Platform,
   Alert,
+  SafeAreaView,
 } from "react-native";
 import {
   addDoc,
@@ -32,6 +33,7 @@ import { userApi } from "@/api/userApi";
 import { ActivityIndicator } from "react-native-paper";
 import { Ionicons } from "@expo/vector-icons";
 import { chatClient } from "@/api/chatClient";
+import { AppColors } from "@/constants/Colors";
 
 interface ChatMessage {
   id: string;
@@ -417,7 +419,7 @@ const clearChatHistory = async () => {
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
       {/* Header con botón de borrar historial */}
-      <View style={styles.headerContainer}>
+      <SafeAreaView style={styles.headerContainer}>
         <Text style={styles.headerTitle}>Chat de Asistencia</Text>
         <TouchableOpacity
           style={styles.clearButton}
@@ -426,7 +428,7 @@ const clearChatHistory = async () => {
           <Ionicons name="trash-outline" size={20} color="#e53935" />
           <Text style={styles.clearButtonText}>Borrar historial</Text>
         </TouchableOpacity>
-      </View>
+      </SafeAreaView>
 
       <FlatList
         ref={flatListRef}
@@ -472,14 +474,14 @@ const clearChatHistory = async () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#fff", // fondo blanco limpio
+    backgroundColor: AppColors.surface,
   },
   loadingContainer: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
     padding: 16,
-    backgroundColor: "#fff",
+    backgroundColor: AppColors.background,
   },
   headerContainer: {
     flexDirection: "row",
@@ -487,14 +489,20 @@ const styles = StyleSheet.create({
     alignItems: "center",
     paddingHorizontal: 16,
     paddingVertical: 12,
+    paddingTop: Platform.OS === "ios" ? 12 : 40,
     borderBottomWidth: 1,
-    borderBottomColor: "#e0e0e0",
-    backgroundColor: "#fff",
+    borderBottomColor: AppColors.border,
+    backgroundColor: AppColors.primary,
+    elevation: 4,
+    shadowColor: AppColors.primary,
+    shadowOpacity: 0.2,
+    shadowRadius: 6,
+    shadowOffset: { width: 0, height: 2 },
   },
   headerTitle: {
     fontSize: 18,
     fontWeight: "bold",
-    color: "#333",
+    color: AppColors.textOnPrimary,
   },
   clearButton: {
     flexDirection: "row",
@@ -502,13 +510,13 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 6,
     borderRadius: 20,
-    backgroundColor: "#fff",
+    backgroundColor: AppColors.surface,
     borderWidth: 1,
-    borderColor: "#e53935",
+    borderColor: AppColors.error,
   },
   clearButtonText: {
     marginLeft: 4,
-    color: "#e53935",
+    color: AppColors.error,
     fontSize: 12,
     fontWeight: "500",
   },
@@ -516,9 +524,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingHorizontal: 16,
     paddingTop: 12,
+    backgroundColor: AppColors.background,
   },
   messagesContainer: {
-    paddingBottom: 20, // espacio para que no se corte el último mensaje al hacer scroll
+    paddingBottom: 20,
   },
   messageContainer: {
     marginVertical: 6,
@@ -534,34 +543,34 @@ const styles = StyleSheet.create({
     paddingVertical: 12,
     paddingHorizontal: 16,
     borderRadius: 20,
-    shadowColor: "#000",
+    shadowColor: AppColors.primary,
     shadowOpacity: 0.1,
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 1 },
     elevation: 2,
   },
   userBubble: {
-    backgroundColor: "#6200ee", // Morado de tu app
+    backgroundColor: AppColors.primary,
     borderBottomRightRadius: 4,
   },
   botBubble: {
-    backgroundColor: "#f5f5f5", // Gris muy claro para el bot
+    backgroundColor: AppColors.backgroundSecondary,
     borderBottomLeftRadius: 4,
   },
   messageText: {
     fontSize: 16,
     lineHeight: 22,
-    color: "#333",
+    color: AppColors.text,
   },
   userText: {
-    color: "#fff",
+    color: AppColors.textOnPrimary,
   },
   botText: {
-    color: "#333",
+    color: AppColors.text,
   },
   timeText: {
     fontSize: 11,
-    color: "#999",
+    color: AppColors.textSecondary,
     marginTop: 4,
     alignSelf: "flex-end",
   },
@@ -570,38 +579,38 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     paddingVertical: 12,
     borderTopWidth: 1,
-    borderTopColor: "#e0e0e0",
-    backgroundColor: "#fff",
+    borderTopColor: AppColors.border,
+    backgroundColor: AppColors.surface,
     alignItems: "flex-end",
   },
   textInput: {
     flex: 1,
     borderWidth: 1,
-    borderColor: "#e0e0e0",
+    borderColor: AppColors.border,
     borderRadius: 25,
     paddingHorizontal: 16,
     paddingVertical: 12,
     fontSize: 16,
     maxHeight: 100,
-    backgroundColor: "#fafafa",
-    color: "#333",
+    backgroundColor: AppColors.backgroundSecondary,
+    color: AppColors.text,
   },
   sendButton: {
     marginLeft: 12,
-    backgroundColor: "#6200ee",
+    backgroundColor: AppColors.primary,
     borderRadius: 25,
     width: 44,
     height: 44,
     justifyContent: "center",
     alignItems: "center",
-    shadowColor: "#6200ee",
+    shadowColor: AppColors.primary,
     shadowOpacity: 0.5,
     shadowRadius: 6,
     shadowOffset: { width: 0, height: 2 },
     elevation: 3,
   },
   sendButtonDisabled: {
-    backgroundColor: "#ccc",
+    backgroundColor: AppColors.textSecondary,
     shadowOpacity: 0,
   },
 });
