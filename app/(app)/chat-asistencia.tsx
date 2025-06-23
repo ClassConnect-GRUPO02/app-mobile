@@ -15,6 +15,8 @@ import {
   collection,
   serverTimestamp,
   updateDoc,
+  deleteDoc,
+  writeBatch,
 } from "firebase/firestore";
 import {
   query,
@@ -204,6 +206,68 @@ const escalateToHuman = async (botMessage: ChatMessage) => {
   }
 };
 
+const clearChatHistory = async () => {
+  if (!userId) {
+    Alert.alert("Error", "No se pudo identificar al usuario");
+    return;
+  }
+
+  Alert.alert(
+    "Confirmar",
+    "¿Estás seguro de que quieres borrar todo el historial del chat? Esta acción no se puede deshacer.",
+    [
+      {
+        text: "Cancelar",
+        style: "cancel"
+      },
+      {
+        text: "Borrar",
+        style: "destructive",
+        onPress: async () => {
+          try {
+            // Obtener todos los mensajes del usuario
+            const q = query(
+              collection(db, "chat"),
+              where("userId", "==", userId)
+            );
+            
+            const snapshot = await getDocs(q);
+            
+            if (snapshot.empty) {
+              Alert.alert("Info", "No hay historial para borrar");
+              return;
+            }
+
+            // Usar batch para borrar múltiples documentos de manera eficiente
+            const batch = writeBatch(db);
+            
+            snapshot.forEach((document) => {
+              batch.delete(doc(db, "chat", document.id));
+            });
+
+            await batch.commit();
+
+            // Limpiar el estado local y mostrar solo el mensaje inicial
+            setMessages([
+              {
+                id: "initial",
+                text: "¡Hola! Soy tu asistente de ClassConnect. ¿En qué puedo ayudarte hoy?",
+                createdAt: new Date(),
+                isUser: false,
+              },
+            ]);
+
+            Alert.alert("Éxito", "El historial del chat ha sido borrado completamente");
+          } catch (error) {
+            console.error("Error borrando historial del chat:", error);
+            Alert.alert("Error", "No se pudo borrar el historial. Inténtalo más tarde.");
+          }
+        }
+      }
+    ]
+  );
+};
+
   const sendMessage = useCallback(async () => {
     if (!inputText.trim() || sending) return;
 
@@ -352,11 +416,23 @@ const escalateToHuman = async (botMessage: ChatMessage) => {
       behavior={Platform.OS === "ios" ? "padding" : "height"}
       keyboardVerticalOffset={Platform.OS === "ios" ? 90 : 0}
     >
+      {/* Header con botón de borrar historial */}
+      <View style={styles.headerContainer}>
+        <Text style={styles.headerTitle}>Chat de Asistencia</Text>
+        <TouchableOpacity
+          style={styles.clearButton}
+          onPress={clearChatHistory}
+        >
+          <Ionicons name="trash-outline" size={20} color="#e53935" />
+          <Text style={styles.clearButtonText}>Borrar historial</Text>
+        </TouchableOpacity>
+      </View>
+
       <FlatList
         ref={flatListRef}
         data={messages}
         renderItem={renderMessage}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item: ChatMessage) => item.id}
         style={styles.messagesList}
         contentContainerStyle={styles.messagesContainer}
         onContentSizeChange={() =>
@@ -404,6 +480,37 @@ const styles = StyleSheet.create({
     alignItems: "center",
     padding: 16,
     backgroundColor: "#fff",
+  },
+  headerContainer: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: 1,
+    borderBottomColor: "#e0e0e0",
+    backgroundColor: "#fff",
+  },
+  headerTitle: {
+    fontSize: 18,
+    fontWeight: "bold",
+    color: "#333",
+  },
+  clearButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: "#fff",
+    borderWidth: 1,
+    borderColor: "#e53935",
+  },
+  clearButtonText: {
+    marginLeft: 4,
+    color: "#e53935",
+    fontSize: 12,
+    fontWeight: "500",
   },
   messagesList: {
     flex: 1,
