@@ -39,7 +39,7 @@ export default function CourseDetailScreen() {
     const [userType, setUserType] = useState<string | null>(null);
     const [students, setStudents] = useState<any[]>([]);
     const [selectedStudent, setSelectedStudent] = useState<any | null>(null);
-    const [isModalVisible, setIsModalVisible] = useState(false); // Estado para controlar el modal
+    const [showFeedbackModal, setShowFeedbackModal] = useState(false);
     const [activeTab, setActiveTab] = useState<
         "info" | "students" | "modules" | "tasks" | "instructors"
     >("info");
@@ -140,7 +140,10 @@ export default function CourseDetailScreen() {
     );
   };
 
-  const handleFeedbackSubmitted = () => setSelectedStudent(null);
+  const handleFeedbackSubmitted = () => {
+    setSelectedStudent(null);
+    setShowFeedbackModal(false);
+  };
 
     const handleEdit = () => {
         if (!permissions.can_update_course) {
@@ -483,7 +486,7 @@ export default function CourseDetailScreen() {
         <View key={student.id} style={styles.studentRow}>
           <Image
             source={{
-              uri: student.avatarUrl || "https://via.placeholder.com/40",
+              uri: student.avatarUrl || "https://us.123rf.com/450wm/nuwaba/nuwaba1707/nuwaba170700076/81763793-person-user-friend-vectror-illustration-icon-isolated-on-grey-background.jpg",
             }}
             style={styles.avatar}
           />
@@ -492,7 +495,10 @@ export default function CourseDetailScreen() {
             <Button
                 mode="outlined"
                 compact
-                onPress={() => setSelectedStudent(student)}
+                onPress={() => {
+                  setSelectedStudent(student);
+                  setShowFeedbackModal(true);
+                }}
             >
             Dar feedback
           </Button>
@@ -513,27 +519,6 @@ export default function CourseDetailScreen() {
           </Button>
         </View>
       ))}
-
-      {/* Aquí mostramos el formulario de feedback si hay un estudiante seleccionado */}
-      {selectedStudent && (
-        <View style={styles.feedbackFormContainer}>
-          {/* Botón de cierre fuera del formulario */}
-          <Button
-            mode="text"
-            onPress={() => setSelectedStudent(null)} // Cierra el formulario
-            style={styles.closeButton}
-          >
-            <Text style={styles.closeButtonText}>X</Text>
-          </Button>
-
-          {/* Formulario de feedback */}
-          <FeedbackForm
-            studentId={selectedStudent.id}
-            courseId={course.id}
-            onFeedbackSubmitted={handleFeedbackSubmitted}
-          />
-        </View>
-      )}
     </ScrollView>
   );
 
@@ -631,6 +616,26 @@ export default function CourseDetailScreen() {
             setSelectedModule(null);
           }}
         />
+      </Modal>
+
+      <Modal
+        visible={showFeedbackModal}
+        onDismiss={() => {
+          setShowFeedbackModal(false);
+          setSelectedStudent(null);
+        }}
+        contentContainerStyle={styles.feedbackModalContainer}
+      >
+        <Text variant="headlineSmall" style={styles.modalTitle}>
+          Enviar Feedback a {selectedStudent?.name}
+        </Text>
+        {selectedStudent && (
+          <FeedbackForm
+            studentId={selectedStudent.id}
+            courseId={course.id}
+            onFeedbackSubmitted={handleFeedbackSubmitted}
+          />
+        )}
       </Modal>
 
       {(permissions.isCreator || permissions.can_update_course) && activeTab === "info" && (
@@ -783,22 +788,26 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     backgroundColor: "#6200ee",
   },
-  feedbackFormContainer: {
-    position: "relative",
-    marginTop: 16,
-    paddingBottom: 80,
+  feedbackModalContainer: {
+    backgroundColor: "white",
+    margin: 20,
+    padding: 20,
+    borderRadius: 12,
+    maxHeight: '80%',
+    elevation: 5,
+    shadowColor: '#000',
+    shadowOffset: {
+      width: 0,
+      height: 2,
+    },
+    shadowOpacity: 0.25,
+    shadowRadius: 3.84,
   },
-  closeButton: {
-    position: "absolute",
-    top: 16,
-    right: 16,
-    backgroundColor: "transparent",
-    zIndex: 10,
-  },
-  closeButtonText: {
-    fontSize: 24,
-    color: "#6200ee",
-    fontWeight: "bold",
+  modalTitle: {
+    marginBottom: 16,
+    textAlign: 'center',
+    fontWeight: 'bold',
+    color: '#6200ee',
   },
   tabHeader: {
     flexDirection: "row",
