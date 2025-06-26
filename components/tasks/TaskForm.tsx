@@ -1,4 +1,6 @@
-import React from "react"
+import { useCallback } from "react"
+
+import React, { useMemo } from "react"
 import { useState } from "react"
 import { View, StyleSheet, ScrollView, KeyboardAvoidingView, Platform, Alert } from "react-native"
 import {
@@ -105,15 +107,11 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, on
         if (!title.trim()) {
             setTitleError("El título es obligatorio")
             isValid = false
-        } else {
-            setTitleError("")
         }
 
         if (!description.trim()) {
             setDescriptionError("La descripción es obligatoria")
             isValid = false
-        } else {
-            setDescriptionError("")
         }
 
         if (hasTimer) {
@@ -219,21 +217,26 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, on
         }
     }
 
-    const addQuestion = () => {
-        setQuestions([...questions, { text: "" }])
-    }
+    const addQuestion = useCallback(() => {
+        setQuestions((prev) => [...prev, { text: "" }])
+    }, [])
 
-    const removeQuestion = (index: number) => {
-        if (questions.length > 1) {
-            setQuestions(questions.filter((_, i) => i !== index))
-        }
-    }
+    const removeQuestion = useCallback(
+        (index: number) => {
+            if (questions.length > 1) {
+                setQuestions((prev) => prev.filter((_, i) => i !== index))
+            }
+        },
+        [questions.length],
+    )
 
-    const updateQuestion = (index: number, text: string) => {
-        const updatedQuestions = [...questions]
-        updatedQuestions[index] = { ...updatedQuestions[index], text }
-        setQuestions(updatedQuestions)
-    }
+    const updateQuestion = useCallback((index: number, text: string) => {
+        setQuestions((prev) => {
+            const updated = [...prev]
+            updated[index] = { ...updated[index], text }
+            return updated
+        })
+    }, [])
 
     const pickAttachment = async () => {
         try {
@@ -290,6 +293,41 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, on
         return `${date.toLocaleDateString()} ${date.toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}`
     }
 
+    const questionsSection = useMemo(() => {
+        if (answerFormat !== "preguntas_respuestas") return null
+
+        return (
+            <View style={styles.questionsSection}>
+                <Text variant="titleSmall" style={styles.questionsTitle}>
+                    Preguntas del {type}
+                </Text>
+
+                {questions.map((question, index) => (
+                    <View key={index} style={styles.questionContainer}>
+                        <TextInput
+                            label={`Pregunta ${index + 1}`}
+                            value={question.text}
+                            onChangeText={(text) => updateQuestion(index, text)}
+                            mode="outlined"
+                            multiline
+                            numberOfLines={2}
+                            style={styles.questionInput}
+                        />
+                        {questions.length > 1 && (
+                            <IconButton icon="delete" size={20} onPress={() => removeQuestion(index)} style={styles.deleteButton} />
+                        )}
+                    </View>
+                ))}
+
+                <Button mode="outlined" icon="plus" onPress={addQuestion} style={styles.addQuestionButton}>
+                    Agregar pregunta
+                </Button>
+
+                {!!questionsError && <HelperText type="error">{questionsError}</HelperText>}
+            </View>
+        )
+    }, [answerFormat, questions, questionsError, type, updateQuestion, removeQuestion, addQuestion])
+
     if (loading) {
         return (
             <View style={styles.loadingContainer}>
@@ -300,7 +338,12 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, on
 
     return (
         <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={styles.container}>
-            <ScrollView contentContainerStyle={styles.scrollContent}>
+            <ScrollView
+                contentContainerStyle={styles.scrollContent}
+                keyboardShouldPersistTaps="handled"
+                keyboardDismissMode="on-drag"
+                showsVerticalScrollIndicator={false}
+            >
                 <Text variant="headlineMedium" style={styles.title}>
                     {taskId ? "Editar" : "Crear"} {type === "tarea" ? "Tarea" : "Examen"}
                 </Text>
@@ -323,7 +366,12 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, on
                     <TextInput
                         label="Título"
                         value={title}
-                        onChangeText={setTitle}
+                        onChangeText={(text) => {
+                            setTitle(text)
+                            if (titleError && text.trim()) {
+                                setTitleError("")
+                            }
+                        }}
                         mode="outlined"
                         style={styles.input}
                         error={!!titleError}
@@ -333,7 +381,12 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, on
                     <TextInput
                         label="Descripción"
                         value={description}
-                        onChangeText={setDescription}
+                        onChangeText={(text) => {
+                            setDescription(text)
+                            if (descriptionError && text.trim()) {
+                                setDescriptionError("")
+                            }
+                        }}
                         mode="outlined"
                         multiline
                         numberOfLines={3}
@@ -469,41 +522,7 @@ export const TaskForm: React.FC<TaskFormProps> = ({ courseId, taskId, onSave, on
                         style={styles.segmentedButtons}
                     />
 
-                    {answerFormat === "preguntas_respuestas" && (
-                        <View style={styles.questionsSection}>
-                            <Text variant="titleSmall" style={styles.questionsTitle}>
-                                Preguntas del {type}
-                            </Text>
-
-                            {questions.map((question, index) => (
-                                <View key={index} style={styles.questionContainer}>
-                                    <TextInput
-                                        label={`Pregunta ${index + 1}`}
-                                        value={question.text}
-                                        onChangeText={(text) => updateQuestion(index, text)}
-                                        mode="outlined"
-                                        multiline
-                                        numberOfLines={2}
-                                        style={styles.questionInput}
-                                    />
-                                    {questions.length > 1 && (
-                                        <IconButton
-                                            icon="delete"
-                                            size={20}
-                                            onPress={() => removeQuestion(index)}
-                                            style={styles.deleteButton}
-                                        />
-                                    )}
-                                </View>
-                            ))}
-
-                            <Button mode="outlined" icon="plus" onPress={addQuestion} style={styles.addQuestionButton}>
-                                Agregar pregunta
-                            </Button>
-
-                            {!!questionsError && <HelperText type="error">{questionsError}</HelperText>}
-                        </View>
-                    )}
+                    {questionsSection}
 
                     {answerFormat === "archivo" && (
                         <View style={styles.infoBox}>
