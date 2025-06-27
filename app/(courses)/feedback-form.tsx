@@ -66,7 +66,7 @@ const FeedbackForm = ({
         studentId,
         "Nuevo feedback",
         `Has recibido un nuevo feedback en el curso ${courseId}.`,
-        "studentFeedback"
+        "teacherFeedback"
       );
       setTimeout(() => {
         setModalVisible(true);
