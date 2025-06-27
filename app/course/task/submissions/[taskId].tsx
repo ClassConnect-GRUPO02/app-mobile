@@ -419,37 +419,24 @@ export default function TaskSubmissionsScreen() {
                   )}
 
                   {submission.answers && submission.answers.length > 0 && (
-                    <View style={styles.answersContainer}>
-                      <Text style={styles.answersLabel}>
-                        Respuestas del estudiante:
-                      </Text>
-                      {submission.answers.map((answer, index) => (
-                        <View key={index} style={styles.answerItem}>
-                          <Text style={styles.answerNumber}>
-                            Pregunta {index + 1}:
-                          </Text>
-                          <Text style={styles.answerText}>
-                            {expandedFeedbackIds.has(`${submission.id}-answer-${index}`)
-                              ? answer
-                              : answer.length > 150
-                              ? `${answer.slice(0, 150)}...`
-                              : answer}
-                          </Text>
-                          {answer.length > 150 && (
-                            <Button
-                              onPress={() => toggleFeedbackExpanded(`${submission.id}-answer-${index}`)}
-                              compact
-                              mode="text"
-                              style={{ alignSelf: "flex-start", marginTop: 4 }}
-                            >
-                              {expandedFeedbackIds.has(`${submission.id}-answer-${index}`)
-                                ? "Mostrar menos"
-                                : "Mostrar más"}
-                            </Button>
-                          )}
-                        </View>
-                      ))}
-                    </View>
+                      <View style={styles.answersContainer}>
+                        <Text style={styles.answersLabel}>Respuestas del estudiante:</Text>
+                        {submission.answers.map((answer: any, index: number) => {
+                          // Find the corresponding question from the task
+                          const correspondingQuestion = task?.questions?.[index]
+
+                          return (
+                              <View key={index} style={styles.answerItem}>
+                                {correspondingQuestion && (
+                                    <Text style={styles.questionText}>
+                                      {index + 1}. {correspondingQuestion.text}
+                                    </Text>
+                                )}
+                                <Text style={styles.answerText}>{answer.answer_text}</Text>
+                              </View>
+                          )
+                        })}
+                      </View>
                   )}
 
                   <View style={styles.gradeContainer}>
@@ -743,28 +730,28 @@ const styles = StyleSheet.create({
   answersContainer: {
     marginTop: 12,
     marginBottom: 8,
-    padding: 12,
-    backgroundColor: "#f8f9fa",
-    borderRadius: 8,
-    borderLeftWidth: 4,
-    borderLeftColor: "#6200ee",
   },
   answersLabel: {
     fontWeight: "bold",
     marginBottom: 8,
-    color: "#6200ee",
-  },
-  answerItem: {
-    marginBottom: 12,
-  },
-  answerNumber: {
-    fontWeight: "bold",
-    marginBottom: 4,
     color: "#333",
   },
+  answerItem: {
+    marginBottom: 8,
+    padding: 12,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: "#6200ee",
+  },
   answerText: {
-    color: "#555",
     lineHeight: 20,
-    paddingLeft: 8,
+    color: "#333",
+  },
+  questionText: {
+    fontWeight: "bold",
+    marginBottom: 6,
+    color: "#6200ee",
+    fontSize: 14,
   },
 });
