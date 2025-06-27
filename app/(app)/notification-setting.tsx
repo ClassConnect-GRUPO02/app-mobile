@@ -32,8 +32,6 @@ const DISABLED = 0;
 interface StudentSettings {
   pushEnabled: boolean;
   emailEnabled: boolean;
-  newAssignment: number;
-  deadlineReminder: number;
   courseEnrollment: number;
   teacherFeedback: number;
 }
@@ -41,7 +39,6 @@ interface StudentSettings {
 interface TeacherSettings {
   pushEnabled: boolean;
   emailEnabled: boolean;
-  assignmentSubmission: number;
   studentFeedback: number;
   courseAssigned: number;
   courseRevoked: number;
@@ -92,15 +89,12 @@ export default function NotificationSettingsScreen() {
               ? {
                   pushEnabled: true,
                   emailEnabled: true,
-                  newAssignment: BOTH,
-                  deadlineReminder: BOTH,
                   courseEnrollment: BOTH,
                   teacherFeedback: BOTH,
                 }
               : {
                   pushEnabled: true,
                   emailEnabled: true,
-                  assignmentSubmission: BOTH,
                   studentFeedback: BOTH,
                   courseAssigned: BOTH,
                   courseRevoked: BOTH,
@@ -298,38 +292,6 @@ export default function NotificationSettingsScreen() {
               <List.Section>
                 <List.Subheader>Notificaciones para Estudiantes</List.Subheader>
 
-                {hasSettingOption("newAssignment") && (
-                  <>
-                    <Text style={styles.categoryTitle}>Tareas y Exámenes</Text>
-                    <List.Item
-                      title="Nuevas tareas o exámenes"
-                      description={getNotificationTypeDescription(
-                        "newAssignment"
-                      )}
-                      left={(props) => <List.Icon {...props} icon="book" />}
-                    />
-                    {renderNotificationTypeSelector("newAssignment")}
-                    <Divider style={styles.divider} />
-                  </>
-                )}
-
-                {hasSettingOption("deadlineReminder") && (
-                  <>
-                    <Text style={styles.categoryTitle}>Recordatorios</Text>
-                    <List.Item
-                      title="Fechas límite de tareas"
-                      description={getNotificationTypeDescription(
-                        "deadlineReminder"
-                      )}
-                      left={(props) => (
-                        <List.Icon {...props} icon="clock-alert" />
-                      )}
-                    />
-                    {renderNotificationTypeSelector("deadlineReminder")}
-                    <Divider style={styles.divider} />
-                  </>
-                )}
-
                 {hasSettingOption("courseEnrollment") && (
                   <>
                     <Text style={styles.categoryTitle}>Cursos</Text>
@@ -376,23 +338,6 @@ export default function NotificationSettingsScreen() {
             <Card.Content>
               <List.Section>
                 <List.Subheader>Notificaciones para Docentes</List.Subheader>
-
-                {hasSettingOption("assignmentSubmission") && (
-                  <>
-                    <Text style={styles.categoryTitle}>Entregas</Text>
-                    <List.Item
-                      title="Entregas de tareas o exámenes"
-                      description={getNotificationTypeDescription(
-                        "assignmentSubmission"
-                      )}
-                      left={(props) => (
-                        <List.Icon {...props} icon="file-document" />
-                      )}
-                    />
-                    {renderNotificationTypeSelector("assignmentSubmission")}
-                    <Divider style={styles.divider} />
-                  </>
-                )}
 
                 {hasSettingOption("studentFeedback") && (
                   <>
