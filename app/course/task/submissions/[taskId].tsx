@@ -418,6 +418,40 @@ export default function TaskSubmissionsScreen() {
                     </Button>
                   )}
 
+                  {submission.answers && submission.answers.length > 0 && (
+                    <View style={styles.answersContainer}>
+                      <Text style={styles.answersLabel}>
+                        Respuestas del estudiante:
+                      </Text>
+                      {submission.answers.map((answer, index) => (
+                        <View key={index} style={styles.answerItem}>
+                          <Text style={styles.answerNumber}>
+                            Pregunta {index + 1}:
+                          </Text>
+                          <Text style={styles.answerText}>
+                            {expandedFeedbackIds.has(`${submission.id}-answer-${index}`)
+                              ? answer
+                              : answer.length > 150
+                              ? `${answer.slice(0, 150)}...`
+                              : answer}
+                          </Text>
+                          {answer.length > 150 && (
+                            <Button
+                              onPress={() => toggleFeedbackExpanded(`${submission.id}-answer-${index}`)}
+                              compact
+                              mode="text"
+                              style={{ alignSelf: "flex-start", marginTop: 4 }}
+                            >
+                              {expandedFeedbackIds.has(`${submission.id}-answer-${index}`)
+                                ? "Mostrar menos"
+                                : "Mostrar más"}
+                            </Button>
+                          )}
+                        </View>
+                      ))}
+                    </View>
+                  )}
+
                   <View style={styles.gradeContainer}>
                     <Text style={styles.gradeLabel}>Calificación:</Text>
                     {submission.revision ? (
@@ -705,5 +739,32 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     marginLeft: 8,
+  },
+  answersContainer: {
+    marginTop: 12,
+    marginBottom: 8,
+    padding: 12,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    borderLeftWidth: 4,
+    borderLeftColor: "#6200ee",
+  },
+  answersLabel: {
+    fontWeight: "bold",
+    marginBottom: 8,
+    color: "#6200ee",
+  },
+  answerItem: {
+    marginBottom: 12,
+  },
+  answerNumber: {
+    fontWeight: "bold",
+    marginBottom: 4,
+    color: "#333",
+  },
+  answerText: {
+    color: "#555",
+    lineHeight: 20,
+    paddingLeft: 8,
   },
 });
