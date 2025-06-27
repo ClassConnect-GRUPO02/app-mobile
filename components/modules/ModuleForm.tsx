@@ -16,7 +16,6 @@ interface ModuleFormProps {
 export const ModuleForm: React.FC<ModuleFormProps> = ({ courseId, initialData, onSave, onCancel }) => {
   const [name, setName] = useState(initialData?.name || "")
   const [description, setDescription] = useState(initialData?.description || "")
-  const [url, setUrl] = useState(initialData?.url || "")
   const [loading, setLoading] = useState(false)
   const [errors, setErrors] = useState<Record<string, string>>({})
 
@@ -48,20 +47,19 @@ export const ModuleForm: React.FC<ModuleFormProps> = ({ courseId, initialData, o
       let savedModule: Module | null
 
       if (isEditing && initialData) {
-        // Actualizar módulo existente
         savedModule = await moduleClient.updateModule(courseId, initialData.id, {
           name,
           description,
-          url,
+          url: "www.link.com",
         })
       } else {
         // Crear nuevo módulo
         const moduleData: ModuleCreationData = {
           name,
           description,
-          url,
+          url: "www.link.com",
           courseId,
-          order: 9999, // Se asignará al final de la lista
+          order: 9999,
         }
 
         savedModule = await moduleClient.createModule(courseId, moduleData)
@@ -138,15 +136,6 @@ export const ModuleForm: React.FC<ModuleFormProps> = ({ courseId, initialData, o
                   disabled={loading}
               />
               {errors.description && <HelperText type="error">{errors.description}</HelperText>}
-
-              <TextInput
-                  label="URL (opcional)"
-                  value={url}
-                  onChangeText={setUrl}
-                  style={styles.input}
-                  disabled={loading}
-                  placeholder="URL opcional para el módulo"
-              />
 
               <View style={styles.buttonContainer}>
                 <Button mode="outlined" onPress={onCancel} style={styles.button} disabled={loading}>
