@@ -418,6 +418,26 @@ export default function TaskSubmissionsScreen() {
                     </Button>
                   )}
 
+                  {submission.answers && submission.answers.length > 0 && (
+                      <View style={styles.answersContainer}>
+                        <Text style={styles.answersLabel}>Respuestas del estudiante:</Text>
+                        {submission.answers.map((answer: any, index: number) => {
+                          const correspondingQuestion = task?.questions?.[index]
+
+                          return (
+                              <View key={index} style={styles.answerItem}>
+                                {correspondingQuestion && (
+                                    <Text style={styles.questionText}>
+                                      {index + 1}. {correspondingQuestion.text}
+                                    </Text>
+                                )}
+                                <Text style={styles.answerText}>{answer.answer_text}</Text>
+                              </View>
+                          )
+                        })}
+                      </View>
+                  )}
+
                   <View style={styles.gradeContainer}>
                     <Text style={styles.gradeLabel}>Calificación:</Text>
                     {submission.revision ? (
@@ -705,5 +725,32 @@ const styles = StyleSheet.create({
   cancelButton: {
     flex: 1,
     marginLeft: 8,
+  },
+  answersContainer: {
+    marginTop: 12,
+    marginBottom: 8,
+  },
+  answersLabel: {
+    fontWeight: "bold",
+    marginBottom: 8,
+    color: "#333",
+  },
+  answerItem: {
+    marginBottom: 8,
+    padding: 12,
+    backgroundColor: "#f8f9fa",
+    borderRadius: 8,
+    borderLeftWidth: 3,
+    borderLeftColor: "#6200ee",
+  },
+  answerText: {
+    lineHeight: 20,
+    color: "#333",
+  },
+  questionText: {
+    fontWeight: "bold",
+    marginBottom: 6,
+    color: "#6200ee",
+    fontSize: 14,
   },
 });
