@@ -1,15 +1,14 @@
 import { useState, useEffect } from "react"
-import { StyleSheet, View, Alert, Linking } from "react-native"
+import { StyleSheet, View, Alert } from "react-native"
 import { Text, Button, Card, ActivityIndicator, IconButton, Divider, FAB, Modal } from "react-native-paper"
 import { useLocalSearchParams, router } from "expo-router"
-import { courseClient } from "@/api/coursesClient"
 import type { Module } from "@/types/Module"
 import { StatusBar } from "expo-status-bar"
 import { ResourceList } from "@/components/resources/ResourceList"
 import { ResourceForm } from "@/components/resources/ResourceForm"
 import React from "react"
 import {Resource} from "@/types/Resource";
-import {userApi} from "@/api/userApi";
+import { useInstructorPermissions } from "@/hooks/useInstructorPermissions"
 import {moduleClient} from "@/api/modulesClient";
 
 export default function ModuleDetailScreen() {
@@ -17,9 +16,10 @@ export default function ModuleDetailScreen() {
   const [module, setModule] = useState<Module | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  const [isCreator, setIsCreator] = useState(false)
   const [showResourceForm, setShowResourceForm] = useState(false)
   const [selectedResource, setSelectedResource] = useState<Resource | null>(null)
+
+  const { permissions, loading: permissionsLoading } = useInstructorPermissions(courseId)
 
   useEffect(() => {
     const fetchModuleAndPermissions = async () => {
@@ -37,17 +37,6 @@ export default function ModuleDetailScreen() {
         }
 
         setModule(moduleData)
-
-        // Verificar si el usuario es el creador del curso
-        const userId = await userApi.getUserId()
-        if (!userId) {
-          throw new Error("No se pudo obtener el ID del usuario")
-        }
-
-        const courseData = await courseClient.getCourseById(courseId)
-        if (courseData) {
-          setIsCreator(courseData.creatorId === userId)
-        }
       } catch (err) {
         console.error("Error al cargar el módulo:", err)
         setError("No se pudo cargar la información del módulo")
@@ -109,10 +98,9 @@ export default function ModuleDetailScreen() {
 
   const handleSaveResource = (resource: Resource) => {
     setShowResourceForm(false)
-    // Recargar los recursos para mostrar los cambios
   }
 
-  if (loading) {
+  if (loading || permissionsLoading) {
     return (
         <View style={styles.loadingContainer}>
           <ActivityIndicator size="large" color="#6200ee" />
@@ -153,20 +141,13 @@ export default function ModuleDetailScreen() {
             <Text variant="bodyLarge" style={styles.description}>
               {module.description}
             </Text>
-
-            {module.url && (
-                <Button mode="outlined" icon="link" onPress={() => Linking.openURL(module.url)} style={styles.urlButton}>
-                  Abrir enlace del módulo
-                </Button>
-            )}
           </Card.Content>
         </Card>
 
         <Divider style={styles.divider} />
 
-        {/* Resources section - No longer in ScrollView */}
         <View style={styles.resourcesContainer}>
-          {isCreator && (
+          {permissions.can_create_content && (
               <Button mode="contained" icon="plus" onPress={handleAddResource} style={styles.addResourceButton}>
                 Agregar recurso
               </Button>
@@ -174,20 +155,19 @@ export default function ModuleDetailScreen() {
 
           <ResourceList
               moduleId={moduleId}
-              isCreator={isCreator}
-              onAddResource={isCreator ? handleAddResource : undefined}
-              onEditResource={isCreator ? handleEditResource : undefined}
+              isCreator={permissions.can_create_content}
+              onAddResource={permissions.can_create_content ? handleAddResource : undefined}
+              onEditResource={permissions.can_create_content ? handleEditResource : undefined}
           />
         </View>
 
-        {isCreator && (
+        {permissions.can_create_content && (
             <View style={styles.fabContainer}>
               <FAB icon="delete" style={[styles.fab, styles.fabDelete]} onPress={handleDeleteModule} color="#fff" small />
               <FAB icon="pencil" style={[styles.fab, styles.fabEdit]} onPress={handleEditModule} color="#fff" small />
             </View>
         )}
 
-        {/* Modal para crear/editar recurso */}
         <Modal
             visible={showResourceForm}
             onDismiss={() => setShowResourceForm(false)}
@@ -235,9 +215,6 @@ const styles = StyleSheet.create({
   description: {
     marginBottom: 16,
     lineHeight: 24,
-  },
-  urlButton: {
-    alignSelf: "flex-start",
   },
   divider: {
     marginHorizontal: 16,
