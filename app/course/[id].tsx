@@ -619,24 +619,27 @@ export default function CourseDetailScreen() {
       </Modal>
 
       <Modal
-        visible={showFeedbackModal}
-        onDismiss={() => {
-          setShowFeedbackModal(false);
-          setSelectedStudent(null);
-        }}
-        contentContainerStyle={styles.feedbackModalContainer}
-      >
-        <Text variant="headlineSmall" style={styles.modalTitle}>
-          Enviar Feedback a {selectedStudent?.name}
-        </Text>
-        {selectedStudent && (
-          <FeedbackForm
-            studentId={selectedStudent.id}
-            courseId={course.id}
-            onFeedbackSubmitted={handleFeedbackSubmitted}
-          />
-        )}
-      </Modal>
+  visible={showFeedbackModal}
+  onDismiss={() => {
+    setShowFeedbackModal(false);
+    setSelectedStudent(null);
+  }}
+  contentContainerStyle={styles.feedbackModalContainer}
+>
+  <ScrollView contentContainerStyle={styles.feedbackModalContent}>
+    <Text variant="headlineSmall" style={styles.modalTitle}>
+      Enviar Feedback a {selectedStudent?.name}
+    </Text>
+    {selectedStudent && (
+      <FeedbackForm
+        studentId={selectedStudent.id}
+        courseId={course.id}
+        onFeedbackSubmitted={handleFeedbackSubmitted}
+      />
+    )}
+  </ScrollView>
+</Modal>
+
 
       {(permissions.isCreator || permissions.can_update_course) && activeTab === "info" && (
             <View style={styles.fabContainer}>
@@ -789,20 +792,23 @@ const styles = StyleSheet.create({
     backgroundColor: "#6200ee",
   },
   feedbackModalContainer: {
-    backgroundColor: "white",
-    margin: 20,
-    padding: 20,
-    borderRadius: 12,
-    maxHeight: '80%',
-    elevation: 5,
-    shadowColor: '#000',
-    shadowOffset: {
-      width: 0,
-      height: 2,
-    },
-    shadowOpacity: 0.25,
-    shadowRadius: 3.84,
-  },
+  backgroundColor: "white",
+  margin: 20,
+  borderRadius: 12,
+  maxHeight: '80%',
+  elevation: 5,
+  shadowColor: '#000',
+  shadowOffset: { width: 0, height: 2 },
+  shadowOpacity: 0.25,
+  shadowRadius: 3.84,
+  overflow: 'hidden', // previene que los hijos se salgan del modal
+},
+
+feedbackModalContent: {
+  padding: 20,
+  flexGrow: 1,
+},
+
   modalTitle: {
     marginBottom: 16,
     textAlign: 'center',

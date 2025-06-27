@@ -1,5 +1,12 @@
 import React, { useState } from "react";
-import { TextInput, Button, Snackbar, Modal, Portal, PaperProvider } from "react-native-paper";
+import {
+  TextInput,
+  Button,
+  Modal,
+  Portal,
+  PaperProvider,
+  Text,
+} from "react-native-paper";
 import { courseClient } from "@/api/coursesClient";
 import { userApi } from "@/api/userApi";
 import { Alert, View, StyleSheet } from "react-native";
@@ -14,10 +21,9 @@ const FeedbackForm = ({
   onFeedbackSubmitted: () => void;
 }) => {
   const [comment, setComment] = useState("");
-  const [punctuation, setPunctuation] = useState<string>(""); 
+  const [punctuation, setPunctuation] = useState<string>("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
-  const [successMessage, setSuccessMessage] = useState("");
   const [modalVisible, setModalVisible] = useState(false);
 
   const handleSubmitFeedback = async () => {
@@ -44,16 +50,21 @@ const FeedbackForm = ({
         score
       );
 
-      setSuccessMessage("Feedback enviado exitosamente.");
-      await userApi.notifyUser(studentId, "Nuevo feedback", `Has recibido un nuevo feedback en el curso ${courseId}.`, "studentFeedback");	
+      setErrorMessage("");
+      await userApi.notifyUser(
+        studentId,
+        "Nuevo feedback",
+        `Has recibido un nuevo feedback en el curso ${courseId}.`,
+        "studentFeedback"
+      );
       setTimeout(() => {
         setModalVisible(true);
-        onFeedbackSubmitted(); 
+        onFeedbackSubmitted();
       }, 500);
     } catch (err: any) {
       if (err.response?.status === 400) {
         setErrorMessage("Ya existe feedback para este estudiante.");
-      }else if (err.response) {
+      } else if (err.response) {
         const detail = err.response.data?.detail;
         setErrorMessage(detail || "Error inesperado en la respuesta del servidor.");
       } else {
@@ -67,26 +78,6 @@ const FeedbackForm = ({
   return (
     <PaperProvider>
       <View style={styles.formContainer}>
-        <Portal>
-        {/* Mostrar mensajes de error y éxito */}
-        <Snackbar
-          visible={!!errorMessage}
-          onDismiss={() => setErrorMessage("")}
-          duration={3000}
-          style={styles.snackbarError}
-        >
-          {errorMessage}
-        </Snackbar>
-
-        <Snackbar
-          visible={!!successMessage}
-          onDismiss={() => setSuccessMessage("")}
-          duration={3000}
-          style={styles.snackbarSuccess}
-        >
-          {successMessage}
-        </Snackbar>
-</Portal>
         <TextInput
           label="Comentario"
           value={comment}
@@ -103,6 +94,11 @@ const FeedbackForm = ({
           keyboardType="numeric"
         />
 
+        {/* Mostrar error en el mismo form */}
+        {errorMessage ? (
+          <Text style={styles.errorText}>{errorMessage}</Text>
+        ) : null}
+
         <Button
           mode="contained"
           onPress={handleSubmitFeedback}
@@ -113,7 +109,6 @@ const FeedbackForm = ({
           Enviar Feedback
         </Button>
 
-        {/* Modal de éxito */}
         <Portal>
           <Modal
             visible={modalVisible}
@@ -142,22 +137,10 @@ const styles = StyleSheet.create({
     shadowRadius: 4,
     shadowOffset: { width: 0, height: 2 },
     position: "relative",
-    minHeight: "100%",
+    flexGrow: 1,
   },
   input: { marginBottom: 12 },
   button: { marginTop: 16 },
-  snackbarError: {
-    position: "absolute",
-    top: 50,
-    width: "100%",
-    backgroundColor: "#D32F2F",
-  },
-  snackbarSuccess: {
-    position: "absolute",
-    top: 50,
-    width: "100%",
-    backgroundColor: "#388E3C",
-  },
   modalContent: {
     padding: 20,
     backgroundColor: "white",
@@ -167,6 +150,11 @@ const styles = StyleSheet.create({
   modalContainer: {
     justifyContent: "center",
     alignItems: "center",
+  },
+  errorText: {
+    color: "#D32F2F",
+    fontSize: 14,
+    marginBottom: 8,
   },
 });
 
