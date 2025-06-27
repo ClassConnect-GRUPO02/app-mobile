@@ -51,16 +51,7 @@ const FeedbackForm = ({
       );
 
       setErrorMessage("");
-      await userApi.notifyUser(
-        studentId,
-        "Nuevo feedback",
-        `Has recibido un nuevo feedback en el curso ${courseId}.`,
-        "studentFeedback"
-      );
-      setTimeout(() => {
-        setModalVisible(true);
-        onFeedbackSubmitted();
-      }, 500);
+      
     } catch (err: any) {
       if (err.response?.status === 400) {
         setErrorMessage("Ya existe feedback para este estudiante.");
@@ -71,6 +62,16 @@ const FeedbackForm = ({
         setErrorMessage("Ocurrió un error al comunicarse con el servidor.");
       }
     } finally {
+      await userApi.notifyUser(
+        studentId,
+        "Nuevo feedback",
+        `Has recibido un nuevo feedback en el curso ${courseId}.`,
+        "teacherFeedback"
+      );
+      setTimeout(() => {
+        setModalVisible(true);
+        onFeedbackSubmitted();
+      }, 500);
       setLoading(false);
     }
   };

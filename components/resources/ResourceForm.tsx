@@ -283,7 +283,7 @@ export const ResourceForm: React.FC<ResourceFormProps> = ({ moduleId, courseId, 
                       style={styles.input}
                       error={!!errors.url}
                       disabled={loading}
-                      placeholder={type === "video" ? "https://www.youtube.com/watch?v=..." : "https://..."}
+                      placeholder={type === "video" ? "Link a YouTube" : "Link a recurso externo"}
                   />
                   {errors.url && <HelperText type="error">{errors.url}</HelperText>}
                 </>

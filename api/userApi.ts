@@ -31,6 +31,7 @@ export interface LoginResponse {
   token: string;
   message?: string;
   refreshToken?: string;
+  status?: number;
 }
 
 export interface UserInfo {
@@ -52,24 +53,27 @@ export const userApi = {
 
   // Login de un usuario
   async login(credentials: LoginRequest): Promise<LoginResponse> {
-    try {
+   
       const response = await apiClient.post<LoginResponse>('/login', credentials);
       console.log('Respuesta del login:', response);
       // Si login es exitoso, almacenamos el token y el userId
-      if (response.token && response.id && response.refreshToken) {
-        console.log('Token recibido:', response.token);
-        console.log('ID de usuario recibido:', response.id);
-        await userApi.storeToken(response.token);  // Guardamos el token
-        await userApi.storeUserId(response.id);    // Guardamos el id del usuario
-          await userApi.storeRefreshToken(response.refreshToken);
+      if (response.data.token && response.data.id && response.data.refreshToken) {
+        console.log('Token recibido:', response.data.token);
+        console.log('ID de usuario recibido:', response.data.id);
+        await userApi.storeToken(response.data.token);  // Guardamos el token
+        await userApi.storeUserId(response.data.id);    // Guardamos el id del usuario
+          await userApi.storeRefreshToken(response.data.refreshToken);
 
       }
 
-      return response;
-    } catch (error) {
-      console.error("Error en el login:", error);
-      throw error;
-    }
+      return{
+        id: response.data.id,
+        token: response.data.token,
+        message: response.data.message,
+        refreshToken: response.data.refreshToken,
+        status: response.status, // Agregamos el status a la respuesta
+      };
+   
   },
 
   // Guardar el token de autenticación en el almacenamiento seguro
@@ -149,13 +153,19 @@ export const userApi = {
       const response = await apiClient.post<LoginResponse>('/biometric-login', { refreshToken });
 
       // Si el refresh es exitoso, almacenamos el nuevo token
-      if (response.token) {
-        console.log('Nuevo token recibido:', response.token);
-        await userApi.storeToken(response.token);  // Guardamos el nuevo token
-        await userApi.storeUserId(response.id);    // Guardamos el id del usuario
+      if (response.data.token) {
+        console.log('Nuevo token recibido:', response.data.token);
+        await userApi.storeToken(response.data.token);  // Guardamos el nuevo token
+        await userApi.storeUserId(response.data.id);    // Guardamos el id del usuario
       }
 
-      return response;
+      return{
+        id: response.data.id,
+        token: response.data.token,
+        message: response.data.message,
+        refreshToken: response.data.refreshToken,
+        status: response.status, // Agregamos el status a la respuesta
+      };
     } catch (error) {
       console.error('Error al refrescar el token:', error);
       throw error;
@@ -202,11 +212,12 @@ export const userApi = {
       body: string,
       notificationType: string
     ): Promise<{ description: string }> {
-      return apiClient.post<{ description: string }>(`/users/${userId}/notifications`, {
+      const response = await apiClient.post<{ description: string }>(`/users/${userId}/notifications`, {
         title,
         body,
         notificationType,
       });
+      return { description: response.data.description };
     },
     // Search users by email for instructor assignment
     searchUserByEmail: async (email: string): Promise<{ user: UserInfo } | null> => {
