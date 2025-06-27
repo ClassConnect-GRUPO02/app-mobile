@@ -102,8 +102,10 @@ export default function RegisterScreen(): React.JSX.Element {
 
       await fetchWithTimeout(userApi.register(userData));
 
+      console.log("✅ Registro exitoso, guardando email para verificación:", email);
       // Guardar el email para verificación pendiente en Secure Store
       await setItemAsync("pendingEmailVerification", email);
+      console.log("💾 Email guardado en Secure Store");
       
       Alert.alert(
         "Registro exitoso", 
@@ -112,6 +114,7 @@ export default function RegisterScreen(): React.JSX.Element {
           {
             text: "OK",
             onPress: () => {
+              console.log("🔄 Navegando a verify-pin desde registro...");
               // Usar replace para evitar que pueda volver al registro
               router.replace(`/(auth)/verify-pin?email=${encodeURIComponent(email)}`);
             }

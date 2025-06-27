@@ -40,52 +40,63 @@ export default function RootLayout() {
 
   const [isReady, setIsReady] = useState(false);
   const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+  const [hasPendingVerification, setHasPendingVerification] = useState(false);
 
   // Manejar lógica de auth
 useEffect(() => {
   const prepare = async () => {
     try {
-      // ✅ Verificamos si hay email pendiente de verificación
+      console.log("🔍 Verificando estado de la aplicación...");
+      
+      // ✅ Verificamos si hay email pendiente de verificación PRIMERO
       const pendingEmail = await getItemAsync("pendingEmailVerification");
+      console.log("📧 Email pendiente:", pendingEmail);
       
       if (pendingEmail) {
-        console.log("Email pendiente de verificación encontrado:", pendingEmail);
-        setIsAuthenticated(false); // No está autenticado hasta verificar
+        console.log("✅ Email pendiente de verificación encontrado:", pendingEmail);
+        console.log("🔄 Navegando a verify-pin...");
+        setHasPendingVerification(true);
+        setIsAuthenticated(false);
         setIsReady(true);
         SplashScreen.hideAsync();
         // Navegamos a verify-pin con el email
         router.replace(`/(auth)/verify-pin?email=${encodeURIComponent(pendingEmail)}`);
-        return; // Salimos del flujo
+        return; // Salimos del flujo sin ejecutar más lógica
       }
 
       // ✅ Si no hay email pendiente, seguimos con auth normal
+      console.log("🔑 Verificando token de autenticación...");
       const token = await getItemAsync('userToken');
+      console.log("🔑 Token encontrado:", !!token);
       setIsAuthenticated(!!token);
+      setHasPendingVerification(false);
       setIsReady(true);
       SplashScreen.hideAsync();
     } catch (error) {
-      console.error("Error en prepare:", error);
+      console.error("❌ Error en prepare:", error);
       setIsAuthenticated(false);
+      setHasPendingVerification(false);
       setIsReady(true);
       SplashScreen.hideAsync();
     }
   };
 
   if (loaded) {
+    console.log("📱 App inicializada, ejecutando prepare...");
     prepare();
   }
 }, [loaded]);
 
-  // Redirigir una vez que tenemos info de auth
+  // Redirigir una vez que tenemos info de auth (SOLO si no hay verificación pendiente)
   useEffect(() => {
-    if (isReady) {
+    if (isReady && !hasPendingVerification) {
       if (isAuthenticated === false) {
         router.replace('/(auth)/login');
       } else if (isAuthenticated === true) {
         router.replace('/(app)/home');
       }
     }
-  }, [isAuthenticated, isReady]);
+  }, [isAuthenticated, isReady, hasPendingVerification]);
 
   // Mostrar loader mientras preparamos
   if (!loaded || !isReady) {

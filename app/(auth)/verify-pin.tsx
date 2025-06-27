@@ -13,6 +13,11 @@ export default function VerifyPinScreen() {
   const router = useRouter();
   const { email } = useLocalSearchParams<{ email: string }>();
 
+  // Debug: mostrar email al cargar la pantalla
+  React.useEffect(() => {
+    console.log("📱 VerifyPinScreen cargada con email:", email);
+  }, [email]);
+
 const handleVerifyPin = async () => {
   try {
     setLoading(true);
@@ -34,8 +39,10 @@ const handleVerifyPin = async () => {
     console.log("Respuesta de verificación:", response);
 
     if (response.description.includes("Email verified successfully")) {
+      console.log("✅ Verificación exitosa, limpiando estado pendiente...");
       // Limpiar el estado de verificación pendiente del Secure Store
       await deleteItemAsync("pendingEmailVerification");
+      console.log("🗑️ Estado de verificación eliminado del Secure Store");
       
       Alert.alert(
         "¡Verificación exitosa!", 
@@ -44,6 +51,7 @@ const handleVerifyPin = async () => {
           {
             text: "OK",
             onPress: () => {
+              console.log("🔄 Navegando a login después de verificación exitosa...");
               // Usar replace para evitar que pueda volver a verify-pin
               router.replace("/(auth)/login");
             }
