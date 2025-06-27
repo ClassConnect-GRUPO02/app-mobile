@@ -7,7 +7,6 @@ import React from 'react';
 import {PaperProvider, MD3LightTheme} from "react-native-paper";
 import {SafeAreaProvider} from "react-native-safe-area-context";
 import {GestureHandlerRootView} from "react-native-gesture-handler";
-import AsyncStorage from '@react-native-async-storage/async-storage';
 import { AppColors } from '@/constants/Colors';
 
 // Tema personalizado con paleta violeta
@@ -45,19 +44,31 @@ export default function RootLayout() {
   // Manejar lógica de auth
 useEffect(() => {
   const prepare = async () => {
-    // ✅ Verificamos si hay email pendiente
-    const pendingEmail = await AsyncStorage.getItem("pendingEmailVerification");
-    if (pendingEmail) {
-      SplashScreen.hideAsync();
-      router.replace(`/(auth)/verify-pin?email=${pendingEmail}`);
-      return; // Salimos del flujo
-    }
+    try {
+      // ✅ Verificamos si hay email pendiente de verificación
+      const pendingEmail = await getItemAsync("pendingEmailVerification");
+      
+      if (pendingEmail) {
+        console.log("Email pendiente de verificación encontrado:", pendingEmail);
+        setIsAuthenticated(false); // No está autenticado hasta verificar
+        setIsReady(true);
+        SplashScreen.hideAsync();
+        // Navegamos a verify-pin con el email
+        router.replace(`/(auth)/verify-pin?email=${encodeURIComponent(pendingEmail)}`);
+        return; // Salimos del flujo
+      }
 
-    // ✅ Si no hay email pendiente, seguimos con auth normal
-    const token = await getItemAsync('userToken');
-    setIsAuthenticated(!!token);
-    setIsReady(true);
-    SplashScreen.hideAsync();
+      // ✅ Si no hay email pendiente, seguimos con auth normal
+      const token = await getItemAsync('userToken');
+      setIsAuthenticated(!!token);
+      setIsReady(true);
+      SplashScreen.hideAsync();
+    } catch (error) {
+      console.error("Error en prepare:", error);
+      setIsAuthenticated(false);
+      setIsReady(true);
+      SplashScreen.hideAsync();
+    }
   };
 
   if (loaded) {

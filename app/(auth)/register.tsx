@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from "react";
 import * as Location from 'expo-location';
-import AsyncStorage from "@react-native-async-storage/async-storage";
+import { setItemAsync } from "expo-secure-store";
 import { View, StyleSheet, KeyboardAvoidingView, Platform, ScrollView, Alert } from "react-native";
 import { TextInput, Button, Text, Title, RadioButton, ActivityIndicator } from "react-native-paper";
 import { Link, useLocalSearchParams, router } from "expo-router";
@@ -102,11 +102,22 @@ export default function RegisterScreen(): React.JSX.Element {
 
       await fetchWithTimeout(userApi.register(userData));
 
-      await AsyncStorage.setItem("pendingEmailVerification", email);
-      // Redirigir a la pantalla de verificación de PIN
-      router.push(`/(auth)/verify-pin?email=${email}`);
-
-      Alert.alert("Registro exitoso", "Verifica tu cuenta ingresando el PIN enviado al correo electrónico.", [{ text: "OK" }]);
+      // Guardar el email para verificación pendiente en Secure Store
+      await setItemAsync("pendingEmailVerification", email);
+      
+      Alert.alert(
+        "Registro exitoso", 
+        "Te hemos enviado un PIN de verificación al correo electrónico. Revisa tu bandeja de entrada para completar el registro.",
+        [
+          {
+            text: "OK",
+            onPress: () => {
+              // Usar replace para evitar que pueda volver al registro
+              router.replace(`/(auth)/verify-pin?email=${encodeURIComponent(email)}`);
+            }
+          }
+        ]
+      );
 
     } catch (error) {
       console.error("Error:", error);
