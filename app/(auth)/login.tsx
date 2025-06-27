@@ -126,16 +126,15 @@ const LoginScreen = (): React.JSX.Element => {
 
       if (response?.token && response?.id && response?.refreshToken) {
         router.replace("/(app)/home");
-      } else {
+      } else if (response?.token === null) {
         throw new Error("Token no recibido del servidor.");
+      } else if (response?.status === 403) {
+        setError("Cuenta bloqueada. Contacta al administrador.");
       }
     } catch (error: any) {
       console.error("Error durante el inicio de sesión:", error);
 
-      if (error?.response?.status === 403) {
-        // Usuario bloqueado
-        setError("Tu cuenta está bloqueada. Por favor, contactá al soporte.");
-      } else if (error instanceof Error) {
+       if (error instanceof Error) {
         setError("Credenciales incorrectas.");
       } else {
         setError("Ocurrió un error al conectar con el servidor");

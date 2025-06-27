@@ -52,7 +52,7 @@ const handleSessionExpired = async () => {
 // Cliente básico para peticiones HTTP
 export const apiClient = {
   // Método para peticiones POST
-  async post<T>(endpoint: string, data: any): Promise<T> {
+  async post<T>(endpoint: string, data: any): Promise<{ ok: boolean; status: number; data: T }> {
     const url = `${BASE_URL}${endpoint}`;
     const headers = await getAuthHeaders();
 
@@ -64,14 +64,17 @@ export const apiClient = {
       });
 
       const responseData = await response.json();
+      console.log('Response:', responseData);
 
-      if (!response.ok) {
-        throw new Error(responseData.message || 'Ocurrió un error en la petición');
-      }
-
-      return responseData;
+      // Ya no lanzamos el error aquí
+      return {
+        ok: response.ok,
+        status: response.status,
+        data: responseData as T,
+      };
     } catch (error) {
       console.error(`Error en petición POST a ${endpoint}:`, error);
+      // Aquí sí puedes lanzar si el error es de red o inesperado
       throw error instanceof Error ? error : new Error('Error desconocido');
     }
   },
